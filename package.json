@@ -1,0 +1,19 @@
+{
+  "name": "enveltia-server",
+  "version": "1.0.0",
+  "description": "Theater of Talismans",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Luka-sama/enveltia-server.git"
+  },
+  "author": "Luka-sama",
+  "license": "",
+  "devDependencies": {
+    "@tsconfig/node14": "^1.0.1",
+    "typescript": "^4.4.3"
+  }
+}
