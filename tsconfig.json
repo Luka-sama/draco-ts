@@ -4,9 +4,10 @@
   "compilerOptions": {
     "rootDir": "src/",
     "outDir": "dist/",
+
+    "module": "es2020",
     "strict": true,
     "noImplicitAny": true,
-    "strictNullChecks": true,
-	"sourceMap": true,
-  },
+    "strictNullChecks": true
+  }
 }
