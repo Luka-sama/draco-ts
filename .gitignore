@@ -1,2 +1,8 @@
 node_modules/
 dist/
+
+# MikroORM
+temp/
+.env
+mikro-orm.config.d.ts
+mikro-orm.config.js

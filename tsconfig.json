@@ -5,10 +5,12 @@
     "rootDir": "src/",
     "outDir": "dist/",
 
-    "module": "es2020",
-    "moduleResolution": "node",
+    "declaration": true,
     "strict": true,
     "noImplicitAny": true,
-    "strictNullChecks": true
+    "strictNullChecks": true,
+
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
   }
 }
