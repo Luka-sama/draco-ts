@@ -12,5 +12,11 @@
 
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
+  },
+  "typedocOptions": {
+    "entryPoints": ["src/"],
+    "entryPointStrategy": "expand",
+    "exclude": "src/mikro-orm.config.ts",
+    "sort": "source-order"
   }
 }
