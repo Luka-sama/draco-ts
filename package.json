@@ -4,7 +4,7 @@
   "description": "Theater of Talismans",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest --config dist/jest.config.js"
   },
   "repository": {
     "type": "git",
@@ -14,7 +14,7 @@
   "private": true,
   "devDependencies": {
     "@tsconfig/node16": "^1.0.2",
-    "jest": "^27.3.1",
+    "jest": "^27.0.3",
     "typedoc": "^0.22.9",
     "typescript": "^4.4.4"
   },
@@ -24,6 +24,7 @@
     "@mikro-orm/migrations": "^4.5.9",
     "@mikro-orm/postgresql": "^4.5.9",
     "@mikro-orm/reflection": "^4.5.9",
+    "@types/jest": "^27.0.3",
     "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.0.0"
   },
   "mikro-orm": {
