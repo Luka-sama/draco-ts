@@ -2,6 +2,8 @@ node_modules/
 dist/
 docs/
 coverage/
+stryker-tmp/
+stryker-report/
 
 # MikroORM
 temp/
