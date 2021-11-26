@@ -4,7 +4,5 @@ docs/
 coverage/
 stryker-tmp/
 stryker-report/
-
-# MikroORM
-temp/
+mikroorm-cache/
 .env
