@@ -1,8 +1,8 @@
-node_modules/
-dist/
-docs/
-coverage/
-stryker-tmp/
-stryker-report/
-mikroorm-cache/
-.env
+/node_modules/
+/dist/
+/docs/
+/coverage/
+/stryker-tmp/
+/stryker-report/
+/mikroorm-cache/
+/.env
