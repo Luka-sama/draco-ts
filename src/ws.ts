@@ -62,7 +62,9 @@ export default class WS {
 	public static emit(socket: uWS.WebSocket, event: string, data: unknown): void {
 		const dataToSend: WSData = {event, data};
 		const json = JSON.stringify(dataToSend);
-		socket.send(json);
+		if (!socket.send(json)) {
+			console.error(`Event ${event} was not emitted`);
+		}
 	}
 
 	/** Converts ArrayBuffer to string */
