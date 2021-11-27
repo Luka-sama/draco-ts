@@ -1,6 +1,6 @@
 import {Buffer} from "buffer";
 import * as uWS from "uWebSockets.js";
-import actions from "./actions";
+import events from "./events";
 
 /**
  * Data which we get from user/send to user
@@ -8,7 +8,7 @@ import actions from "./actions";
  * @category WS
  */
 export interface WSData {
-	action: string;
+	event: string;
 	data: unknown;
 }
 
@@ -19,15 +19,15 @@ export interface WSData {
  */
 export interface Socket extends uWS.WebSocket {
 	/** Sends a message wrapped in the interface WSData */
-	emit(action: string, data: unknown): void;
+	emit(event: string, data: unknown): void;
 }
 
 /**
- * Type of object with router actions
+ * Type of object with router events
  *
  * @category WS
  */
-export interface Actions {
+export interface Events {
 	[key: string]: Function;
 }
 
@@ -59,8 +59,8 @@ export default class WS {
 	}
 
 	/** Sends a message wrapped in the interface WSData to the given socket */
-	public static emit(socket: uWS.WebSocket, action: string, data: unknown): void {
-		const dataToSend: WSData = {action, data};
+	public static emit(socket: uWS.WebSocket, event: string, data: unknown): void {
+		const dataToSend: WSData = {event, data};
 		const json = JSON.stringify(dataToSend);
 		socket.send(json);
 	}
@@ -78,18 +78,18 @@ export default class WS {
 		} catch (e) {
 			return console.error("uWS JSON parsing error");
 		}
-		if (!json.action || json.data === undefined) {
+		if (!json.event || json.data === undefined) {
 			return console.error("uWS JSON false schema");
 		}
-		socket.emit = (action: string, data: unknown) => WS.emit(socket, action, data);
+		socket.emit = (event: string, data: unknown) => WS.emit(socket, event, data);
 		WS.route(socket as Socket, json);
 	}
 
-	/** Calls a function which is defined for this action */
+	/** Calls a function which is defined for this event */
 	private static route(socket: Socket, json: WSData): void {
-		const action = actions[json?.action];
-		if (action) {
-			action(socket, json.data);
+		const event = events[json?.event];
+		if (event) {
+			event(socket, json.data);
 		}
 	}
 }
