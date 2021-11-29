@@ -2,12 +2,12 @@ import {Entity, ManyToOne, PrimaryKey, Property, Unique} from "@mikro-orm/core";
 import Account from "./account";
 
 /**
- * Player entity. Every {@link Account | account} can have multiple players
+ * User entity. Every {@link Account | account} can have multiple users
  *
  * @category Entity
  */
 @Entity()
-export default class Player {
+export default class User {
 	@PrimaryKey()
 	id!: number;
 
