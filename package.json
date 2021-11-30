@@ -31,7 +31,11 @@
     "@mikro-orm/postgresql": "^4.5.9",
     "@mikro-orm/reflection": "^4.5.9",
     "@types/lodash": "^4.14.177",
+    "class-transformer": "^0.5.1",
+    "class-transformer-validator": "^0.9.1",
+    "class-validator": "^0.13.2",
     "lodash": "^4.17.21",
+    "reflect-metadata": "^0.1.13",
     "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.0.0"
   }
 }
