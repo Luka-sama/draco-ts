@@ -1,4 +1,5 @@
 import {Entity, PrimaryKey, Property, Unique} from "@mikro-orm/core";
+import {IsEmail, Length, Matches} from "class-validator";
 
 /**
  * Account entity
@@ -12,14 +13,20 @@ export default class Account {
 
 	@Unique()
 	@Property()
+	@Matches(/[a-z0-9-]/i)
 	name: string;
 
 	@Unique()
 	@Property()
+	@IsEmail()
 	email: string;
 
 	@Property()
+	@Length(8, 32)
 	pass: string;
+
+	@Property()
+	salt: string;
 
 	@Property()
 	regDate = new Date();
@@ -28,5 +35,6 @@ export default class Account {
 		this.name = name;
 		this.email = email;
 		this.pass = pass;
+		this.salt = "";
 	}
 }

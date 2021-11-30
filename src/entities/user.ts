@@ -1,4 +1,5 @@
 import {Entity, ManyToOne, PrimaryKey, Property, Unique} from "@mikro-orm/core";
+import {Matches} from "class-validator";
 import Account from "./account";
 
 /**
@@ -13,6 +14,7 @@ export default class User {
 
 	@Unique()
 	@Property()
+	@Matches(/[A-Z][a-z]*/)
 	name: string;
 
 	@ManyToOne()
