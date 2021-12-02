@@ -1,6 +1,6 @@
 Theater of Talismans. Server
 ============================
-This is one of the three game repositories.
+This is one of the game repositories.
 
 Installation
 ------------
