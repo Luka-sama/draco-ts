@@ -1,4 +1,5 @@
 import {Buffer} from "buffer";
+import {isString} from "class-validator";
 import * as uWS from "uWebSockets.js";
 import Account from "./entities/account";
 import User from "./entities/user";
@@ -25,10 +26,16 @@ export interface WSData {
  */
 export interface Socket extends uWS.WebSocket {
 	account: Account;
-	player: User;
+	user: User;
 
 	/** Sends a message wrapped in the interface WSData */
-	emit(event: string, data: unknown): void;
+	emit(event: string, data?: UserData): void;
+
+	/** Sends a event "info" with data {text: text} */
+	info(text: string): void;
+
+	/** Sends a event "info" with data {text: "WRONG_DATA"} */
+	wrong_data(): void;
 }
 
 /**
@@ -48,6 +55,7 @@ interface Events {
 export default class WS {
 	static app: uWS.TemplatedApp;
 	private static events: Events = {};
+	private static port = 9001;
 
 	/** Initializes WebSocket server */
 	public static async init(): Promise<void> {
@@ -62,19 +70,22 @@ export default class WS {
 				maxBackpressure: 512 * 1024,
 				message: WS.onMessage
 			})
-			.listen(9001, (listenSocket) => {
+			.listen(WS.port, (listenSocket) => {
 				if (listenSocket) {
-					console.log("Listening to port 9001");
+					console.log(`Listening to port ${WS.port}`);
 				}
 			});
 	}
 
 	/** Sends a message wrapped in the interface WSData to the given socket */
-	public static emit(socket: uWS.WebSocket, event: string, data: UserData): void {
+	public static emit(socket: uWS.WebSocket, event: string, data: UserData = {}): void {
 		const dataToSend: WSData = {event, data};
 		const json = JSON.stringify(dataToSend);
+		if (process.env.WS_DEBUG == "true") {
+			console.log(`Sends event ${event} with data ${JSON.stringify(data)}`);
+		}
 		if (!socket.send(json)) {
-			console.error(`Event ${event} was not emitted`);
+			console.error(`Event ${event} was not emitted to account=${socket.account?.id || 0}`);
 		}
 	}
 
@@ -88,7 +99,7 @@ export default class WS {
 	}
 
 	/** Handles getting data. Parses JSON, converts uWS.WebSocket to Socket, calls [[WS.route]] */
-	private static onMessage(socket: uWS.WebSocket, message: ArrayBuffer): void {
+	private static async onMessage(socket: uWS.WebSocket, message: ArrayBuffer): Promise<void> {
 		let json: WSData;
 		try {
 			json = JSON.parse(WS.bufferToStr(message));
@@ -97,18 +108,24 @@ export default class WS {
 		}
 
 		// Validate user input
-		if (typeof json.event != "string" || typeof json.data != "object") {
+		if (!isString(json.event) || typeof json.data != "object") {
 			return console.error("uWS JSON false schema");
 		}
-		socket.emit = (event: string, data: UserData) => WS.emit(socket, event, data);
-		WS.route(socket as Socket, json);
+
+		socket.emit = (event: string, data?: UserData) => WS.emit(socket, event, data);
+		socket.info = (text: string) => socket.emit("info", {text});
+		socket.wrong_data = () => socket.info("WRONG_DATA");
+		await WS.route(socket as Socket, json);
 	}
 
 	/** Calls a function which is defined for this event */
 	private static async route(socket: Socket, json: WSData): Promise<void> {
-		const event = WS.events[json?.event];
+		const event = WS.events[json.event];
 		if (!event) {
-			return;
+			return console.error(`Unknown event ${json.event} with data ${JSON.stringify(json.data)} from account=${socket.account?.id || 0}`);
+		}
+		if (process.env.WS_DEBUG == "true") {
+			console.log(`Gets event ${json.event} with data ${JSON.stringify(json.data)}`);
 		}
 
 		const em = ORM.fork();
