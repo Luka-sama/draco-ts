@@ -19,8 +19,9 @@ MIKRO_ORM_USER = postgres
 MIKRO_ORM_PASSWORD = YOUR_PASSWORD_HERE
 MIKRO_ORM_DB_NAME = enveltia
 MIKRO_ORM_DEBUG = false
+WS_DEBUG = false
 ```
-You can change the connection data or the debug option.
+You can change the connection data or the debug options.
 
 Editor setup
 ------------
@@ -32,6 +33,7 @@ In the case of another editor, however, you will have to find out for yourself h
 
 Useful commands
 ---------------
+* Run server: `node dist`
 * Build project: `npx tsc`
 * Generate documentation: `npx typedoc`
 * Run tests: `npx jest` or `npm t`
