@@ -45,8 +45,4 @@ export default class User {
 	info(text: string) {
 		this.socket?.info(text);
 	}
-
-	wrong_data() {
-		this.socket?.wrong_data();
-	}
 }

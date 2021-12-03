@@ -4,10 +4,16 @@ import * as uWS from "uWebSockets.js";
 import Account from "./entities/account";
 import User from "./entities/user";
 import ORM from "./orm";
+import {WrongDataError} from "./validation";
 
+/**
+ * Entity Manager
+ *
+ * @category ORM
+ */
 export {EntityManager as EM} from "@mikro-orm/postgresql";
 
-type JSONData = string | number | boolean | null | Array<JSONData> | UserData;
+export type JSONData = string | number | boolean | null | Array<JSONData> | UserData;
 export type UserData = {[key: string]: JSONData | undefined};
 /**
  * Data which we get from user/send to user
@@ -33,9 +39,6 @@ export interface Socket extends uWS.WebSocket {
 
 	/** Sends a event "info" with data {text: text} */
 	info(text: string): void;
-
-	/** Sends a event "info" with data {text: "WRONG_DATA"} */
-	wrong_data(): void;
 }
 
 /**
@@ -43,7 +46,7 @@ export interface Socket extends uWS.WebSocket {
  *
  * @category WS
  */
-interface Events {
+export interface Events {
 	[key: string]: Function;
 }
 
@@ -114,7 +117,6 @@ export default class WS {
 
 		socket.emit = (event: string, data?: UserData) => WS.emit(socket, event, data);
 		socket.info = (text: string) => socket.emit("info", {text});
-		socket.wrong_data = () => socket.info("WRONG_DATA");
 		await WS.route(socket as Socket, json);
 	}
 
@@ -132,6 +134,7 @@ export default class WS {
 		try {
 			await event(socket, em, json.data);
 		} catch(e) {
+			socket.info( (e instanceof WrongDataError ? "WRONG_DATA" : "UNKNOWN_ERROR") );
 			console.error(e);
 		}
 	}

@@ -2,6 +2,11 @@ import {MikroORM} from "@mikro-orm/core";
 import {EntityManager, PostgreSqlDriver} from "@mikro-orm/postgresql";
 import config from "../mikro-orm.config";
 
+/**
+ * Simple ORM wrapper
+ *
+ * @category ORM
+ */
 export default class ORM {
 	static orm: MikroORM<PostgreSqlDriver>;
 

@@ -1,7 +1,7 @@
 import {isString} from "class-validator";
 import Account from "./entities/account";
 import User from "./entities/user";
-import {hasErrors, toObject} from "./validation";
+import {ensure, hasErrors, Is, toObject} from "./validation";
 import WS, {EM, Socket, UserData} from "./ws";
 
 function toSnakeCase(str: string): string {
@@ -55,8 +55,8 @@ export function OnlyLogged(): MethodDecorator {
  */
 export default class Auth {
 	@OnlyGuest()
-	static async signUpAccount(sck: Socket, em: EM, data: UserData): Promise<void> {
-		const acc = await toObject(Account, data);
+	static async signUpAccount(sck: Socket, em: EM, raw: UserData): Promise<void> {
+		const acc = await toObject(Account, raw);
 		if (hasErrors(acc)) {
 			return sck.emit("sign_up_account_errors", {errors: acc});
 		}
@@ -66,11 +66,8 @@ export default class Auth {
 	}
 
 	@OnlyGuest()
-	static async signInAccount(sck: Socket, em: EM, data: UserData): Promise<void> {
-		if (!isString(data.nameOrMail) || !isString(data.pass)) {
-			return sck.wrong_data();
-		}
-
+	static async signInAccount(sck: Socket, em: EM, raw: UserData): Promise<void> {
+		const data = ensure(raw, {nameOrMail: Is.string, pass: Is.string});
 		const acc = await em.findOne(Account, {
 			$or: [
 				{mail: data.nameOrMail}, {name: data.nameOrMail}
@@ -88,8 +85,8 @@ export default class Auth {
 	}
 
 	@OnlyLoggedAccount()
-	static async signUpUser(sck: Socket, em: EM, data: UserData): Promise<void> {
-		const user = await toObject(User, data);
+	static async signUpUser(sck: Socket, em: EM, raw: UserData): Promise<void> {
+		const user = await toObject(User, raw);
 		if (hasErrors(user)) {
 			return sck.emit("sign_up_user_errors", {errors: user});
 		}
@@ -100,10 +97,8 @@ export default class Auth {
 	}
 
 	@OnlyLoggedAccount()
-	static async signInUser(sck: Socket, em: EM, data: UserData): Promise<void> {
-		if (!isString(data.name)) {
-			return sck.wrong_data();
-		}
+	static async signInUser(sck: Socket, em: EM, raw: UserData): Promise<void> {
+		const data = ensure(raw, {name: Is.string});
 
 		const user = await em.findOne(User, {name: data.name, account: sck.account});
 		if (!user) {
@@ -123,18 +118,16 @@ export default class Auth {
 	}
 
 	@OnlyGuest()
-	static async signInByToken(sck: Socket, em: EM, data: UserData) {
-		if (!isString(data.account_token) || !isString(data.user_token)) {
-			return sck.wrong_data();
-		}
-
+	static async signInByToken(sck: Socket, em: EM, raw: UserData) {
+		const data = ensure(raw, {account_token: Is.string, user_token: Is.string});
 		const user = await em.findOne(User, {token: data.user_token}, {populate: ["account"]});
 		if (!user || user.account.token != data.account_token) {
 			return sck.info("WRONG_TOKEN");
 		}
+
 		sck.account = user.account;
 		sck.user = user;
-		user.socket = sck
+		user.socket = sck;
 		user.emit("sign_in_user");
 	}
 }
