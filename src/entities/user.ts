@@ -39,10 +39,14 @@ export default class User {
 	}
 
 	emit(event: string, data?: UserData) {
-		this.socket?.emit(event, data);
+		if (this.socket) {
+			this.socket.emit(event, data);
+		} else if (process.env.WS_DEBUG == "true") {
+			console.log(`User ${this.name} (ID=${this.id}) has no socket for event=${event} with data=${JSON.stringify(data)}`);
+		}
 	}
 
 	info(text: string) {
-		this.socket?.info(text);
+		this.emit("info", {text});
 	}
 }
