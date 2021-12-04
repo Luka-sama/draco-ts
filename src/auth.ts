@@ -1,6 +1,7 @@
 import {isString} from "class-validator";
 import Account from "./entities/account";
 import User from "./entities/user";
+import {tr} from "./util";
 import {ensure, hasErrors, Is, toObject} from "./validation";
 import WS, {EM, Socket, UserData} from "./ws";
 
@@ -33,19 +34,19 @@ function OnlyCond(func: Function, replaceSocketWithUser = false): MethodDecorato
 }
 
 export function OnlyGuest(): MethodDecorator {
-	return OnlyCond((sck: Socket) => sck.account ? "PLEASE_LOGOUT" : "");
+	return OnlyCond((sck: Socket) => sck.account ? tr("PLEASE_LOGOUT") : "");
 }
 
 export function OnlyLoggedAccount(): MethodDecorator {
-	return OnlyCond((sck: Socket) => sck.account ? (sck.user ? "PLEASE_LOGOUT" : "") : "PLEASE_LOGIN_ACCOUNT");
+	return OnlyCond((sck: Socket) => sck.account ? (sck.user ? tr("PLEASE_LOGOUT") : "") : tr("PLEASE_LOGIN_ACCOUNT"));
 }
 
 export function OnlyLoggedAtLeastAccount(): MethodDecorator {
-	return OnlyCond((sck: Socket) => sck.account ? "" : "PLEASE_LOGIN_ACCOUNT");
+	return OnlyCond((sck: Socket) => sck.account ? "" : tr("PLEASE_LOGIN_ACCOUNT"));
 }
 
 export function OnlyLogged(): MethodDecorator {
-	return OnlyCond((sck: Socket) => sck.account ? (sck.user ? "" : "PLEASE_LOGIN_USER") : "PLEASE_LOGIN_ACCOUNT");
+	return OnlyCond((sck: Socket) => sck.account ? (sck.user ? "" : tr("PLEASE_LOGIN_USER")) : tr("PLEASE_LOGIN_ACCOUNT"));
 }
 
 /**
@@ -75,9 +76,9 @@ export default class Auth {
 		});
 
 		if (!acc) {
-			return sck.emit("sign_in_account_error", {error: "AUTH_ACCOUNT_NOT_FOUND"});
+			return sck.emit("sign_in_account_error", {error: tr("AUTH_ACCOUNT_NOT_FOUND")});
 		} else if (acc.pass != data.pass) {
-			return sck.emit("sign_in_account_error", {error: "AUTH_WRONG_PASSWORD"});
+			return sck.emit("sign_in_account_error", {error: tr("AUTH_WRONG_PASSWORD")});
 		}
 
 		sck.account = acc;
@@ -102,7 +103,7 @@ export default class Auth {
 
 		const user = await em.findOne(User, {name: data.name, account: sck.account});
 		if (!user) {
-			return sck.emit("sign_in_user_error", {error: "AUTH_USER_NOT_FOUND"});
+			return sck.emit("sign_in_user_error", {error: tr("AUTH_USER_NOT_FOUND")});
 		}
 
 		user.account = sck.account;
@@ -122,7 +123,7 @@ export default class Auth {
 		const data = ensure(raw, {account_token: Is.string, user_token: Is.string});
 		const user = await em.findOne(User, {token: data.user_token}, {populate: ["account"]});
 		if (!user || user.account.token != data.account_token) {
-			return sck.info("WRONG_TOKEN");
+			return sck.info(tr("WRONG_TOKEN"));
 		}
 
 		sck.account = user.account;

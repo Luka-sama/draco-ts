@@ -2,6 +2,7 @@ import {Entity, ManyToOne, PrimaryKey, Property, Unique} from "@mikro-orm/core";
 import {Matches} from "class-validator";
 import {randomBytes} from "crypto";
 import {promisify} from "util";
+import {tr} from "../util";
 import {Socket, UserData} from "../ws";
 import Account from "./account";
 
@@ -17,7 +18,7 @@ export default class User {
 
 	@Unique()
 	@Property()
-	@Matches(/^[A-Z][a-z]*$/, {message: "USER_NAME_FORMAT_WRONG"})
+	@Matches(/^[A-Z][a-z]*$/, {message: tr("USER_NAME_FORMAT_WRONG")})
 	name: string;
 
 	@ManyToOne()

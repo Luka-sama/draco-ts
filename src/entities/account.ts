@@ -2,6 +2,7 @@ import {Entity, PrimaryKey, Property, Unique} from "@mikro-orm/core";
 import {IsEmail, Length, Matches} from "class-validator";
 import {randomBytes} from "crypto";
 import {promisify} from "util";
+import {tr} from "../util";
 
 /**
  * Account entity
@@ -15,16 +16,16 @@ export default class Account {
 
 	@Unique()
 	@Property()
-	@Matches(/^[a-z0-9-]+$/i, {message: "ACCOUNT_NAME_FORMAT_WRONG"})
+	@Matches(/^[a-z0-9-]+$/i, {message: tr("ACCOUNT_NAME_FORMAT_WRONG")})
 	name: string;
 
 	@Unique()
 	@Property()
-	@IsEmail({}, {message: "MAIL_FORMAT_WRONG"})
+	@IsEmail({}, {message: tr("MAIL_FORMAT_WRONG")})
 	mail: string;
 
 	@Property()
-	@Length(8, 32, {message: "PASS_LENGTH_WRONG"})
+	@Length(8, 32, {message: tr("PASS_LENGTH_WRONG")})
 	pass: string;
 
 	@Property()

@@ -4,6 +4,7 @@ import * as uWS from "uWebSockets.js";
 import Account from "./entities/account";
 import User from "./entities/user";
 import ORM from "./orm";
+import {tr} from "./util";
 import {WrongDataError} from "./validation";
 
 /**
@@ -134,7 +135,7 @@ export default class WS {
 		try {
 			await event(socket, em, json.data);
 		} catch(e) {
-			socket.info( (e instanceof WrongDataError ? "WRONG_DATA" : "UNKNOWN_ERROR") );
+			socket.info( (e instanceof WrongDataError ? tr("WRONG_DATA") : tr("UNKNOWN_ERROR")) );
 			console.error(e);
 		}
 	}
