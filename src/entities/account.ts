@@ -1,7 +1,5 @@
 import {Entity, PrimaryKey, Property, Unique} from "@mikro-orm/core";
 import {IsEmail, Length, Matches} from "class-validator";
-import {randomBytes} from "crypto";
-import {promisify} from "util";
 import {tr} from "../util";
 
 /**
@@ -36,16 +34,13 @@ export default class Account {
 
 	@Unique()
 	@Property()
-	token!: string;
+	token: string;
 
-	constructor(name: string, mail: string, pass: string) {
+	constructor(name: string, mail: string, pass: string, token: string) {
 		this.name = name;
 		this.mail = mail;
 		this.pass = pass;
 		this.salt = "";
-	}
-
-	async generateToken() {
-		this.token = (await promisify(randomBytes)(48)).toString("hex");
+		this.token = token;
 	}
 }

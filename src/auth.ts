@@ -1,7 +1,7 @@
 import {isString} from "class-validator";
 import Account from "./entities/account";
 import User from "./entities/user";
-import {tr} from "./util";
+import {getToken, tr} from "./util";
 import {ensure, hasErrors, Is, toObject} from "./validation";
 import WS, {EM, Socket, UserData} from "./ws";
 
@@ -61,7 +61,7 @@ export default class Auth {
 		if (hasErrors(acc)) {
 			return sck.emit("sign_up_account_errors", {errors: acc});
 		}
-		await acc.generateToken();
+		acc.token = await getToken();
 		await em.persistAndFlush(acc);
 		sck.emit("sign_up_account");
 	}
@@ -91,8 +91,8 @@ export default class Auth {
 		if (hasErrors(user)) {
 			return sck.emit("sign_up_user_errors", {errors: user});
 		}
+		user.token = await getToken();
 		user.account = sck.account;
-		await user.generateToken();
 		await em.persistAndFlush(user);
 		sck.emit("sign_up_user");
 	}

@@ -1,7 +1,5 @@
 import {Entity, ManyToOne, PrimaryKey, Property, Unique} from "@mikro-orm/core";
 import {Matches} from "class-validator";
-import {randomBytes} from "crypto";
-import {promisify} from "util";
 import {tr} from "../util";
 import {Socket, UserData} from "../ws";
 import Account from "./account";
@@ -26,17 +24,14 @@ export default class User {
 
 	@Unique()
 	@Property()
-	token!: string;
+	token: string;
 
 	socket?: Socket;
 
-	constructor(name: string, account: Account) {
+	constructor(name: string, account: Account, token: string) {
 		this.name = name;
 		this.account = account;
-	}
-
-	async generateToken() {
-		this.token = (await promisify(randomBytes)(48)).toString("hex");
+		this.token = token;
 	}
 
 	emit(event: string, data?: UserData) {
