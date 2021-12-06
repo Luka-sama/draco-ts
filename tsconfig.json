@@ -4,12 +4,10 @@
   "compilerOptions": {
     "rootDir": "src/",
     "outDir": "dist/",
-
     "declaration": true,
-    "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
+    "sourceMap": true,
 
+    "strict": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
