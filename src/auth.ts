@@ -18,7 +18,7 @@ function OnlyCond(func: Function, replaceSocketWithUser = false): MethodDecorato
 		const originalMethod = descriptor.value;
 
 		descriptor.value = function (sck: Socket, em: EM, data: UserData, ...args: any) {
-			var text = func(sck, em, data);
+			const text = func(sck, em, data);
 			if (!text) {
 				originalMethod.apply(this, [(replaceSocketWithUser ? sck.user : sck), em, data].concat(args));
 			} else {

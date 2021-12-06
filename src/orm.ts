@@ -13,7 +13,7 @@ export default class ORM {
 	/** Initializes the ORM */
 	static async init(): Promise<void> {
 		if (!ORM.orm) {
-			this.orm = await MikroORM.init(config);
+			ORM.orm = await MikroORM.init(config);
 		}
 	}
 
