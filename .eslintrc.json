@@ -1,0 +1,33 @@
+{
+    "env": {
+        "node": true,
+        "es2021": true
+    },
+    "extends": [
+        "eslint:recommended",
+        "plugin:@typescript-eslint/recommended"
+    ],
+    "parser": "@typescript-eslint/parser",
+    "parserOptions": {
+        "ecmaVersion": 12,
+        "sourceType": "module"
+    },
+    "plugins": [
+        "@typescript-eslint"
+    ],
+    "rules": {
+        "camelcase": "error",
+        "capitalized-comments": "warn",
+        "curly": "error",
+        "default-case-last": "error",
+        "default-param-last": "error",
+        "func-name-matching": "error",
+        "prefer-exponentiation-operator": "error",
+
+        "arrow-spacing": ["error", {"before": true, "after": true}],
+        "indent": ["error", "tab", {"ignoredNodes": ["PropertyDefinition"]}],
+        "linebreak-style": ["error", "unix"],
+        "quotes": ["error", "double", {"avoidEscape": true}],
+        "semi": ["error", "always"]
+    }
+}
