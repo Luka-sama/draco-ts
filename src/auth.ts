@@ -63,6 +63,15 @@ export function OnlyLogged(): MethodDecorator {
 }
 
 /**
+ * Decorated method is available for all
+ *
+ * @category Auth decorator
+ */
+export function ForAll(): MethodDecorator {
+	return OnlyCond(() => "");
+}
+
+/**
  * Class for authorization (sign up and sign in)
  */
 export default class Auth {
