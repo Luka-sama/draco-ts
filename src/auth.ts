@@ -1,32 +1,25 @@
 import {isString} from "class-validator";
+import * as _ from "lodash";
 import Account from "./entities/account";
 import User from "./entities/user";
 import {getToken, tr} from "./util";
 import {ensure, hasErrors, Is, toObject} from "./validation";
-import WS, {EM, Socket, UserData} from "./ws";
+import WS, {EM, EventHandler, Socket, UserData} from "./ws";
 
-function toSnakeCase(str: string): string {
-	return str.split("").map((letter: string, idx: number): string => {
-		return letter.toUpperCase() === letter
-			? `${idx !== 0 ? '_' : ''}${letter.toLowerCase()}`
-			: letter;
-	}).join("");
-}
+function OnlyCond(func: (sck: Socket) => string, replaceSocketWithUser = false): MethodDecorator {
+	return function(target: unknown, propertyKey: string | symbol, descriptor: PropertyDescriptor): PropertyDescriptor {
+		const originalMethod: EventHandler = descriptor.value;
 
-function OnlyCond(func: Function, replaceSocketWithUser = false): MethodDecorator {
-	return function(target: Object, propertyKey: string | symbol, descriptor: PropertyDescriptor): PropertyDescriptor {
-		const originalMethod = descriptor.value;
-
-		descriptor.value = function (sck: Socket, em: EM, data: UserData, ...args: any) {
-			const text = func(sck, em, data);
+		descriptor.value = async function(sck: Socket, em: EM, data: UserData) {
+			const text = (typeof jest == "object" ? "" : func(sck));
 			if (!text) {
-				originalMethod.apply(this, [(replaceSocketWithUser ? sck.user : sck), em, data].concat(args));
+				await originalMethod.apply(this, [(replaceSocketWithUser ? sck.user : sck), em, data]);
 			} else {
 				return sck.info(text);
 			}
 		};
 		if (isString(propertyKey)) {
-			WS.addEvent(toSnakeCase(propertyKey), descriptor.value);
+			WS.addEvent(_.snakeCase(propertyKey.replace(/^WS([A-Z])/, "$1")), descriptor.value);
 		}
 
 		return descriptor;
@@ -46,7 +39,7 @@ export function OnlyLoggedAtLeastAccount(): MethodDecorator {
 }
 
 export function OnlyLogged(): MethodDecorator {
-	return OnlyCond((sck: Socket) => sck.account ? (sck.user ? "" : tr("PLEASE_LOGIN_USER")) : tr("PLEASE_LOGIN_ACCOUNT"));
+	return OnlyCond((sck: Socket) => sck.account ? (sck.user ? "" : tr("PLEASE_LOGIN_USER")) : tr("PLEASE_LOGIN_ACCOUNT"), true);
 }
 
 /**
@@ -91,7 +84,6 @@ export default class Auth {
 		if (hasErrors(user)) {
 			return sck.emit("sign_up_user_errors", {errors: user});
 		}
-		user.token = await getToken();
 		user.account = sck.account;
 		await em.persistAndFlush(user);
 		sck.emit("sign_up_user");
@@ -109,20 +101,20 @@ export default class Auth {
 		user.account = sck.account;
 		sck.user = user;
 		user.socket = sck;
-		user.emit("sign_in_user", {account_token: user.account.token, user_token: user.token});
+		user.emit("sign_in_user", {accountToken: user.account.token, userName: user.name});
 	}
 
 	@OnlyLoggedAccount()
 	static async getUserList(sck: Socket, em: EM): Promise<void> {
 		const userList = (await em.find(User, {account: sck.account}, {fields: ["name"]})).map(user => user.name);
-		sck.emit("get_user_list", {list: userList})
+		sck.emit("get_user_list", {list: userList});
 	}
 
 	@OnlyGuest()
 	static async signInByToken(sck: Socket, em: EM, raw: UserData) {
-		const data = ensure(raw, {account_token: Is.string, user_token: Is.string});
-		const user = await em.findOne(User, {token: data.user_token}, {populate: ["account"]});
-		if (!user || user.account.token != data.account_token) {
+		const data = ensure(raw, {accountToken: Is.string, userName: Is.string});
+		const user = await em.findOne(User, {name: data.userName}, {populate: ["account"]});
+		if (!user || user.account.token != data.accountToken) {
 			return sck.info(tr("WRONG_TOKEN"));
 		}
 

@@ -16,7 +16,7 @@ export async function toObject<T extends object>(classType: ClassType<T>, object
 	}
 }
 
-export function hasErrors(obj: Object | string[]): obj is string[] {
+export function hasErrors(obj: unknown): obj is string[] {
 	return obj instanceof Array;
 }
 

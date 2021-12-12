@@ -22,16 +22,11 @@ export default class User {
 	@ManyToOne()
 	account: Account;
 
-	@Unique()
-	@Property()
-	token: string;
-
 	socket?: Socket;
 
-	constructor(name: string, account: Account, token: string) {
+	constructor(name: string, account: Account) {
 		this.name = name;
 		this.account = account;
-		this.token = token;
 	}
 
 	emit(event: string, data?: UserData) {
