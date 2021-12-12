@@ -12,6 +12,7 @@
     "emitDecoratorMetadata": true
   },
   "typedocOptions": {
+    "defaultCategory": "Game",
     "entryPoints": ["src/"],
     "entryPointStrategy": "expand",
     "exclude": "src/mikro-orm.config.ts",

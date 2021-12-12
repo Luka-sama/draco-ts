@@ -17,7 +17,7 @@ import {WrongDataError} from "./validation";
 /**
  * Entity Manager
  *
- * @category ORM
+ * @category Common
  */
 export {EntityManager as EM} from "@mikro-orm/postgresql";
 export type JSONData = string | number | boolean | null | Array<JSONData> | UserData;
@@ -50,8 +50,6 @@ export interface Socket extends uWS.WebSocket {
 
 /**
  * Type of event handler
- *
- * @category WS
  */
 export type EventHandler = (sckOrUser: Socket | User, em: EM, raw: UserData) => Promise<void>;
 
@@ -67,7 +65,7 @@ export interface Events {
 /**
  * WS starts Web Socket server and handles getting/sending data
  *
- * @category Base Class
+ * @category Common
  */
 export default class WS {
 	static app: uWS.TemplatedApp;

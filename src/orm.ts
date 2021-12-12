@@ -5,7 +5,7 @@ import config from "../mikro-orm.config";
 /**
  * Simple ORM wrapper
  *
- * @category ORM
+ * @category Common
  */
 export default class ORM {
 	static orm: MikroORM<PostgreSqlDriver>;

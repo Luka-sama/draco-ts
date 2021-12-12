@@ -26,26 +26,44 @@ function OnlyCond(func: (sck: Socket) => string, replaceSocketWithUser = false):
 	};
 }
 
+/**
+ * Decorated method is available to guests only
+ *
+ * @category Auth decorator
+ */
 export function OnlyGuest(): MethodDecorator {
 	return OnlyCond((sck: Socket) => sck.account ? tr("PLEASE_LOGOUT") : "");
 }
 
+/**
+ * Decorated method is available to logged account (but not logged user) only
+ *
+ * @category Auth decorator
+ */
 export function OnlyLoggedAccount(): MethodDecorator {
 	return OnlyCond((sck: Socket) => sck.account ? (sck.user ? tr("PLEASE_LOGOUT") : "") : tr("PLEASE_LOGIN_ACCOUNT"));
 }
 
+/**
+ * Decorated method is available to logged account or logged user (but not to guest)
+ *
+ * @category Auth decorator
+ */
 export function OnlyLoggedAtLeastAccount(): MethodDecorator {
 	return OnlyCond((sck: Socket) => sck.account ? "" : tr("PLEASE_LOGIN_ACCOUNT"));
 }
 
+/**
+ * Decorated method is available to logged user only
+ *
+ * @category Auth decorator
+ */
 export function OnlyLogged(): MethodDecorator {
 	return OnlyCond((sck: Socket) => sck.account ? (sck.user ? "" : tr("PLEASE_LOGIN_USER")) : tr("PLEASE_LOGIN_ACCOUNT"), true);
 }
 
 /**
  * Class for authorization (sign up and sign in)
- *
- * @category Base Class
  */
 export default class Auth {
 	@OnlyGuest()
