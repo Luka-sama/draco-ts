@@ -163,6 +163,12 @@ export default class WS {
 
 		const em = ORM.fork();
 		const raw = WS.convertKeysInData(json.data, _.camelCase);
+		if (socket.account) {
+			em.persist(socket.account);
+		}
+		if (socket.user) {
+			em.persist(socket.user);
+		}
 		try {
 			await handleEvent(socket, em, raw);
 		} catch(e) {
