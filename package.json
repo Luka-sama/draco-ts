@@ -4,7 +4,8 @@
   "description": "Theater of Talismans",
   "main": "index.js",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "eslint": "eslint \"src/**\""
   },
   "repository": {
     "type": "git",

@@ -38,3 +38,4 @@ Useful commands
 * Generate documentation: `npx typedoc`
 * Run tests: `npx jest` or `npm t`
 * Run mutants: `npx stryker run`
+* Check project with ESLint: `npm run eslint`
