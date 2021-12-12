@@ -23,13 +23,11 @@ WS_DEBUG = false
 ```
 You can change the connection data or the debug options.
 
-Editor setup
+PhpStorm setup
 ------------
-PhpStorm is recommended to edit the project,  but you can use the editor of your choice.
-In the case of another editor, however, you will have to find out for yourself how to set up the editor.
-* Go to File | Settings… | Editor | Code Style and select "Unix and macOS (\n)" as line separator.
+PhpStorm is recommended to edit the project.
 * Go to File | Settings… | Editor | Code Style | TypeScript and check Sort imports by modules on the Imports tab.
-* Go to File | Settings… | Tools | Actions on Save | Optimize Imports
+* Go to File | Settings… | Tools | Actions on Save and choose Optimize Imports.
 
 Useful commands
 ---------------
