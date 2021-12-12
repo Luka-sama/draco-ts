@@ -1,8 +1,8 @@
 import {ensure, Is, Of, WrongDataError} from "./validation";
 import {UserData} from "./ws";
 
-describe("ensure", function() {
-	test("simple object", function() {
+describe("ensure", () => {
+	test("simple object", () => {
 		const shouldBe = {name: Is.string, count: Is.number, flag: Is.bool};
 
 		const correctObj = {name: "test", count: 123, flag: false};
@@ -18,7 +18,7 @@ describe("ensure", function() {
 		}
 	});
 
-	test("array", function() {
+	test("array", () => {
 		const shouldBe = {ids: Is.array(Of.numbers)};
 
 		const correctObjs = [
@@ -38,7 +38,7 @@ describe("ensure", function() {
 		}
 	});
 
-	test("array of arrays", function() {
+	test("array of arrays", () => {
 		const shouldBe = {ids: Is.array(Of.arrays(Of.numbers))};
 
 		const correctObjs = [
@@ -59,7 +59,7 @@ describe("ensure", function() {
 		}
 	});
 
-	test("object", function() {
+	test("object", () => {
 		const shouldBe = {lvl1: {lvl2: {lvl3: Is.number}, sth2: Is.array(Of.strings)}};
 
 		const correctObj = {lvl1: {lvl2: {lvl3: 123}, sth2: ["test", "string"]}};
