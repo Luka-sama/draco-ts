@@ -15,6 +15,6 @@ export function tr(str: string): string {
  *
  * @category Util
  */
-export async function getToken() {
+export async function generateToken() {
 	return (await promisify(randomBytes)(48)).toString("hex");
 }

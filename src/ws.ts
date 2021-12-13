@@ -38,8 +38,11 @@ export interface WSData {
  * @category WS
  */
 export interface Socket extends uWS.WebSocket {
-	account: Account;
-	user: User;
+	account?: Account;
+	user?: User;
+	limits: {
+		[key: string]: number[]
+	};
 
 	/** Sends a message wrapped in the interface WSData */
 	emit(event: string, data?: UserData): void;
@@ -51,7 +54,7 @@ export interface Socket extends uWS.WebSocket {
 /**
  * Type of event handler
  */
-export type EventHandler = (sckOrUser: Socket | User, em: EM, raw: UserData) => Promise<void>;
+export type EventHandler = (sckOrUser: Socket | User, em: EM, raw: UserData) => Promise<void> | Promise<boolean>;
 
 /**
  * Type of object with router events
@@ -117,6 +120,7 @@ export default class WS {
 
 	/** Handles socket connection. Converts uWS.WebSocket to Socket */
 	private static async onOpen(socket: uWS.WebSocket): Promise<void> {
+		socket.limits = {};
 		socket.emit = (event: string, data?: UserData) => WS.emit(socket, event, data);
 		socket.info = (text: string) => socket.emit("info", {text});
 	}

@@ -16,6 +16,8 @@
         "@typescript-eslint"
     ],
     "rules": {
+        "@typescript-eslint/no-non-null-assertion": "off",
+
         "camelcase": "error",
         "capitalized-comments": "warn",
         "curly": "error",
