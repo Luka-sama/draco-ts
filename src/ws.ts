@@ -5,14 +5,13 @@
  */
 import {EntityManager as EM} from "@mikro-orm/postgresql";
 import {Buffer} from "buffer";
-import {isString} from "class-validator";
 import * as _ from "lodash";
 import * as uWS from "uWebSockets.js";
 import Account from "./entities/account";
 import User from "./entities/user";
 import ORM from "./orm";
 import {tr} from "./util";
-import {WrongDataError} from "./validation";
+import {ensure, Is, WrongDataError} from "./validation";
 
 /**
  * Entity Manager
@@ -118,6 +117,19 @@ export default class WS {
 		return Buffer.from(buffer).toString();
 	}
 
+	/** Converts ArrayBuffer to WSData */
+	private static bufferToWSData(buffer: ArrayBuffer): WSData | null {
+		try {
+			const json = JSON.parse(WS.bufferToStr(buffer));
+			if (!json || typeof json != "object" || json instanceof Array) {
+				return null;
+			}
+			return ensure(json, {event: Is.string, data: {}}, true);
+		} catch(e) {
+			return null;
+		}
+	}
+
 	/** Handles socket connection. Converts uWS.WebSocket to Socket */
 	private static async onOpen(socket: uWS.WebSocket): Promise<void> {
 		socket.limits = {};
@@ -127,19 +139,12 @@ export default class WS {
 
 	/** Handles getting data. Parses JSON, calls [[WS.route]] */
 	private static async onMessage(socket: uWS.WebSocket, message: ArrayBuffer): Promise<void> {
-		let json: WSData;
-		try {
-			json = JSON.parse(WS.bufferToStr(message));
-		} catch (e) {
-			return console.error("uWS JSON parsing error");
+		const data = WS.bufferToWSData(message);
+		if (!data) {
+			return console.error("uWS JSON parsing error or false schema");
 		}
+		await WS.route(socket as Socket, data);
 
-		// Validate user input
-		if (!isString(json.event) || typeof json.data != "object") {
-			return console.error("uWS JSON false schema");
-		}
-
-		await WS.route(socket as Socket, json);
 	}
 
 	/** Converts all property names in UserData from snake_case to camelCase */

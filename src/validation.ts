@@ -82,15 +82,19 @@ export class Of {
  *
  * @param data Raw user data
  * @param shouldBe Template to which the data should correspond
+ * @param allowUnknownKeys Are unknown keys allowed?
  *
  * @category Validation
  */
-export function ensure<T extends UserData>(data: UserData, shouldBe: T): T {
-	for (const key in data) {
-		if (!(key in shouldBe)) {
-			throw new WrongDataError(`unknown key ${key}`);
+export function ensure<T extends UserData>(data: UserData, shouldBe: T, allowUnknownKeys = false): T {
+	if (!allowUnknownKeys) {
+		for (const key in data) {
+			if (!(key in shouldBe)) {
+				throw new WrongDataError(`unknown key ${key}`);
+			}
 		}
 	}
+
 	for (const key in shouldBe) {
 		const val = data[key];
 		const toBe = shouldBe[key];
@@ -103,10 +107,10 @@ export function ensure<T extends UserData>(data: UserData, shouldBe: T): T {
 		}
 		if (dataIsArray && shouldBeArray && toBe.length > 0) {
 			for (const item of val) {
-				ensure({test: item}, {test: toBe[0]});
+				ensure({test: item}, {test: toBe[0]}, allowUnknownKeys);
 			}
 		} else if (typeof val == "object" && typeof toBe == "object" && val && toBe && !dataIsArray && !shouldBeArray) {
-			ensure(val, toBe);
+			ensure(val, toBe, allowUnknownKeys);
 		}
 	}
 	return data as T;
