@@ -7,7 +7,6 @@ import {EntityManager as EM} from "@mikro-orm/postgresql";
 import {Buffer} from "buffer";
 import * as _ from "lodash";
 import * as uWS from "uWebSockets.js";
-import {ForAll} from "./auth";
 import Account from "./entities/account";
 import User from "./entities/user";
 import ORM from "./orm";
@@ -183,10 +182,5 @@ export default class WS {
 			socket.info( (e instanceof WrongDataError ? tr("WRONG_DATA") : tr("UNKNOWN_ERROR")) );
 			console.error(e);
 		}
-	}
-
-	@ForAll()
-	static ping(sck: Socket) {
-		sck.emit("pong");
 	}
 }

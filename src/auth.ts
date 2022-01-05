@@ -1,8 +1,10 @@
 import {isString} from "class-validator";
+import {randomBytes} from "crypto";
 import * as _ from "lodash";
+import {promisify} from "util";
 import Account from "./entities/account";
 import User from "./entities/user";
-import {generateToken, tr} from "./util";
+import {tr} from "./util";
 import {ensure, hasErrors, Is, toObject} from "./validation";
 import WS, {EM, EventHandler, Socket, UserData} from "./ws";
 
@@ -109,6 +111,11 @@ export function Limit(ms: number, errorText = tr("LIMIT_REACHED"), times = 1): M
  * Class for authorization (sign up and sign in)
  */
 export default class Auth {
+	@ForAll()
+	static ping(sck: Socket) {
+		sck.emit("pong");
+	}
+
 	@OnlyGuest()
 	@Limit(60000)
 	static async signUpAccount(sck: Socket, em: EM, raw: UserData): Promise<boolean> {
@@ -118,7 +125,7 @@ export default class Auth {
 			return false;
 		}
 
-		acc.token = await generateToken();
+		acc.token = await Auth.generateToken();
 		await em.persistAndFlush(acc);
 		sck.emit("sign_up_account");
 		return true;
@@ -205,5 +212,9 @@ export default class Auth {
 	@OnlyLogged()
 	static async logOutUser(user: User) {
 		delete user.socket!.user;
+	}
+
+	private static async generateToken() {
+		return (await promisify(randomBytes)(48)).toString("hex");
 	}
 }
