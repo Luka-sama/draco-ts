@@ -22,6 +22,7 @@ MIKRO_ORM_DEBUG = false
 WS_DEBUG = false
 ```
 You can change the connection data or the debug options.
+* Create database schema with `npx mikro-orm schema:create -r`
 
 PhpStorm setup
 ------------
