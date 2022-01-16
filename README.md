@@ -23,6 +23,7 @@ WS_DEBUG = false
 ```
 You can change the connection data or the debug options.
 * Create database schema with `npx mikro-orm schema:create -r`
+* Create link from server to client, e. g. using this command (in Windows): mklink /J "YOUR_PATH_TO_SERVER/client" "YOUR_PATH_TO_CLIENT"
 
 PhpStorm setup
 ------------
