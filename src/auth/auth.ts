@@ -2,11 +2,11 @@ import {isString} from "class-validator";
 import {randomBytes} from "crypto";
 import * as _ from "lodash";
 import {promisify} from "util";
-import Account from "./entities/account";
-import User from "./entities/user";
-import {tr} from "./util";
-import {ensure, hasErrors, Is, toObject} from "./validation";
-import WS, {EM, EventHandler, Socket, UserData} from "./ws";
+import {tr} from "../util";
+import {ensure, hasErrors, Is, toObject} from "../validation";
+import WS, {EM, EventHandler, Socket, UserData} from "../ws";
+import Account from "./account.entity";
+import User from "./user.entity";
 
 function OnlyCond(func: (sck: Socket) => string, replaceSocketWithUser = false): MethodDecorator {
 	return function(target: unknown, propertyKey: string | symbol, descriptor: PropertyDescriptor): PropertyDescriptor {

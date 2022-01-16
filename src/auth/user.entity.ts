@@ -2,7 +2,7 @@ import {Entity, ManyToOne, PrimaryKey, Property, Unique} from "@mikro-orm/core";
 import {Matches} from "class-validator";
 import {tr} from "../util";
 import {Socket, UserData} from "../ws";
-import Account from "./account";
+import Account from "./account.entity";
 
 /**
  * User entity. Every {@link Account | account} can have multiple users

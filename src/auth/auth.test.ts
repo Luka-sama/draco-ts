@@ -1,6 +1,6 @@
 import {mock, mockReset} from "jest-mock-extended";
+import {EM, Socket} from "../ws";
 import Auth from "./auth";
-import {EM, Socket} from "./ws";
 
 const sck = mock<Socket>();
 const em = mock<EM>();
