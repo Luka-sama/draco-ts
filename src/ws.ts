@@ -178,6 +178,7 @@ export default class WS {
 		}
 		try {
 			await handleEvent(socket, em, raw);
+			await em.flush();
 		} catch(e) {
 			socket.info( (e instanceof WrongDataError ? tr("WRONG_DATA") : tr("UNKNOWN_ERROR")) );
 			console.error(e);

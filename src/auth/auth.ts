@@ -26,7 +26,7 @@ export default class Auth {
 		}
 
 		acc.token = await Auth.generateToken();
-		await em.persistAndFlush(acc);
+		await em.persist(acc);
 		sck.emit("sign_up_account");
 		return true;
 	}
@@ -61,7 +61,7 @@ export default class Auth {
 		}
 
 		user.account = sck.account!;
-		await em.persistAndFlush(user);
+		await em.persist(user);
 		sck.emit("sign_up_user");
 		return true;
 	}
