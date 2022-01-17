@@ -80,7 +80,6 @@ export default class WS {
 			return;
 		}
 
-		await ORM.init();
 		WS.app = uWS.App()
 			.ws("/ws", {
 				compression: uWS.SHARED_COMPRESSOR,
@@ -97,11 +96,7 @@ export default class WS {
 
 	/** Sends a message wrapped in the interface WSData to the given socket */
 	public static emit(socket: uWS.WebSocket, event: string, data: UserData = {}): void {
-		const dataToSend: WSData = {event, data: WS.convertKeysInData(data, _.snakeCase)};
-		const json = JSON.stringify(dataToSend);
-		if (process.env.WS_DEBUG == "true") {
-			console.log(`Sends event ${event} with data ${JSON.stringify(data)}`);
-		}
+		const json = WS.prepareDataBeforeEmit(event, data);
 		if (!socket.send(json)) {
 			console.error(`Event ${event} was not emitted to account=${socket.account?.id || 0}`);
 		}
@@ -110,6 +105,40 @@ export default class WS {
 	/** Adds event to event list */
 	public static addEvent(event: string, func: EventHandler): void {
 		WS.events[event] = func;
+	}
+
+	public static sub(sckOrUser: Socket | User, topics: string | string[]): void {
+		const socket = (sckOrUser instanceof User ? sckOrUser.socket! : sckOrUser);
+		if (!(topics instanceof Array)) {
+			topics = [topics];
+		}
+		for (const topic of topics) {
+			if (!socket.subscribe(topic)) {
+				console.error(`Error subscribe ${topic}`);
+			}
+		}
+	}
+
+	public static unsub(sckOrUser: Socket | User, topics: string | string[]): void {
+		const socket = (sckOrUser instanceof User ? sckOrUser.socket! : sckOrUser);
+		if (!(topics instanceof Array)) {
+			topics = [topics];
+		}
+		for (const topic of topics) {
+			if (!socket.unsubscribe(topic)) {
+				console.error(`Error unsubcribe ${topic}`);
+			}
+		}
+	}
+
+	public static pub(topics: string | string[], event: string, data: UserData = {}) {
+		const json = WS.prepareDataBeforeEmit(event, data);
+		if (!(topics instanceof Array)) {
+			topics = [topics];
+		}
+		for (const topic of topics) {
+			WS.app.publish(topic, json);
+		}
 	}
 
 	/** Converts ArrayBuffer to string */
@@ -156,6 +185,16 @@ export default class WS {
 			result[func(key)] = (isObject ? WS.convertKeysInData(val, func) : val);
 		}
 		return result;
+	}
+
+	/** Converts data to json with snake case */
+	private static prepareDataBeforeEmit(event: string, data: UserData): string {
+		const dataToSend: WSData = {event, data: WS.convertKeysInData(data, _.snakeCase)};
+		const json = JSON.stringify(dataToSend);
+		if (process.env.WS_DEBUG == "true") {
+			console.log(`Sends event ${event} with data ${JSON.stringify(data)}`);
+		}
+		return json;
 	}
 
 	/** Calls a function which is defined for this event */
