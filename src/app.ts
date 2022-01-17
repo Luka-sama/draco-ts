@@ -1,5 +1,6 @@
 import glob from "glob";
 import path from "path";
+import Cache from "./cache";
 import ORM from "./orm";
 import WS from "./ws";
 
@@ -15,6 +16,7 @@ export default class App {
 
 		App.autoimport();
 		App.catchExceptions();
+		Cache.init();
 		await ORM.init();
 		await WS.init();
 	}
