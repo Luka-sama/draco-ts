@@ -54,7 +54,8 @@ export class WrongDataError extends Error {
  */
 export class Is {
 	static string = "";
-	static number = 0;
+	static double = 0.5;
+	static int = 0;
 	static bool = true;
 	static null = null;
 	static array<T>(values: T): Array<T> {
@@ -69,7 +70,8 @@ export class Is {
  */
 export class Of {
 	static strings = "";
-	static numbers = 0;
+	static doubles = 0.5;
+	static ints = 0;
 	static bools = true;
 	static nulls = null;
 	static arrays<T>(values: T): Array<T> {
@@ -102,8 +104,13 @@ export function ensure<T extends UserData>(data: UserData, shouldBe: T, allowUnk
 		const shouldBeType = typeof toBe;
 		const dataIsArray = val instanceof Array;
 		const shouldBeArray = toBe instanceof Array;
+		const isInt = ( dataType == "number" && Number.isInteger(val) );
+		const shouldBeInt = ( shouldBeType == "number" && Number.isInteger(toBe) );
 		if (dataType != shouldBeType || dataIsArray != shouldBeArray) {
-			throw new WrongDataError(`wrong type ${key} (type ${dataType}, should be ${shouldBeType})`);
+			throw new WrongDataError(`Wrong type of ${key} (type ${dataType}, should be ${shouldBeType})`);
+		}
+		if (shouldBeInt && !isInt) {
+			throw new WrongDataError(`Wrong type of ${key} (type double, should be int)`);
 		}
 		if (dataIsArray && shouldBeArray && toBe.length > 0) {
 			for (const item of val) {
@@ -114,4 +121,17 @@ export function ensure<T extends UserData>(data: UserData, shouldBe: T, allowUnk
 		}
 	}
 	return data as T;
+}
+
+/**
+ * Ensures that condition is true
+ *
+ * @param condition Condition
+ *
+ * @category Validation
+ */
+export function assert(condition: boolean) {
+	if (!condition) {
+		throw new WrongDataError(`Wrong assert`);
+	}
 }

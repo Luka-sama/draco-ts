@@ -3,15 +3,21 @@ import {UserData} from "./ws";
 
 describe("ensure", () => {
 	test("simple object", () => {
-		const shouldBe = {name: Is.string, count: Is.number, flag: Is.bool};
+		const shouldBe = {name: Is.string, count: Is.int, pi: Is.double, flag: Is.bool};
 
-		const correctObj = {name: "test", count: 123, flag: false};
-		expect(ensure(correctObj as UserData, shouldBe)).toBe(correctObj);
+		const correctObjs = [
+			{name: "test", count: 123, pi: 3, flag: false},
+			{name: "test", count: 123, pi: 3.14, flag: false}
+		];
+		for (const correctObj of correctObjs) {
+			expect(ensure(correctObj as UserData, shouldBe)).toBe(correctObj);
+		}
 
 		const wrongObjs = [
-			{name: "test", count: "123", flag: false},
-			{name: "test", count: 123, flag: false, extraKey: true},
-			{name: "test", flag: false}
+			{name: "test", count: 3.14, pi: 3.14, flag: false},
+			{name: "test", count: "123", pi: 3.14, flag: false},
+			{name: "test", count: 123, pi: 3.14, flag: false, extraKey: true},
+			{name: "test", pi: 3.14, flag: false}
 		];
 		for (const wrongObj of wrongObjs) {
 			expect(() => ensure(wrongObj as UserData, shouldBe)).toThrow(WrongDataError);
@@ -19,7 +25,7 @@ describe("ensure", () => {
 	});
 
 	test("array", () => {
-		const shouldBe = {ids: Is.array(Of.numbers)};
+		const shouldBe = {ids: Is.array(Of.ints)};
 
 		const correctObjs = [
 			{ids: [1, 2, 3]},
@@ -39,7 +45,7 @@ describe("ensure", () => {
 	});
 
 	test("array of arrays", () => {
-		const shouldBe = {ids: Is.array(Of.arrays(Of.numbers))};
+		const shouldBe = {ids: Is.array(Of.arrays(Of.ints))};
 
 		const correctObjs = [
 			{ids: [[1, 2, 3], [2, 3, 4], [10, 20, 30]]},
@@ -60,7 +66,7 @@ describe("ensure", () => {
 	});
 
 	test("object", () => {
-		const shouldBe = {lvl1: {lvl2: {lvl3: Is.number}, sth2: Is.array(Of.strings)}};
+		const shouldBe = {lvl1: {lvl2: {lvl3: Is.int}, sth2: Is.array(Of.strings)}};
 
 		const correctObj = {lvl1: {lvl2: {lvl3: 123}, sth2: ["test", "string"]}};
 		expect(ensure(correctObj as UserData, shouldBe)).toBe(correctObj);
