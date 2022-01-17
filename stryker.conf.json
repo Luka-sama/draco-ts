@@ -10,7 +10,7 @@
   "coverageAnalysis": "perTest",
   "tempDirName": "stryker-tmp",
   "checkers": ["typescript"],
-  "mutate": ["src/**/*.ts", "!src/**/*.test.ts", "!src/entities/**"],
+  "mutate": ["src/**/*.ts", "!src/**/*.entity.ts", "!src/**/*.test.ts"],
   "jest": {
     "configFile": "dist/jest.config.js"
   },
