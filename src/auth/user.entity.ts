@@ -1,7 +1,10 @@
 import {Entity, ManyToOne, PrimaryKey, Property, Unique} from "@mikro-orm/core";
 import {Matches} from "class-validator";
+import Cache from "../cache";
+import Location from "../map/location.entity";
 import {tr} from "../util";
-import {Socket, UserData} from "../ws";
+import {Vec2, Vector2} from "../vector";
+import {EM, Socket, UserData} from "../ws";
 import Account from "./account.entity";
 
 /**
@@ -11,6 +14,7 @@ import Account from "./account.entity";
  */
 @Entity()
 export default class User {
+	// Main properties
 	@PrimaryKey()
 	id!: number;
 
@@ -22,11 +26,37 @@ export default class User {
 	@ManyToOne()
 	account: Account;
 
+	@Property({nullable: true})
+	regDate = new Date();
+
+	// Map
+	@ManyToOne({nullable: true})
+	location: Location;
+
+	@Property({nullable: true})
+	x: number;
+
+	@Property({nullable: true})
+	y: number;
+
+	get position() {
+		return Vec2(this.x, this.y);
+	}
+
+	set position(v: Vector2) {
+		this.x = v.x;
+		this.y = v.y;
+	}
+
+	// Other
 	socket?: Socket;
 
-	constructor(name: string, account: Account) {
+	constructor(name: string, account: Account, location: Location, x: number, y: number) {
 		this.name = name;
 		this.account = account;
+		this.location = location;
+		this.x = x;
+		this.y = y;
 	}
 
 	emit(event: string, data?: UserData) {
@@ -39,5 +69,9 @@ export default class User {
 
 	info(text: string) {
 		this.emit("info", {text});
+	}
+
+	static async get(em: EM, id: number) {
+		return await Cache.getOrSet(`user/${id}`, async () => await em.findOne(User, {id}));
 	}
 }

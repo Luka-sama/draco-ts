@@ -1,5 +1,6 @@
 import {randomBytes} from "crypto";
 import {promisify} from "util";
+import Zone from "../map/zone";
 import {tr} from "../util";
 import {ensure, hasErrors, Is, toObject} from "../validation";
 import {EM, Socket, UserData} from "../ws";
@@ -71,11 +72,12 @@ export default class Auth {
 	static async signInUser(sck: Socket, em: EM, raw: UserData): Promise<void> {
 		const data = ensure(raw, {name: Is.string});
 
-		const user = await em.findOne(User, {name: data.name, account: sck.account});
-		if (!user) {
+		const foundUser = await em.findOne(User, {name: data.name, account: sck.account});
+		if (!foundUser) {
 			return sck.emit("sign_in_user_error", {error: tr("AUTH_USER_NOT_FOUND")});
 		}
 
+		const user = await User.get(em, foundUser.id);
 		user.account = sck.account!;
 		sck.user = user;
 		user.socket = sck;
@@ -92,11 +94,12 @@ export default class Auth {
 	@Limit(1000)
 	static async signInByToken(sck: Socket, em: EM, raw: UserData) {
 		const data = ensure(raw, {accountToken: Is.string, userName: Is.string});
-		const user = await em.findOne(User, {name: data.userName}, {populate: ["account"]});
-		if (!user || user.account.token != data.accountToken) {
+		const foundUser = await em.findOne(User, {name: data.userName}, {populate: ["account"]});
+		if (!foundUser || foundUser.account.token != data.accountToken) {
 			return sck.info(tr("WRONG_TOKEN"));
 		}
 
+		const user = await User.get(em, foundUser.id);
 		sck.account = user.account;
 		sck.user = user;
 		user.socket = sck;
@@ -112,6 +115,13 @@ export default class Auth {
 	@OnlyLogged()
 	static async logOutUser(user: User) {
 		delete user.socket!.user;
+	}
+
+	@OnlyLogged()
+	static async startGame(user: User, em: EM) {
+		const zone = await Zone.getByUser(em, user);
+		zone.sub(user);
+		zone.emit(user);
 	}
 
 	private static async generateToken() {
