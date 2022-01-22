@@ -1,6 +1,6 @@
 import glob from "glob";
 import path from "path";
-import Cache from "./cache";
+import Cache from "./cache/cache";
 import ORM from "./orm";
 import WS from "./ws";
 

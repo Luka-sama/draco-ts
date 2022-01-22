@@ -1,14 +1,14 @@
 import {Entity, PrimaryKey, Property, Unique} from "@mikro-orm/core";
-import Tileset from "./tileset.entity";
+import TileSet from "./tile-set.entity";
 
 @Entity()
-@Unique({name: "tile_properties", properties: ["tileset", "tile", "subtileX", "subtileY"]})
+@Unique({name: "tile_properties", properties: ["tileSet", "tile", "subtileX", "subtileY"]})
 export default class Tile {
 	@PrimaryKey()
 	id!: number;
 
 	@Property()
-	tileset: Tileset;
+	tileSet: TileSet;
 
 	@Property()
 	tile: number;
@@ -19,8 +19,8 @@ export default class Tile {
 	@Property()
 	subtileY: number;
 
-	constructor(tileset: Tileset, tile: number, subtileX: number, subtileY: number) {
-		this.tileset = tileset;
+	constructor(tileSet: TileSet, tile: number, subtileX: number, subtileY: number) {
+		this.tileSet = tileSet;
 		this.tile = tile;
 		this.subtileX = subtileX;
 		this.subtileY = subtileY;

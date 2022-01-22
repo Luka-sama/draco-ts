@@ -1,7 +1,7 @@
 import {Entity, PrimaryKey, Property, Unique} from "@mikro-orm/core";
 
 @Entity()
-export default class Tileset {
+export default class TileSet {
 	@PrimaryKey()
 	id!: number;
 
