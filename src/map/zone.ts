@@ -38,14 +38,6 @@ export default class Zone extends CachedObject {
 		return Zone.getNameFor(this.location, this.position);
 	}
 
-	async emitAll(em: EM, user: User) {
-		const users = await this.getVisibleUsers(em);
-		user.emit("load_zone", {
-			me: user.id,
-			users: WS.prepare(users, ["id", "name", "position"]),
-		});
-	}
-
 	isInside(userPosition: Vector2) {
 		this.checkIfLoaded();
 		return Zone.getPosition(userPosition).equals(this.position);
@@ -55,37 +47,34 @@ export default class Zone extends CachedObject {
 		return false;*/
 	}
 
-	sub(user: User) {
-		WS.sub(user, this.getName());
-	}
-
-	pub(event: string, data: UserData = {}) {
-		WS.pub(this.getName(), event, data);
-	}
-
-	async subToAll(em: EM, user: User) {
-		await this.toAllAdjacent(em, zone => zone.sub(user));
-	}
-
-	async pubToAll(em: EM, event: string, data: UserData = {}) {
-		await this.toAllAdjacent(em, zone => zone.pub(event, data));
-	}
-
 	leave(user: User) {
-		Zone.unsubFromAll(user);
 		const i = this.users.indexOf(user);
 		if (i == -1) {
 			return;
 		}
 
 		this.users.splice(i, 1);
-		this.pub("move", WS.prepare(user, ["id", "position"]));
+		this.emit("move", WS.prepare(user, ["id", "position"]));
 	}
 
-	async enter(em: EM, user: User) {
-		await this.subToAll(em, user);
+	enter(em: EM, user: User) {
 		if (!this.users.includes(user)) {
 			this.users.push(user);
+		}
+	}
+
+	async emitAll(em: EM, user: User) {
+		const users = await this.getVisibleUsers(em);
+		user.emit("load_zone", {
+			me: user.id,
+			users: WS.prepare(users, ["id", "name", "position"]),
+		});
+	}
+
+	async emitToAll(em: EM, event: string, data: UserData = {}) {
+		const users = await this.getVisibleUsers(em);
+		for (const user of users) {
+			user.emit(event, data);
 		}
 	}
 
@@ -93,10 +82,6 @@ export default class Zone extends CachedObject {
 		const users: User[] = [];
 		await this.toAllAdjacent(em, zone => users.push(...zone.users));
 		return users;
-	}
-
-	static unsubFromAll(user: User) {
-		WS.unsub(user, WS.getTopics(user, "zone/"));
 	}
 
 	static getPosition(userPosition: Vector2) {
@@ -136,6 +121,12 @@ export default class Zone extends CachedObject {
 				await zone.load(em);
 				func(zone);
 			}
+		}
+	}
+
+	private emit(event: string, data: UserData = {}) {
+		for (const user of this.users) {
+			user.emit(event, data);
 		}
 	}
 }

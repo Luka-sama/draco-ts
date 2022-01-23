@@ -20,6 +20,6 @@ export default class Move {
 			await newZone.emitAll(em, user);
 		}
 
-		await newZone.pubToAll(em, "move", WS.prepare(user, ["id", "position"]));
+		await newZone.emitToAll(em, "move", WS.prepare(user, ["id", "position"]));
 	}
 }

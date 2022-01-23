@@ -123,7 +123,6 @@ export default class Auth {
 	@OnlyLogged()
 	static async startGame({em, user}: EventArgs) {
 		const zone = await Zone.getByUser(em, user);
-		await zone.subToAll(em, user);
 		await zone.emitAll(em, user);
 	}
 
