@@ -1,7 +1,7 @@
 import {OnlyLogged} from "../auth/auth.decorator";
 import User from "../auth/user.entity";
 import {assert, ensure, Is} from "../validation";
-import {Vec2} from "../vector";
+import {Vec2} from "../vector.embeddable";
 import WS, {EM, UserData} from "../ws";
 import Zone from "./zone";
 

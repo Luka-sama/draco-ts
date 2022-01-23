@@ -1,8 +1,9 @@
-import {Entity, PrimaryKey, Property, Unique} from "@mikro-orm/core";
+import {Embedded, Entity, PrimaryKey, Property, Unique} from "@mikro-orm/core";
+import {Vector2} from "../vector.embeddable";
 import TileSet from "./tile-set.entity";
 
 @Entity()
-@Unique({name: "tile_properties", properties: ["tileSet", "tile", "subtileX", "subtileY"]})
+@Unique({name: "tile_properties", properties: ["tileSet", "tile", "subtile_x", "subtile_y"]})
 export default class Tile {
 	@PrimaryKey()
 	id!: number;
@@ -13,16 +14,12 @@ export default class Tile {
 	@Property()
 	tile: number;
 
-	@Property()
-	subtileX: number;
+	@Embedded()
+	subtile: Vector2;
 
-	@Property()
-	subtileY: number;
-
-	constructor(tileSet: TileSet, tile: number, subtileX: number, subtileY: number) {
+	constructor(tileSet: TileSet, tile: number, subtile: Vector2) {
 		this.tileSet = tileSet;
 		this.tile = tile;
-		this.subtileX = subtileX;
-		this.subtileY = subtileY;
+		this.subtile = subtile;
 	}
 }

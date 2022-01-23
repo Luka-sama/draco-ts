@@ -19,7 +19,7 @@ import {ensure, Is, WrongDataError} from "./validation";
  * @category Common
  */
 export {EntityManager as EM} from "@mikro-orm/postgresql";
-export type JSONData = string | number | boolean | null | Array<JSONData> | UserData;
+export type JSONData = string | number | boolean | null | JSONData[] | UserData;
 export type UserData = {[key: string]: JSONData | undefined};
 /**
  * Data which we get from user/send to user
@@ -140,6 +140,36 @@ export default class WS {
 		for (const topic of topics) {
 			WS.app.publish(topic, json);
 		}
+	}
+
+	/**
+	 * Creates an object composed of the picked object properties (or object list with such objects)
+	 *
+	 * If property is not JSONData, tries to apply method toPlain(). If it fails, throws an error **/
+	public static pick(list: any, keys: string[]): JSONData {
+		if (list instanceof Array) {
+			return list.map(object => WS.pick(object instanceof Array ? null : object, keys));
+		}
+
+		const object = list;
+		if (typeof object != "object") {
+			throw new Error(`Tried to send wrong data to user (${object}, typeof=${typeof object})`);
+		}
+
+		const picked = _.pick(object, keys);
+		for (const key in picked) {
+			const value: any = picked[key];
+			const type = typeof value;
+			if (["bigint", "function", "symbol", "undefined"].includes(type)) {
+				throw new Error(`Tried to send wrong data to user (key=${key}, value=${value}, typeof=${type})`);
+			} else if (type == "object" && !_.isPlainObject(value)) {
+				if (typeof value.toPlain != "function") {
+					throw new Error(`Tried to send wrong data to user (key=${key}, object=${object.constructor?.name})`);
+				}
+				picked[key] = value.toPlain();
+			}
+		}
+		return picked;
 	}
 
 	/** Converts ArrayBuffer to string */

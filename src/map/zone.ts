@@ -1,7 +1,6 @@
-import _ from "lodash";
 import User from "../auth/user.entity";
 import CachedObject from "../cache/cached-object";
-import {Vec2, Vector2} from "../vector";
+import {Vec2, Vector2} from "../vector.embeddable";
 import WS, {EM} from "../ws";
 import Location from "./location.entity";
 
@@ -28,10 +27,10 @@ export default class Zone extends CachedObject {
 		if (this.loaded) {
 			return;
 		}
-		this.users = (await em.find(User, {location: this.location, $and: [
-			{x: {$gte: this.start.x, $lt: this.end.x}},
-			{y: {$gte: this.start.y, $lt: this.end.y}}
-		]}));
+		this.users = await em.find(User, {location: this.location, position: {
+			x: {$gte: this.start.x, $lt: this.end.x},
+			y: {$gte: this.start.y, $lt: this.end.y}
+		}});
 		this.loaded = true;
 	}
 
@@ -40,8 +39,10 @@ export default class Zone extends CachedObject {
 	}
 
 	emit(user: User) {
-		const users = this.users.map(user => _.pick(user, ["id", "name", "x", "y"]));
-		user.emit("load_zone", {me: user.id, users});
+		user.emit("load_zone", {
+			me: user.id,
+			users: WS.pick(this.users, ["id", "name", "position"]),
+		});
 	}
 
 	isInside(userPosition: Vector2) {

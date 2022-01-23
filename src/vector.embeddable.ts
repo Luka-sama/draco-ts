@@ -1,8 +1,17 @@
+import {Embeddable, Property} from "@mikro-orm/core";
+
+@Embeddable()
 export class Vector2 {
-	constructor(
-		public readonly x: number = 0,
-		public readonly y: number = 0
-	) {}
+	@Property()
+	public readonly x: number = 0;
+
+	@Property()
+	public readonly y: number = 0;
+
+	constructor(x = 0, y = 0) {
+		this.x = x;
+		this.y = y;
+	}
 
 	add(v: Vector2) {
 		return new Vector2(this.x + v.x, this.y + v.y);

@@ -1,4 +1,5 @@
-import {Entity, ManyToOne, PrimaryKey, Property} from "@mikro-orm/core";
+import {Embedded, Entity, ManyToOne, PrimaryKey} from "@mikro-orm/core";
+import {Vector2} from "../vector.embeddable";
 import Location from "./location.entity";
 import Tile from "./tile.entity";
 
@@ -10,19 +11,15 @@ export default class TileMap {
 	@ManyToOne()
 	location: Location;
 
-	@Property()
-	x: number;
-
-	@Property()
-	y: number;
+	@Embedded({prefix: false})
+	position: Vector2;
 
 	@ManyToOne()
 	tile: Tile;
 
-	constructor(location: Location, x: number, y: number, tile: Tile) {
+	constructor(location: Location, position: Vector2, tile: Tile) {
 		this.location = location;
-		this.x = x;
-		this.y = y;
+		this.position = position;
 		this.tile = tile;
 	}
 }

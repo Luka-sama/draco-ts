@@ -1,5 +1,5 @@
 import {mock, mockReset} from "jest-mock-extended";
-import {Vec2} from "../vector";
+import {Vec2} from "../vector.embeddable";
 import {EM} from "../ws";
 import Location from "./location.entity";
 import Zone from "./zone";

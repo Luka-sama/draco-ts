@@ -1,10 +1,10 @@
-import {Entity, ManyToOne, PrimaryKey, Property, Unique} from "@mikro-orm/core";
+import {Embedded, Entity, ManyToOne, PrimaryKey, Property, Unique} from "@mikro-orm/core";
 import {Matches} from "class-validator";
 import {CacheOptions} from "../cache/cache";
 import CachedEntity from "../cache/cached-entity";
 import Location from "../map/location.entity";
 import {tr} from "../util";
-import {Vec2, Vector2} from "../vector";
+import {Vector2} from "../vector.embeddable";
 import {Socket, UserData} from "../ws";
 import Account from "./account.entity";
 
@@ -36,33 +36,20 @@ export default class User extends CachedEntity {
 	@ManyToOne({nullable: true})
 	location: Location;
 
-	@Property({nullable: true})
-	x: number;
-
-	@Property({nullable: true})
-	y: number;
-
-	get position() {
-		return Vec2(this.x, this.y);
-	}
-
-	set position(v: Vector2) {
-		this.x = v.x;
-		this.y = v.y;
-	}
+	@Embedded({nullable: true, prefix: false})
+	position: Vector2;
 
 	// Other
 	socket?: Socket;
 
 	connected = false;
 
-	constructor(name: string, account: Account, location: Location, x: number, y: number, id = 0) {
+	constructor(name: string, account: Account, location: Location, position: Vector2, id = 0) {
 		super(id);
 		this.name = name;
 		this.account = account;
 		this.location = location;
-		this.x = x;
-		this.y = y;
+		this.position = position;
 		return this.getInstance();
 	}
 
