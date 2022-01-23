@@ -3,7 +3,7 @@ import {promisify} from "util";
 import Zone from "../map/zone";
 import {tr} from "../util";
 import {ensure, hasErrors, Is, toObject} from "../validation";
-import {EM, Socket, UserData} from "../ws";
+import {EventArgs, GuestArgs, Socket} from "../ws";
 import Account from "./account.entity";
 import {ForAll, Limit, OnlyGuest, OnlyLogged, OnlyLoggedAccount, OnlyLoggedAtLeastAccount} from "./auth.decorator";
 import User from "./user.entity";
@@ -19,7 +19,7 @@ export default class Auth {
 
 	@OnlyGuest()
 	@Limit(60000)
-	static async signUpAccount(sck: Socket, em: EM, raw: UserData): Promise<boolean> {
+	static async signUpAccount({em, sck, raw}: GuestArgs): Promise<boolean> {
 		const acc = await toObject(Account, raw);
 		if (hasErrors(acc)) {
 			sck.emit("sign_up_account_errors", {errors: acc});
@@ -34,7 +34,7 @@ export default class Auth {
 
 	@OnlyGuest()
 	@Limit(1000)
-	static async signInAccount(sck: Socket, em: EM, raw: UserData): Promise<void> {
+	static async signInAccount({em, sck, raw}: GuestArgs): Promise<void> {
 		const data = ensure(raw, {nameOrMail: Is.string, pass: Is.string});
 		const acc = await em.findOne(Account, {
 			$or: [
@@ -54,7 +54,7 @@ export default class Auth {
 
 	@OnlyLoggedAccount()
 	@Limit(60000)
-	static async signUpUser(sck: Socket, em: EM, raw: UserData): Promise<boolean> {
+	static async signUpUser({em, sck, raw}: GuestArgs): Promise<boolean> {
 		const user = await toObject(User, raw);
 		if (hasErrors(user)) {
 			sck.emit("sign_up_user_errors", {errors: user});
@@ -69,7 +69,7 @@ export default class Auth {
 
 	@OnlyLoggedAccount()
 	@Limit(1000)
-	static async signInUser(sck: Socket, em: EM, raw: UserData): Promise<void> {
+	static async signInUser({em, sck, raw}: GuestArgs): Promise<void> {
 		const data = ensure(raw, {name: Is.string});
 
 		const user = await em.findOne(User, {name: data.name, account: sck.account});
@@ -85,14 +85,14 @@ export default class Auth {
 	}
 
 	@OnlyLoggedAccount()
-	static async getUserList(sck: Socket, em: EM): Promise<void> {
+	static async getUserList({em, sck}: GuestArgs): Promise<void> {
 		const userList = (await em.find(User, {account: sck.account}, {fields: ["name"]})).map(user => user.name);
 		sck.emit("get_user_list", {list: userList});
 	}
 
 	@OnlyGuest()
 	@Limit(1000)
-	static async signInByToken(sck: Socket, em: EM, raw: UserData) {
+	static async signInByToken({em, sck, raw}: GuestArgs) {
 		const data = ensure(raw, {accountToken: Is.string, userName: Is.string});
 		const user = await em.findOne(User, {name: data.userName}, {populate: ["account"]});
 		if (!user || user.account.token != data.accountToken) {
@@ -107,18 +107,18 @@ export default class Auth {
 	}
 
 	@OnlyLoggedAtLeastAccount()
-	static async logOutAccount(sck: Socket) {
+	static async logOutAccount({sck}: GuestArgs) {
 		delete sck.account;
 		delete sck.user;
 	}
 
 	@OnlyLogged()
-	static async logOutUser(user: User) {
+	static async logOutUser({user}: EventArgs) {
 		delete user.socket!.user;
 	}
 
 	@OnlyLogged()
-	static async startGame(user: User, em: EM) {
+	static async startGame({em, user}: EventArgs) {
 		const zone = await Zone.getByUser(em, user);
 		zone.sub(user);
 		zone.emit(user);

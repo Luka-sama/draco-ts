@@ -53,7 +53,7 @@ export interface Socket extends uWS.WebSocket {
 /**
  * Type of event handler
  */
-export type EventHandler = (sckOrUser: Socket | User, em: EM, raw: UserData) => Promise<void> | Promise<boolean>;
+export type EventHandler = (args: GuestArgs | EventArgs) => Promise<void> | Promise<boolean>;
 
 /**
  * Type of object with router events
@@ -62,6 +62,19 @@ export type EventHandler = (sckOrUser: Socket | User, em: EM, raw: UserData) => 
  */
 export interface Events {
 	[key: string]: EventHandler;
+}
+
+export interface GuestArgs {
+	em: EM;
+	sck: Socket;
+	raw: UserData;
+}
+
+export interface EventArgs {
+	em: EM;
+	sck: Socket;
+	raw: UserData;
+	user: User;
 }
 
 /**
@@ -88,7 +101,7 @@ export default class WS {
 				message: WS.onMessage,
 				close: WS.onClose
 			})
-			.listen(WS.port, (listenSocket) => {
+			.listen(WS.port, listenSocket => {
 				if (listenSocket) {
 					console.log(`Listening to port ${WS.port}`);
 				}
@@ -96,10 +109,10 @@ export default class WS {
 	}
 
 	/** Sends a message wrapped in the interface WSData to the given socket */
-	public static emit(socket: uWS.WebSocket, event: string, data: UserData = {}): void {
+	public static emit(sck: uWS.WebSocket, event: string, data: UserData = {}): void {
 		const json = WS.prepareDataBeforeEmit(event, data);
-		if (!socket.send(json)) {
-			console.error(`Event ${event} was not emitted to account=${socket.account?.id || 0}`);
+		if (!sck.send(json)) {
+			console.error(`Event ${event} was not emitted to account=${sck.account?.id || 0}`);
 		}
 	}
 
@@ -109,24 +122,24 @@ export default class WS {
 	}
 
 	public static sub(sckOrUser: Socket | User, topics: string | string[]): void {
-		const socket = (sckOrUser instanceof User ? sckOrUser.socket! : sckOrUser);
+		const sck = (sckOrUser instanceof User ? sckOrUser.socket! : sckOrUser);
 		if (!(topics instanceof Array)) {
 			topics = [topics];
 		}
 		for (const topic of topics) {
-			if (!socket.subscribe(topic)) {
+			if (!sck.subscribe(topic)) {
 				console.error(`Error subscribe ${topic}`);
 			}
 		}
 	}
 
 	public static unsub(sckOrUser: Socket | User, topics: string | string[]): void {
-		const socket = (sckOrUser instanceof User ? sckOrUser.socket! : sckOrUser);
+		const sck = (sckOrUser instanceof User ? sckOrUser.socket! : sckOrUser);
 		if (!(topics instanceof Array)) {
 			topics = [topics];
 		}
 		for (const topic of topics) {
-			if (!socket.unsubscribe(topic)) {
+			if (!sck.unsubscribe(topic)) {
 				console.error(`Error unsubcribe ${topic}`);
 			}
 		}
@@ -143,8 +156,8 @@ export default class WS {
 	}
 
 	public static getTopics(sckOrUser: Socket | User, startsWith?: string) {
-		const socket = (sckOrUser instanceof User ? sckOrUser.socket! : sckOrUser);
-		const topics = socket.getTopics();
+		const sck = (sckOrUser instanceof User ? sckOrUser.socket! : sckOrUser);
+		const topics = sck.getTopics();
 		if (startsWith) {
 			return topics.filter(topic => topic.startsWith(startsWith));
 		}
@@ -209,26 +222,26 @@ export default class WS {
 	}
 
 	/** Handles socket connection. Converts uWS.WebSocket to Socket */
-	private static async onOpen(socket: uWS.WebSocket): Promise<void> {
-		socket.limits = {};
-		socket.emit = (event: string, data?: UserData) => WS.emit(socket, event, data);
-		socket.info = (text: string) => socket.emit("info", {text});
+	private static async onOpen(sck: uWS.WebSocket): Promise<void> {
+		sck.limits = {};
+		sck.emit = (event: string, data?: UserData) => WS.emit(sck, event, data);
+		sck.info = (text: string) => sck.emit("info", {text});
 	}
 
 	/** Handles socket close event */
-	private static async onClose(socket: uWS.WebSocket): Promise<void> {
-		if (socket.user) {
-			socket.user.connected = false;
+	private static async onClose(sck: uWS.WebSocket): Promise<void> {
+		if (sck.user) {
+			sck.user.connected = false;
 		}
 	}
 
 	/** Handles getting data. Parses JSON, calls [[WS.route]] */
-	private static async onMessage(socket: uWS.WebSocket, message: ArrayBuffer): Promise<void> {
+	private static async onMessage(sck: uWS.WebSocket, message: ArrayBuffer): Promise<void> {
 		const data = WS.bufferToWSData(message);
 		if (!data) {
 			return console.error("uWS JSON parsing error or false schema");
 		}
-		await WS.route(socket as Socket, data);
+		await WS.route(sck as Socket, data);
 
 	}
 
@@ -254,10 +267,10 @@ export default class WS {
 	}
 
 	/** Calls a function which is defined for this event */
-	private static async route(socket: Socket, json: WSData): Promise<void> {
+	private static async route(sck: Socket, json: WSData): Promise<void> {
 		const handleEvent = WS.events[json.event];
 		if (!handleEvent) {
-			return console.error(`Unknown event ${json.event} with data ${JSON.stringify(json.data)} from account=${socket.account?.id || 0}`);
+			return console.error(`Unknown event ${json.event} with data ${JSON.stringify(json.data)} from account=${sck.account?.id || 0}`);
 		}
 		if (process.env.WS_DEBUG == "true") {
 			console.log(`Gets event ${json.event} with data ${JSON.stringify(json.data)}`);
@@ -265,17 +278,17 @@ export default class WS {
 
 		const em = ORM.fork();
 		const raw = WS.convertKeysInData(json.data, _.camelCase);
-		if (socket.account) {
-			em.persist(socket.account);
+		if (sck.account) {
+			em.persist(sck.account);
 		}
-		if (socket.user) {
-			em.persist(socket.user);
+		if (sck.user) {
+			em.persist(sck.user);
 		}
 		try {
-			await handleEvent(socket, em, raw);
+			await handleEvent({sck, em, raw} as unknown as GuestArgs);
 			await em.flush();
 		} catch(e) {
-			socket.info( (e instanceof WrongDataError ? tr("WRONG_DATA") : tr("UNKNOWN_ERROR")) );
+			sck.info( (e instanceof WrongDataError ? tr("WRONG_DATA") : tr("UNKNOWN_ERROR")) );
 			console.error(e);
 		}
 	}

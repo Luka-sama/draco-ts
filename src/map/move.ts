@@ -1,13 +1,12 @@
 import {OnlyLogged} from "../auth/auth.decorator";
-import User from "../auth/user.entity";
 import {assert, ensure, Is} from "../validation";
 import {Vec2} from "../vector.embeddable";
-import WS, {EM, UserData} from "../ws";
+import WS, {EventArgs} from "../ws";
 import Zone from "./zone";
 
 export default class Move {
 	@OnlyLogged()
-	async move(user: User, em: EM, raw: UserData) {
+	async move({em, user, raw}: EventArgs) {
 		const data = ensure(raw, {x: Is.int, y: Is.int});
 		assert(Math.abs(data.x) <= 1 && Math.abs(data.y) <= 1);
 

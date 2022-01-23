@@ -1,19 +1,21 @@
 import {isString} from "class-validator";
 import * as _ from "lodash";
 import {tr} from "../util";
-import WS, {EM, EventHandler, Socket, UserData} from "../ws";
-import User from "./user.entity";
+import WS, {EventArgs, EventHandler, GuestArgs, Socket} from "../ws";
 
-function OnlyCond(func: (sck: Socket) => string, replaceSocketWithUser = false): MethodDecorator {
+function OnlyCond(func: (sck: Socket) => string, addUserToArgs = false): MethodDecorator {
 	return function(target: unknown, propertyKey: string | symbol, descriptor: PropertyDescriptor): PropertyDescriptor {
 		const originalMethod: EventHandler = descriptor.value;
 
-		descriptor.value = async function(sck: Socket, em: EM, data: UserData) {
-			const text = (typeof jest == "object" ? "" : func(sck));
+		descriptor.value = async function(args: EventArgs) {
+			const text = (typeof jest == "object" ? "" : func(args.sck));
 			if (!text) {
-				await originalMethod.apply(this, [(replaceSocketWithUser ? sck.user! : sck), em, data]);
+				if (addUserToArgs) {
+					args.user = args.sck.user!;
+				}
+				await originalMethod.call(this, args);
 			} else {
-				return sck.info(text);
+				return args.sck.info(text);
 			}
 		};
 		if (isString(propertyKey)) {
@@ -80,8 +82,8 @@ export function Limit(ms: number, errorText = tr("LIMIT_REACHED"), times = 1): M
 		const targetName = (typeof target == "function" ? `${target.name}.` : "");
 		const methodName = `${targetName}${propertyKey.toString()}`;
 
-		descriptor.value = async function(sckOrUser: Socket | User, em: EM, data: UserData) {
-			const sck = (sckOrUser instanceof User ? sckOrUser.socket! : sckOrUser);
+		descriptor.value = async function(args: GuestArgs) {
+			const sck = args.sck;
 			if (!sck.limits[methodName]) {
 				sck.limits[methodName] = [];
 			}
@@ -90,12 +92,12 @@ export function Limit(ms: number, errorText = tr("LIMIT_REACHED"), times = 1): M
 
 			if (typeof jest == "object" || limits.length < times) {
 				limits.push(now);
-				const value = await originalMethod.apply(this, [sckOrUser, em, data]);
+				const value = await originalMethod.call(this, args);
 				if (value === false) {
 					limits.splice(limits.indexOf(now), 1);
 				}
 			} else if (errorText) {
-				return sckOrUser.info(errorText);
+				return sck.info(errorText);
 			}
 		};
 
