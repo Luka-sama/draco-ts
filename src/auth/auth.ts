@@ -108,6 +108,9 @@ export default class Auth {
 
 	@OnlyLoggedAtLeastAccount()
 	static async logOutAccount({sck}: GuestArgs) {
+		if (sck.user) {
+			sck.user.connected = false;
+		}
 		delete sck.account;
 		delete sck.user;
 	}
