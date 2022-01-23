@@ -16,10 +16,10 @@ export default class Move {
 		const newZone = await Zone.getByUser(em, user);
 		if (oldZone != newZone) {
 			oldZone.leave(user);
-			newZone.enter(user);
-			newZone.emit(user);
+			await newZone.enter(em, user);
+			await newZone.emitAll(em, user);
 		}
 
-		WS.pub(newZone.getName(), "move", WS.prepare(user, ["id", "position"]));
+		await newZone.pubToAll(em, "move", WS.prepare(user, ["id", "position"]));
 	}
 }
