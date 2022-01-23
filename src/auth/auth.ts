@@ -72,12 +72,12 @@ export default class Auth {
 	static async signInUser(sck: Socket, em: EM, raw: UserData): Promise<void> {
 		const data = ensure(raw, {name: Is.string});
 
-		const foundUser = await em.findOne(User, {name: data.name, account: sck.account});
-		if (!foundUser) {
+		const user = await em.findOne(User, {name: data.name, account: sck.account});
+		if (!user) {
 			return sck.emit("sign_in_user_error", {error: tr("AUTH_USER_NOT_FOUND")});
 		}
 
-		const user = await User.get(em, foundUser.id);
+		user.connected = true;
 		user.account = sck.account!;
 		sck.user = user;
 		user.socket = sck;
@@ -94,15 +94,15 @@ export default class Auth {
 	@Limit(1000)
 	static async signInByToken(sck: Socket, em: EM, raw: UserData) {
 		const data = ensure(raw, {accountToken: Is.string, userName: Is.string});
-		const foundUser = await em.findOne(User, {name: data.userName}, {populate: ["account"]});
-		if (!foundUser || foundUser.account.token != data.accountToken) {
+		const user = await em.findOne(User, {name: data.userName}, {populate: ["account"]});
+		if (!user || user.account.token != data.accountToken) {
 			return sck.info(tr("WRONG_TOKEN"));
 		}
 
-		const user = await User.get(em, foundUser.id);
 		sck.account = user.account;
 		sck.user = user;
 		user.socket = sck;
+		user.connected = true;
 		user.emit("sign_in_user");
 	}
 

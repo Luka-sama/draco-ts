@@ -18,7 +18,6 @@ test.each([
 ])("isInside", async (v, expected) => {
 	const location = new Location("test");
 	const zone = await Zone.get(em, location, Vec2(1, 1));
-	zone["loaded"] = true;
 
 	expect(zone.isInside(v)).toBe(expected);
 });

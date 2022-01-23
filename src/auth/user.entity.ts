@@ -1,10 +1,11 @@
 import {Entity, ManyToOne, PrimaryKey, Property, Unique} from "@mikro-orm/core";
 import {Matches} from "class-validator";
-import Cache from "../cache";
+import {CacheOptions} from "../cache/cache";
+import CachedEntity from "../cache/cached-entity";
 import Location from "../map/location.entity";
 import {tr} from "../util";
 import {Vec2, Vector2} from "../vector";
-import {EM, Socket, UserData} from "../ws";
+import {Socket, UserData} from "../ws";
 import Account from "./account.entity";
 
 /**
@@ -13,7 +14,9 @@ import Account from "./account.entity";
  * @category Entity
  */
 @Entity()
-export default class User {
+export default class User extends CachedEntity {
+	protected static readonly cacheOptions: CacheOptions = {weak: true};
+
 	// Main properties
 	@PrimaryKey()
 	id!: number;
@@ -51,12 +54,16 @@ export default class User {
 	// Other
 	socket?: Socket;
 
-	constructor(name: string, account: Account, location: Location, x: number, y: number) {
+	connected = false;
+
+	constructor(name: string, account: Account, location: Location, x: number, y: number, id = 0) {
+		super(id);
 		this.name = name;
 		this.account = account;
 		this.location = location;
 		this.x = x;
 		this.y = y;
+		return this.getInstance();
 	}
 
 	emit(event: string, data?: UserData) {
@@ -69,9 +76,5 @@ export default class User {
 
 	info(text: string) {
 		this.emit("info", {text});
-	}
-
-	static async get(em: EM, id: number) {
-		return await Cache.getOrSet(`user/${id}`, async () => await em.findOne(User, {id}));
 	}
 }

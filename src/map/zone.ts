@@ -1,15 +1,15 @@
 import _ from "lodash";
 import User from "../auth/user.entity";
-import Cache from "../cache";
+import CachedObject from "../cache/cached-object";
 import {Vec2, Vector2} from "../vector";
 import WS, {EM} from "../ws";
 import Location from "./location.entity";
 
-export default class Zone {
+export default class Zone extends CachedObject {
 	static readonly SIZE = Vec2(16, 16);
 	private loaded = false;
-	private location: Location;
-	private position: Vector2;
+	private readonly location: Location;
+	private readonly position: Vector2;
 	private users: User[] = [];
 	private get start() {
 		return this.position.mul(Zone.SIZE);
@@ -18,7 +18,8 @@ export default class Zone {
 		return this.start.add(Zone.SIZE);
 	}
 
-	private constructor(location: Location, position: Vector2) {
+	constructor(location: Location, position: Vector2) {
+		super(location, position);
 		this.location = location;
 		this.position = position;
 	}
@@ -27,20 +28,15 @@ export default class Zone {
 		if (this.loaded) {
 			return;
 		}
-		const foundUsers = (await em.find(User, {location: this.location, $and: [
-				{x: {$gte: this.start.x, $lt: this.end.x}},
-				{y: {$gte: this.start.y, $lt: this.end.y}}
+		this.users = (await em.find(User, {location: this.location, $and: [
+			{x: {$gte: this.start.x, $lt: this.end.x}},
+			{y: {$gte: this.start.y, $lt: this.end.y}}
 		]}));
-		this.users = [];
-		for (const foundUser of foundUsers) {
-			const user = await User.get(em, foundUser.id);
-			this.users.push(user);
-		}
 		this.loaded = true;
 	}
 
 	getName() {
-		return Zone.getNameByParameters(this.location, this.position);
+		return Zone.getNameFor(this.location, this.position);
 	}
 
 	emit(user: User) {
@@ -102,14 +98,13 @@ export default class Zone {
 	}
 
 	static async get(em: EM, location: Location, position: Vector2) {
-		const name = Zone.getNameByParameters(location, position);
-		const zone: Zone = Cache.getOrSet(name, () => new Zone(location, position));
+		const zone: Zone = new Zone(location, position);
 		await zone.load(em);
 		return zone;
 	}
 
-	private static getNameByParameters(location: Location, position: Vector2) {
-		return `position/loc${location.id}/zone${position.x}x${position.y}`;
+	static getNameFor(location: Location, position: Vector2) {
+		return `zone/location${location.id}/zone${position.x}x${position.y}`;
 	}
 
 	private checkIfLoaded() {

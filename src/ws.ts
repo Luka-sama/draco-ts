@@ -85,7 +85,8 @@ export default class WS {
 				compression: uWS.SHARED_COMPRESSOR,
 				maxBackpressure: 512 * 1024,
 				open: WS.onOpen,
-				message: WS.onMessage
+				message: WS.onMessage,
+				close: WS.onClose
 			})
 			.listen(WS.port, (listenSocket) => {
 				if (listenSocket) {
@@ -164,6 +165,13 @@ export default class WS {
 		socket.limits = {};
 		socket.emit = (event: string, data?: UserData) => WS.emit(socket, event, data);
 		socket.info = (text: string) => socket.emit("info", {text});
+	}
+
+	/** Handles socket close event */
+	private static async onClose(socket: uWS.WebSocket): Promise<void> {
+		if (socket.user) {
+			socket.user.connected = false;
+		}
 	}
 
 	/** Handles getting data. Parses JSON, calls [[WS.route]] */
