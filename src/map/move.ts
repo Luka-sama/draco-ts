@@ -21,6 +21,6 @@ export default class Move {
 			newZone.emit(user);
 		}
 
-		WS.pub(newZone.getName(), "move", {id: user.id, position: user.position.toPlain()});
+		WS.pub(newZone.getName(), "move", WS.prepare(user, ["id", "position"]));
 	}
 }

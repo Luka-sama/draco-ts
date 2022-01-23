@@ -41,7 +41,7 @@ export default class Zone extends CachedObject {
 	emit(user: User) {
 		user.emit("load_zone", {
 			me: user.id,
-			users: WS.pick(this.users, ["id", "name", "position"]),
+			users: WS.prepare(this.users, ["id", "name", "position"]),
 		});
 	}
 
@@ -70,7 +70,7 @@ export default class Zone extends CachedObject {
 		}
 
 		this.users.splice(i, 1);
-		//WS.pub(this.getName(), "change_zone", {id: user.id, position: user.position.toPlain()});
+		WS.pub(this.getName(), "change_zone", WS.prepare(user, ["id", "position"]));
 	}
 
 	enter(user: User) {

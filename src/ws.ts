@@ -154,13 +154,22 @@ export default class WS {
 	/**
 	 * Creates an object composed of the picked object properties (or object list with such objects)
 	 *
-	 * If property is not JSONData, tries to apply method toPlain(). If it fails, throws an error **/
-	public static pick(list: any, keys: string[]): JSONData {
-		if (list instanceof Array) {
-			return list.map(object => WS.pick(object instanceof Array ? null : object, keys));
-		}
+	 * If property is not JSONData, tries to apply method toPlain(). If it fails, throws an error
+	 **/
+	public static prepare<T extends Object>(list: T, keys: string[]): T extends any[] ? UserData[] : UserData {
+		return (list instanceof Array ? WS.prepareArray(list, keys) : WS.prepareOne(list, keys)) as any;
+	}
 
-		const object = list;
+	private static prepareArray(list: any[], keys: string[]): UserData[] {
+		return list.map(object => {
+			if (object instanceof Array) {
+				throw new Error(`Tried to send wrong data to user (${object}, is array)`);
+			}
+			return WS.prepareOne(object, keys);
+		});
+	}
+
+	private static prepareOne(object: any, keys: string[]): UserData {
 		if (typeof object != "object") {
 			throw new Error(`Tried to send wrong data to user (${object}, typeof=${typeof object})`);
 		}
