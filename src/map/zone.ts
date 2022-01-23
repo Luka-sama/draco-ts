@@ -55,12 +55,7 @@ export default class Zone extends CachedObject {
 	}
 
 	unsub(user: User) {
-		const topics = user.socket!.getTopics();
-		for (const topic of topics) {
-			if (topic.startsWith("position/")) {
-				WS.unsub(user, topic);
-			}
-		}
+		WS.unsub(user, WS.getTopics(user, "zone/"));
 	}
 
 	sub(user: User) {
@@ -105,7 +100,7 @@ export default class Zone extends CachedObject {
 	}
 
 	static getNameFor(location: Location, position: Vector2) {
-		return `zone/location${location.id}/zone${position.x}x${position.y}`;
+		return `zone/location${location.id}/${position.x}x${position.y}`;
 	}
 
 	private checkIfLoaded() {

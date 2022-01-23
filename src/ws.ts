@@ -142,6 +142,15 @@ export default class WS {
 		}
 	}
 
+	public static getTopics(sckOrUser: Socket | User, startsWith?: string) {
+		const socket = (sckOrUser instanceof User ? sckOrUser.socket! : sckOrUser);
+		const topics = socket.getTopics();
+		if (startsWith) {
+			return topics.filter(topic => topic.startsWith(startsWith));
+		}
+		return topics;
+	}
+
 	/**
 	 * Creates an object composed of the picked object properties (or object list with such objects)
 	 *
