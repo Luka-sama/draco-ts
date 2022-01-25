@@ -8,7 +8,7 @@ import config from "../mikro-orm.config";
  * @category Common
  */
 export default class ORM {
-	static orm: MikroORM<PostgreSqlDriver>;
+	private static orm: MikroORM<PostgreSqlDriver>;
 
 	/** Initializes the ORM */
 	static async init(): Promise<void> {

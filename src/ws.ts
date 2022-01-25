@@ -83,7 +83,7 @@ export interface EventArgs {
  * @category Common
  */
 export default class WS {
-	static app: uWS.TemplatedApp;
+	private static app: uWS.TemplatedApp;
 	private static events: Events = {};
 	private static port = 9001;
 
