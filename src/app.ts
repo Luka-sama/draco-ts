@@ -4,29 +4,25 @@ import Cache from "./cache/cache";
 import ORM from "./orm";
 import WS from "./ws";
 
-export default class GameApp {
+export default class App {
 	private static started = false;
 
 	/** Auto-import to make @OnlyLogged() and other descriptors to work without explicit import */
 	static async init() {
-		if (GameApp.started) {
+		if (App.started) {
 			return;
 		}
-		GameApp.started = true;
+		App.started = true;
 
-		GameApp.autoimport();
-		GameApp.catchExceptions();
+		App.autoimport();
+		App.catchExceptions();
 		Cache.init();
 		await ORM.init();
 		await WS.init();
 	}
 
 	private static autoimport() {
-		const ignore = [
-			"./dist/index.js", "./dist/**/*.app.js",
-			"./dist/**/*.entity.js", "./dist/**/*.embeddable.js",
-			"./dist/**/*.test.js"
-		];
+		const ignore = ["./dist/**/*.entity.js", "./dist/**/*.test.js"];
 		const fileList = glob.sync("./dist/**/*.js", {ignore});
 		for (const file of fileList) {
 			import(path.resolve(file));
