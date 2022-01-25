@@ -1,6 +1,7 @@
 import {ClassType, transformAndValidate, TransformValidationOptions} from "class-transformer-validator";
 import {ValidationError} from "class-validator";
-import {UserData} from "./ws";
+import {Vec2, Vector2} from "./vector.embeddable";
+import {UserData, UserDataExtended} from "./ws";
 
 /**
  * Converts raw user data to object
@@ -58,6 +59,8 @@ export class Is {
 	static int = 0;
 	static bool = true;
 	static null = null;
+	static vec2 = Vec2(0.5, 0.5);
+	static vec2i = Vec2();
 	static array<T>(values: T): Array<T> {
 		return [values] as Array<T>;
 	}
@@ -74,6 +77,8 @@ export class Of {
 	static ints = 0;
 	static bools = true;
 	static nulls = null;
+	static vec2s = Is.vec2;
+	static vec2is = Is.vec2i;
 	static arrays<T>(values: T): Array<T> {
 		return [values] as Array<T>;
 	}
@@ -82,23 +87,31 @@ export class Of {
 /**
  * Checks if user sent correct data
  *
- * @param data Raw user data
+ * @param raw Raw user data
  * @param shouldBe Template to which the data should correspond
  * @param allowUnknownKeys Are unknown keys allowed?
  *
  * @category Validation
  */
-export function ensure<T extends UserData>(data: UserData, shouldBe: T, allowUnknownKeys = false): T {
+export function ensure<T extends UserDataExtended>(raw: UserData, shouldBe: T, allowUnknownKeys = false): T {
 	if (!allowUnknownKeys) {
-		for (const key in data) {
+		for (const key in raw) {
 			if (!(key in shouldBe)) {
 				throw new WrongDataError(`unknown key ${key}`);
 			}
 		}
 	}
 
+	const result = raw as UserDataExtended;
+	if (shouldBe instanceof Vector2) {
+		if (typeof raw == "object" && raw && !(raw instanceof Array)) {
+			return Vec2(ensure(raw, {x: shouldBe.x, y: shouldBe.y}, allowUnknownKeys)) as T;
+		} else {
+			throw new WrongDataError(`Wrong type of data (type ${typeof raw}, should be Vector2)`);
+		}
+	}
 	for (const key in shouldBe) {
-		const val = data[key];
+		const val = raw[key];
 		const toBe = shouldBe[key];
 		const dataType = typeof val;
 		const shouldBeType = typeof toBe;
@@ -108,19 +121,23 @@ export function ensure<T extends UserData>(data: UserData, shouldBe: T, allowUnk
 		const shouldBeInt = ( shouldBeType == "number" && Number.isInteger(toBe) );
 		if (dataType != shouldBeType || dataIsArray != shouldBeArray) {
 			throw new WrongDataError(`Wrong type of ${key} (type ${dataType}, should be ${shouldBeType})`);
-		}
-		if (shouldBeInt && !isInt) {
+		} else if (shouldBeInt && !isInt) {
 			throw new WrongDataError(`Wrong type of ${key} (type double, should be int)`);
 		}
 		if (dataIsArray && shouldBeArray && toBe.length > 0) {
-			for (const item of val) {
-				ensure({test: item}, {test: toBe[0]}, allowUnknownKeys);
+			for (let i = 0; i < val.length; i++) {
+				val[i] = ensure({test: val[i]}, {test: toBe[0]}, allowUnknownKeys).test;
 			}
-		} else if (typeof val == "object" && typeof toBe == "object" && val && toBe && !dataIsArray && !shouldBeArray) {
-			ensure(val, toBe, allowUnknownKeys);
+		} else if (typeof val == "object" && val && !dataIsArray
+				&& typeof toBe == "object" && toBe && !shouldBeArray && !(result instanceof Vector2)) {
+			if (toBe instanceof Vector2) {
+				result[key] = ensure(val, toBe, allowUnknownKeys);
+			} else if (toBe) {
+				ensure(val, toBe as any, allowUnknownKeys);
+			}
 		}
 	}
-	return data as T;
+	return result as T;
 }
 
 /**
@@ -132,6 +149,6 @@ export function ensure<T extends UserData>(data: UserData, shouldBe: T, allowUnk
  */
 export function assert(condition: boolean) {
 	if (!condition) {
-		throw new WrongDataError(`Wrong assert`);
+		throw new WrongDataError("Wrong assert");
 	}
 }

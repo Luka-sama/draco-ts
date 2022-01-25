@@ -12,6 +12,7 @@ import User from "./auth/user.entity";
 import ORM from "./orm";
 import {tr} from "./util";
 import {ensure, Is, WrongDataError} from "./validation";
+import {Vector2} from "./vector.embeddable";
 
 /**
  * Entity Manager
@@ -21,6 +22,7 @@ import {ensure, Is, WrongDataError} from "./validation";
 export {EntityManager as EM} from "@mikro-orm/postgresql";
 export type JSONData = string | number | boolean | null | JSONData[] | UserData;
 export type UserData = {[key: string]: JSONData | undefined};
+export type UserDataExtended = {[key: string]: JSONData | undefined | Vector2 | Vector2[]} | Vector2;
 /**
  * Data which we get from user/send to user
  *
@@ -169,7 +171,7 @@ export default class WS {
 	 *
 	 * If property is not JSONData, tries to apply method toPlain(). If it fails, throws an error
 	 **/
-	public static prepare<T extends Object>(list: T, keys: string[]): T extends any[] ? UserData[] : UserData {
+	public static prepare<T>(list: T, keys: string[]): T extends unknown[] ? UserData[] : UserData {
 		return (list instanceof Array ? WS.prepareArray(list, keys) : WS.prepareOne(list, keys)) as any;
 	}
 

@@ -1,17 +1,15 @@
 import {OnlyLogged} from "../auth/auth.decorator";
 import {assert, ensure, Is} from "../validation";
-import {Vec2} from "../vector.embeddable";
 import WS, {EventArgs} from "../ws";
 import Zone from "./zone";
 
-export default class Move {
+export default class Movement {
 	@OnlyLogged()
 	async move({em, user, raw}: EventArgs) {
-		const data = ensure(raw, {x: Is.int, y: Is.int});
-		assert(Math.abs(data.x) <= 1 && Math.abs(data.y) <= 1);
+		const diff = ensure(raw, Is.vec2i);
+		assert(Math.abs(diff.x) <= 1 && Math.abs(diff.y) <= 1);
 
 		const oldZone = await Zone.getByUser(em, user);
-		const diff = Vec2(data.x, data.y);
 		user.position = user.position.add(diff);
 		const newZone = await Zone.getByUser(em, user);
 		if (oldZone != newZone) {

@@ -1,5 +1,10 @@
 import {Embeddable, Property} from "@mikro-orm/core";
 
+interface IVector2 {
+	x: number;
+	y: number;
+}
+
 @Embeddable()
 export class Vector2 {
 	@Property()
@@ -49,6 +54,15 @@ export class Vector2 {
 	}
 }
 
-export function Vec2(x: number = 0, y: number = 0) {
+export function Vec2(x?: never, y?: never): Vector2;
+export function Vec2(x: IVector2, y?: never): Vector2;
+export function Vec2(x: number, y: number): Vector2;
+
+export function Vec2(x?: number | IVector2, y?: number): Vector2 {
+	if (x === undefined && y === undefined) {
+		return new Vector2();
+	} else if (typeof x == "object") {
+		return new Vector2(x.x, x.y);
+	}
 	return new Vector2(x, y);
 }
