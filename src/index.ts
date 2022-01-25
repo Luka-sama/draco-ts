@@ -1,4 +1,8 @@
 import "reflect-metadata";
-import App from "./app";
+import AdminApp from "./admin.app";
+import GameApp from "./game.app";
 
-App.init();
+(async function() {
+	await GameApp.init();
+	await AdminApp.init();
+})();
