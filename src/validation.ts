@@ -59,7 +59,7 @@ export class Is {
 	static int = 0;
 	static bool = true;
 	static null = null;
-	static vec2 = Vec2(0.5, 0.5);
+	static vec2f = Vec2(0.5, 0.5);
 	static vec2i = Vec2();
 	static array<T>(values: T): Array<T> {
 		return [values] as Array<T>;
@@ -77,7 +77,7 @@ export class Of {
 	static ints = 0;
 	static bools = true;
 	static nulls = null;
-	static vec2s = Is.vec2;
+	static vec2fs = Is.vec2f;
 	static vec2is = Is.vec2i;
 	static arrays<T>(values: T): Array<T> {
 		return [values] as Array<T>;
