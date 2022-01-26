@@ -1,11 +1,11 @@
 import {OnlyLogged} from "../auth/auth.decorator";
 import {assert, ensure, Is} from "../validation";
-import WS, {EventArgs} from "../ws";
+import WS, {LoggedArgs} from "../ws";
 import Zone from "./zone";
 
 export default class Movement {
 	@OnlyLogged()
-	async move({em, user, raw}: EventArgs) {
+	async move({em, user, raw}: LoggedArgs) {
 		const diff = ensure(raw, Is.vec2i);
 		assert(Math.abs(diff.x) <= 1 && Math.abs(diff.y) <= 1);
 

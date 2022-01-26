@@ -55,7 +55,7 @@ export interface Socket extends uWS.WebSocket {
 /**
  * Type of event handler
  */
-export type EventHandler = (args: GuestArgs | EventArgs) => Promise<void> | Promise<boolean>;
+export type EventHandler = (args: GuestArgs | LoggedArgs) => Promise<void> | Promise<boolean>;
 
 /**
  * Type of object with router events
@@ -72,7 +72,7 @@ export interface GuestArgs {
 	raw: UserData;
 }
 
-export interface EventArgs {
+export interface LoggedArgs {
 	em: EM;
 	sck: Socket;
 	raw: UserData;

@@ -3,7 +3,7 @@ import {promisify} from "util";
 import Zone from "../map/zone";
 import {tr} from "../util";
 import {ensure, hasErrors, Is, toObject} from "../validation";
-import {EventArgs, GuestArgs, Socket} from "../ws";
+import {GuestArgs, LoggedArgs, Socket} from "../ws";
 import Account from "./account.entity";
 import {ForAll, Limit, OnlyGuest, OnlyLogged, OnlyLoggedAccount, OnlyLoggedAtLeastAccount} from "./auth.decorator";
 import User from "./user.entity";
@@ -116,12 +116,12 @@ export default class Auth {
 	}
 
 	@OnlyLogged()
-	static async logOutUser({user}: EventArgs) {
+	static async logOutUser({user}: LoggedArgs) {
 		delete user.socket!.user;
 	}
 
 	@OnlyLogged()
-	static async startGame({em, user}: EventArgs) {
+	static async startGame({em, user}: LoggedArgs) {
 		const zone = await Zone.getByUser(em, user);
 		await zone.emitAll(em, user);
 	}

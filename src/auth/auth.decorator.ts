@@ -1,13 +1,13 @@
 import {isString} from "class-validator";
 import * as _ from "lodash";
 import {tr} from "../util";
-import WS, {EventArgs, EventHandler, GuestArgs, Socket} from "../ws";
+import WS, {EventHandler, GuestArgs, LoggedArgs, Socket} from "../ws";
 
 function OnlyCond(func: (sck: Socket) => string, addUserToArgs = false): MethodDecorator {
 	return function(target: unknown, propertyKey: string | symbol, descriptor: PropertyDescriptor): PropertyDescriptor {
 		const originalMethod: EventHandler = descriptor.value;
 
-		descriptor.value = async function(args: EventArgs) {
+		descriptor.value = async function(args: LoggedArgs) {
 			const text = (typeof jest == "object" ? "" : func(args.sck));
 			if (!text) {
 				if (addUserToArgs) {
