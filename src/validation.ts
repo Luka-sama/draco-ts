@@ -139,16 +139,3 @@ export function ensure<T extends UserDataExtended>(raw: UserData, shouldBe: T, a
 	}
 	return result as T;
 }
-
-/**
- * Ensures that condition is true
- *
- * @param condition Condition
- *
- * @category Validation
- */
-export function assert(condition: boolean) {
-	if (!condition) {
-		throw new WrongDataError("Wrong assert");
-	}
-}

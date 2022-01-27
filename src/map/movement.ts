@@ -1,5 +1,6 @@
+import assert from "assert/strict";
 import {OnlyLogged} from "../auth/auth.decorator";
-import {assert, ensure, Is} from "../validation";
+import {ensure, Is} from "../validation";
 import WS, {LoggedArgs} from "../ws";
 import Zone from "./zone";
 

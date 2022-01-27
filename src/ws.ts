@@ -4,6 +4,7 @@
  * @category ORM
  */
 import {RequestContext} from "@mikro-orm/core";
+import assert from "assert/strict";
 import {Buffer} from "buffer";
 import * as _ from "lodash";
 import * as uWS from "uWebSockets.js";
@@ -110,9 +111,7 @@ export default class WS {
 	/** Sends a message wrapped in the interface WSData to the given socket */
 	public static emit(sck: uWS.WebSocket, event: string, data: UserData = {}): void {
 		const json = WS.prepareDataBeforeEmit(event, data);
-		if (!sck.send(json)) {
-			console.error(`Event ${event} was not emitted to account=${sck.account?.id || 0}`);
-		}
+		console.assert(sck.send(json), `Event ${event} was not emitted to account=${sck.account?.id || 0}`);
 	}
 
 	/** Adds event to event list */
@@ -126,9 +125,7 @@ export default class WS {
 			topics = [topics];
 		}
 		for (const topic of topics) {
-			if (!sck.subscribe(topic)) {
-				console.error(`Error subscribe ${topic}`);
-			}
+			console.assert(sck.subscribe(topic), `Error subscribe ${topic}`);
 		}
 	}
 
@@ -138,9 +135,7 @@ export default class WS {
 			topics = [topics];
 		}
 		for (const topic of topics) {
-			if (!sck.unsubscribe(topic)) {
-				console.error(`Error unsubcribe ${topic}`);
-			}
+			console.assert(sck.unsubcribe(topic), `Error unsubcribe ${topic}`);
 		}
 	}
 
@@ -288,7 +283,7 @@ export default class WS {
 				await handleEvent({sck, raw} as GuestArgs);
 				await EM.flush();
 			} catch (e) {
-				sck.info((e instanceof WrongDataError ? tr("WRONG_DATA") : tr("UNKNOWN_ERROR")));
+				sck.info(e instanceof WrongDataError || e instanceof assert.AssertionError ? tr("WRONG_DATA") : tr("UNKNOWN_ERROR"));
 				console.error(e);
 			}
 		});
