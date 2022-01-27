@@ -1,6 +1,6 @@
 import {wrap, WrappedEntity} from "@mikro-orm/core";
 import _ from "lodash";
-import {EM} from "../ws";
+import {EM} from "../orm";
 import Cache, {CacheOptions} from "./cache";
 
 interface ICachedEntity {
@@ -13,20 +13,20 @@ export default abstract class CachedEntity {
 	private cached?: any;
 	private removed?: boolean;
 
-	static async get<T extends ICachedEntity>(this: T, em: EM, id: number): Promise<InstanceType<T> | null> {
+	static async get<T extends ICachedEntity>(this: T, id: number): Promise<InstanceType<T> | null> {
 		if (!id) {
 			return null;
 		}
-		const cached = (this as any).getIfCached(em, id);
-		return cached || (await em.findOne(this, {id})) as InstanceType<T>;
+		const cached = (this as any).getIfCached(EM, id);
+		return cached || (await EM.findOne(this, {id})) as InstanceType<T>;
 	}
 
-	static async getOrFail<T extends ICachedEntity>(this: T, em: EM, id: number): Promise<InstanceType<T>> {
-		const cached = (this as any).getIfCached(em, id);
-		return cached || (await em.findOneOrFail(this, {id})) as InstanceType<T>;
+	static async getOrFail<T extends ICachedEntity>(this: T, id: number): Promise<InstanceType<T>> {
+		const cached = (this as any).getIfCached(id);
+		return cached || (await EM.findOneOrFail(this, {id})) as InstanceType<T>;
 	}
 
-	static getIfCached<T extends ICachedEntity>(this: T, em: EM, id: number): InstanceType<T> | null {
+	static getIfCached<T extends ICachedEntity>(this: T, id: number): InstanceType<T> | null {
 		if (!id) {
 			return null;
 		}
@@ -34,7 +34,7 @@ export default abstract class CachedEntity {
 
 		const cached = Cache.get(name);
 		if (cached && cached.isInitialized()) {
-			em.persist(cached);
+			EM.persist(cached);
 			return cached;
 		}
 
@@ -86,14 +86,14 @@ export default abstract class CachedEntity {
 		}
 	}
 
-	async create(em: EM): Promise<void> {
-		await em.persistAndFlush(this);
+	async create(): Promise<void> {
+		await EM.persistAndFlush(this);
 		this.cache();
 	}
 
-	async remove(em: EM): Promise<void> {
+	async remove(): Promise<void> {
 		this.removed = true;
-		await em.removeAndFlush(this);
+		await EM.removeAndFlush(this);
 		this.uncache();
 	}
 

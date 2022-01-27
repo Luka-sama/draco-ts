@@ -1,7 +1,8 @@
 import User from "../auth/user.entity";
 import CachedObject from "../cache/cached-object";
+import {EM} from "../orm";
 import {Vec2, Vector2} from "../vector.embeddable";
-import WS, {EM, UserData} from "../ws";
+import WS, {UserData} from "../ws";
 import Location from "./location.entity";
 
 export default class Zone extends CachedObject {
@@ -23,11 +24,11 @@ export default class Zone extends CachedObject {
 		this.position = position;
 	}
 
-	async load(em: EM) {
+	async load() {
 		if (this.loaded) {
 			return;
 		}
-		this.users = await em.find(User, {location: this.location, position: {
+		this.users = await EM.find(User, {location: this.location, position: {
 			x: {$gte: this.start.x, $lt: this.end.x},
 			y: {$gte: this.start.y, $lt: this.end.y}
 		}});
@@ -57,30 +58,30 @@ export default class Zone extends CachedObject {
 		this.emit("move", WS.prepare(user, ["id", "position"]));
 	}
 
-	enter(em: EM, user: User) {
+	enter(user: User) {
 		if (!this.users.includes(user)) {
 			this.users.push(user);
 		}
 	}
 
-	async emitAll(em: EM, user: User) {
-		const users = await this.getVisibleUsers(em);
+	async emitAll(user: User) {
+		const users = await this.getVisibleUsers();
 		user.emit("load_zone", {
 			me: user.id,
 			users: WS.prepare(users, ["id", "name", "position"]),
 		});
 	}
 
-	async emitToAll(em: EM, event: string, data: UserData = {}) {
-		const users = await this.getVisibleUsers(em);
+	async emitToAll(event: string, data: UserData = {}) {
+		const users = await this.getVisibleUsers();
 		for (const user of users) {
 			user.emit(event, data);
 		}
 	}
 
-	async getVisibleUsers(em: EM): Promise<User[]> {
+	async getVisibleUsers(): Promise<User[]> {
 		const users: User[] = [];
-		await this.toAllAdjacent(em, zone => users.push(...zone.users));
+		await this.toAllAdjacent(zone => users.push(...zone.users));
 		return users;
 	}
 
@@ -88,18 +89,18 @@ export default class Zone extends CachedObject {
 		return userPosition.intdiv(Zone.SIZE);
 	}
 
-	static getByUserPosition(em: EM, location: Location, userPosition: Vector2) {
+	static async getByUserPosition(location: Location, userPosition: Vector2) {
 		const zonePosition = Zone.getPosition(userPosition);
-		return Zone.get(em, location, zonePosition);
+		return await Zone.get(location, zonePosition);
 	}
 
-	static async getByUser(em: EM, user: User) {
-		return Zone.getByUserPosition(em, user.location, user.position);
+	static async getByUser(user: User) {
+		return Zone.getByUserPosition(user.location, user.position);
 	}
 
-	static async get(em: EM, location: Location, position: Vector2) {
+	static async get(location: Location, position: Vector2) {
 		const zone: Zone = new Zone(location, position);
-		await zone.load(em);
+		await zone.load();
 		return zone;
 	}
 
@@ -113,12 +114,12 @@ export default class Zone extends CachedObject {
 		}
 	}
 
-	private async toAllAdjacent(em: EM, func: (zone: Zone) => void) {
+	private async toAllAdjacent(func: (zone: Zone) => void) {
 		for (let y = -1; y <= 1; y++) {
 			for (let x = -1; x <= 1; x++) {
 				const newPos = this.position.add(Vec2(x, y));
 				const zone = new Zone(this.location, newPos);
-				await zone.load(em);
+				await zone.load();
 				func(zone);
 			}
 		}

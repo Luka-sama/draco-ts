@@ -2,6 +2,8 @@ import {MikroORM} from "@mikro-orm/core";
 import {EntityManager, PostgreSqlDriver} from "@mikro-orm/postgresql";
 import config from "../mikro-orm.config";
 
+let EM: EntityManager;
+
 /**
  * Simple ORM wrapper
  *
@@ -14,6 +16,7 @@ export default class ORM {
 	static async init(): Promise<void> {
 		if (!ORM.orm) {
 			ORM.orm = await MikroORM.init(config);
+			EM = ORM.orm.em;
 		}
 	}
 
@@ -22,3 +25,5 @@ export default class ORM {
 		return ORM.orm.em.fork();
 	}
 }
+
+export {EM};

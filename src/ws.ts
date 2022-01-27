@@ -3,13 +3,13 @@
  *
  * @category ORM
  */
-import {EntityManager as EM} from "@mikro-orm/postgresql";
+import {RequestContext} from "@mikro-orm/core";
 import {Buffer} from "buffer";
 import * as _ from "lodash";
 import * as uWS from "uWebSockets.js";
 import Account from "./auth/account.entity";
 import User from "./auth/user.entity";
-import ORM from "./orm";
+import {EM} from "./orm";
 import {tr} from "./util";
 import {ensure, Is, WrongDataError} from "./validation";
 import {Vector2} from "./vector.embeddable";
@@ -19,7 +19,6 @@ import {Vector2} from "./vector.embeddable";
  *
  * @category Common
  */
-export {EntityManager as EM} from "@mikro-orm/postgresql";
 export type JSONData = string | number | boolean | null | JSONData[] | UserData;
 export type UserData = {[key: string]: JSONData | undefined};
 export type UserDataExtended = {[key: string]: JSONData | undefined | Vector2 | Vector2[]} | Vector2;
@@ -67,13 +66,11 @@ export interface Events {
 }
 
 export interface GuestArgs {
-	em: EM;
 	sck: Socket;
 	raw: UserData;
 }
 
 export interface LoggedArgs {
-	em: EM;
 	sck: Socket;
 	raw: UserData;
 	user: User;
@@ -278,20 +275,22 @@ export default class WS {
 			console.log(`Gets event ${json.event} with data ${JSON.stringify(json.data)}`);
 		}
 
-		const em = ORM.fork();
 		const raw = WS.convertKeysInData(json.data, _.camelCase);
-		if (sck.account) {
-			em.persist(sck.account);
-		}
-		if (sck.user) {
-			em.persist(sck.user);
-		}
-		try {
-			await handleEvent({sck, em, raw} as unknown as GuestArgs);
-			await em.flush();
-		} catch(e) {
-			sck.info( (e instanceof WrongDataError ? tr("WRONG_DATA") : tr("UNKNOWN_ERROR")) );
-			console.error(e);
-		}
+
+		RequestContext.create(EM, async function() {
+			if (sck.account) {
+				EM.persist(sck.account);
+			}
+			if (sck.user) {
+				EM.persist(sck.user);
+			}
+			try {
+				await handleEvent({sck, raw} as GuestArgs);
+				await EM.flush();
+			} catch (e) {
+				sck.info((e instanceof WrongDataError ? tr("WRONG_DATA") : tr("UNKNOWN_ERROR")));
+				console.error(e);
+			}
+		});
 	}
 }
