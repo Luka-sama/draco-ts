@@ -58,7 +58,7 @@ describe("ensure", () => {
 		[{diffs: [{x: 7, y: 4}, {x: 10, y: 5.5}]}, true],
 		[{diffs: [{x: 7, y: 4}, {x: 10, z: 5}]}, false],
 	])("vectors", (raw: UserData, result: boolean) => {
-		const shouldBe = {diffs: Is.array(Of.vec2s)};
+		const shouldBe = {diffs: Is.array(Of.vec2fs)};
 		check(raw, result, shouldBe);
 
 		if (result) {
@@ -86,7 +86,7 @@ describe("ensure", () => {
 	});
 
 	test("data is vector", () => {
-		const shouldBe = Is.vec2;
+		const shouldBe = Is.vec2i;
 		const raw = {x: 2, y: 3};
 		const val = ensure(raw, shouldBe);
 		expect(val).toBeInstanceOf(Vector2);
