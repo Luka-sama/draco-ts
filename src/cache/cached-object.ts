@@ -3,6 +3,7 @@ import Cache, {CacheOptions} from "./cache";
 export default abstract class CachedObject {
 	id!: number | string;
 	protected static readonly cacheOptions: CacheOptions = {};
+	private cached?: any;
 
 	abstract getName(): string;
 
@@ -15,9 +16,18 @@ export default abstract class CachedObject {
 		const name = derived.getNameFor(...args);
 		const cached = Cache.get(name);
 		if (cached) {
-			return cached;
+			this.cached = cached;
 		} else {
 			Cache.set(name, this, derived.cacheOptions);
 		}
+	}
+
+	protected getInstance() {
+		const cached = this.cached;
+		if (!cached) {
+			return this;
+		}
+		delete this.cached;
+		return cached;
 	}
 }

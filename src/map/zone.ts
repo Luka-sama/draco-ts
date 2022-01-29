@@ -22,6 +22,7 @@ export default class Zone extends CachedObject {
 		super(location, position);
 		this.location = location;
 		this.position = position;
+		return this.getInstance();
 	}
 
 	async load() {
