@@ -1,7 +1,6 @@
 import {Embedded, Entity, ManyToOne, PrimaryKey, Property, Unique} from "@mikro-orm/core";
 import {Matches} from "class-validator";
-import {CacheOptions} from "../cache/cache";
-import CachedEntity from "../cache/cached-entity";
+import {WeakCachedEntity} from "../cache/cached-entity";
 import Location from "../map/location.entity";
 import {tr} from "../util";
 import {Vector2} from "../vector.embeddable";
@@ -14,9 +13,7 @@ import Account from "./account.entity";
  * @category Entity
  */
 @Entity()
-export default class User extends CachedEntity {
-	protected static readonly cacheOptions: CacheOptions = {weak: true};
-
+export default class User extends WeakCachedEntity {
 	// Main properties
 	@PrimaryKey()
 	id!: number;

@@ -1,5 +1,6 @@
 import {Entity, PrimaryKey, Property, Unique} from "@mikro-orm/core";
 import {IsEmail, Length, Matches} from "class-validator";
+import {WeakCachedEntity} from "../cache/cached-entity";
 import {tr} from "../util";
 
 /**
@@ -8,7 +9,7 @@ import {tr} from "../util";
  * @category Entity
  */
 @Entity()
-export default class Account {
+export default class Account extends WeakCachedEntity {
 	@PrimaryKey()
 	id!: number;
 
@@ -36,11 +37,13 @@ export default class Account {
 	@Property()
 	token: string;
 
-	constructor(name: string, mail: string, pass: string, token: string) {
+	constructor(name: string, mail: string, pass: string, token: string, id = 0) {
+		super(id);
 		this.name = name;
 		this.mail = mail;
 		this.pass = pass;
 		this.salt = "";
 		this.token = token;
+		return this.getInstance();
 	}
 }

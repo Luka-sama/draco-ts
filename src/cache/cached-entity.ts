@@ -7,7 +7,7 @@ interface ICachedEntity {
 	new(...args: any): CachedEntity
 }
 
-export default abstract class CachedEntity {
+export abstract class CachedEntity {
 	id!: number;
 	protected static readonly cacheOptions: CacheOptions = {};
 	private cached?: any;
@@ -138,4 +138,8 @@ export default abstract class CachedEntity {
 	private static getNameFor(id: number): string {
 		return _.camelCase(this.name) + `/${id}`;
 	}
+}
+
+export abstract class WeakCachedEntity extends CachedEntity {
+	protected static readonly cacheOptions: CacheOptions = {weak: true};
 }

@@ -1,7 +1,8 @@
 import {Entity, PrimaryKey, Property, Unique} from "@mikro-orm/core";
+import {WeakCachedEntity} from "../cache/cached-entity";
 
 @Entity()
-export default class Location {
+export default class Location extends WeakCachedEntity {
 	@PrimaryKey()
 	id!: number;
 
@@ -9,7 +10,9 @@ export default class Location {
 	@Property()
 	name: string;
 
-	constructor(name: string) {
+	constructor(name: string, id = 0) {
+		super(id);
 		this.name = name;
+		return this.getInstance();
 	}
 }
