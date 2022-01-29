@@ -11,6 +11,7 @@ import * as uWS from "uWebSockets.js";
 import Account from "./auth/account.entity";
 import User from "./auth/user.entity";
 import {EM} from "./orm";
+import {synchronize} from "./sync.decorator";
 import {tr} from "./util";
 import {ensure, Is, WrongDataError} from "./validation";
 import {Vector2} from "./vector.embeddable";
@@ -164,6 +165,9 @@ export default class WS {
 	 * If property is not JSONData, tries to apply method toPlain(). If it fails, throws an error
 	 **/
 	public static prepare<T>(list: T, keys: string[]): T extends unknown[] ? UserData[] : UserData {
+		if (list instanceof Set) {
+			return WS.prepareArray(Array.from(list), keys) as any;
+		}
 		return (list instanceof Array ? WS.prepareArray(list, keys) : WS.prepareOne(list, keys)) as any;
 	}
 
@@ -282,6 +286,7 @@ export default class WS {
 			try {
 				await handleEvent({sck, raw} as GuestArgs);
 				await EM.flush();
+				await synchronize();
 			} catch (e) {
 				sck.info(e instanceof WrongDataError || e instanceof assert.AssertionError ? tr("WRONG_DATA") : tr("UNKNOWN_ERROR"));
 				console.error(e);

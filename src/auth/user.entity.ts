@@ -2,6 +2,8 @@ import {Embedded, Entity, ManyToOne, PrimaryKey, Property, Unique} from "@mikro-
 import {Matches} from "class-validator";
 import {WeakCachedEntity} from "../cache/cached-entity";
 import Location from "../map/location.entity";
+import Zone from "../map/zone";
+import Sync from "../sync.decorator";
 import {tr} from "../util";
 import {Vector2} from "../vector.embeddable";
 import {Socket, UserData} from "../ws";
@@ -13,6 +15,18 @@ import Account from "./account.entity";
  * @category Entity
  */
 @Entity()
+@Sync([
+	{
+		event: "move",
+		properties: {
+			id: true,
+			location: {hidden: true},
+			position: true
+		},
+		zone: true,
+		handler: Zone.changeHandler
+	}
+])
 export default class User extends WeakCachedEntity {
 	// Main properties
 	@PrimaryKey()

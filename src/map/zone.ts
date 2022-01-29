@@ -1,3 +1,4 @@
+import {AnyEntity, ChangeSet} from "@mikro-orm/core";
 import User from "../auth/user.entity";
 import CachedObject from "../cache/cached-object";
 import {EM} from "../orm";
@@ -10,7 +11,7 @@ export default class Zone extends CachedObject {
 	private loaded = false;
 	private readonly location: Location;
 	private readonly position: Vector2;
-	private users: User[] = [];
+	private users: Set<User> = new Set();
 	private get start() {
 		return this.position.mul(Zone.SIZE);
 	}
@@ -29,10 +30,11 @@ export default class Zone extends CachedObject {
 		if (this.loaded) {
 			return;
 		}
-		this.users = await EM.find(User, {location: this.location, position: {
+		const where = {location: this.location, position: {
 			x: {$gte: this.start.x, $lt: this.end.x},
 			y: {$gte: this.start.y, $lt: this.end.y}
-		}});
+		}};
+		this.users = new Set( await EM.find(User, where) );
 		this.loaded = true;
 	}
 
@@ -50,19 +52,35 @@ export default class Zone extends CachedObject {
 	}
 
 	leave(user: User) {
-		const i = this.users.indexOf(user);
-		if (i == -1) {
-			return;
-		}
-
-		this.users.splice(i, 1);
+		this.users.delete(user);
 		this.emit("move", WS.prepare(user, ["id", "position"]));
 	}
 
 	enter(user: User) {
-		if (!this.users.includes(user)) {
-			this.users.push(user);
+		this.users.add(user);
+	}
+
+	async changeTo(user: User, oldZone: Zone) {
+		const newZone = this;
+		if (oldZone != newZone) {
+			oldZone.leave(user);
+			newZone.enter(user);
+			await newZone.emitAll(user);
 		}
+	}
+
+	static async changeHandler(changeSet: ChangeSet<AnyEntity>) {
+		const original = changeSet.originalEntity;
+		if (!original) {
+			return;
+		}
+		const oldPosition = Vec2(original.x, original.y);
+		const oldLocation = await EM.findOneOrFail(Location, {id: original.location});
+		const oldZone = await Zone.getByUserPosition(oldLocation, oldPosition);
+
+		const entity = changeSet.entity;
+		const newZone = await Zone.getByUserPosition(entity.location, entity.position);
+		await newZone.changeTo(changeSet.entity as User, oldZone);
 	}
 
 	async emitAll(user: User) {
@@ -74,16 +92,22 @@ export default class Zone extends CachedObject {
 	}
 
 	async emitToAll(event: string, data: UserData = {}) {
-		const users = await this.getVisibleUsers();
+		const users = await this.getConnectedUsers();
 		for (const user of users) {
 			user.emit(event, data);
 		}
 	}
 
-	async getVisibleUsers(): Promise<User[]> {
+	async getVisibleUsers(): Promise<Set<User>> {
 		const users: User[] = [];
 		await this.toAllAdjacent(zone => users.push(...zone.users));
-		return users;
+		return new Set(users);
+	}
+
+	async getConnectedUsers(): Promise<Set<User>> {
+		const users: User[] = [];
+		await this.toAllAdjacent(zone => users.push(...zone.users));
+		return new Set( users.filter(user => user.connected) );
 	}
 
 	static getPosition(userPosition: Vector2) {
