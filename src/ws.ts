@@ -276,7 +276,7 @@ export default class WS {
 
 		const raw = WS.convertKeysInData(json.data, _.camelCase);
 
-		RequestContext.create(EM, async function() {
+		await RequestContext.createAsync(EM, async function() {
 			if (sck.account) {
 				EM.persist(sck.account);
 			}
