@@ -89,7 +89,7 @@ export default class WS {
 	private static port = 9001;
 
 	/** Initializes WebSocket server */
-	public static async init(): Promise<void> {
+	static async init(): Promise<void> {
 		if (WS.app) {
 			return;
 		}
@@ -110,17 +110,17 @@ export default class WS {
 	}
 
 	/** Sends a message wrapped in the interface WSData to the given socket */
-	public static emit(sck: uWS.WebSocket, event: string, data: UserData = {}): void {
+	static emit(sck: uWS.WebSocket, event: string, data: UserData = {}): void {
 		const json = WS.prepareDataBeforeEmit(event, data);
 		console.assert(sck.send(json), `Event ${event} was not emitted to account=${sck.account?.id || 0}`);
 	}
 
 	/** Adds event to event list */
-	public static addEvent(event: string, func: EventHandler): void {
+	static addEvent(event: string, func: EventHandler): void {
 		WS.events[event] = func;
 	}
 
-	public static sub(sckOrUser: Socket | User, topics: string | string[]): void {
+	static sub(sckOrUser: Socket | User, topics: string | string[]): void {
 		const sck = (sckOrUser instanceof User ? sckOrUser.socket! : sckOrUser);
 		if (!(topics instanceof Array)) {
 			topics = [topics];
@@ -130,7 +130,7 @@ export default class WS {
 		}
 	}
 
-	public static unsub(sckOrUser: Socket | User, topics: string | string[]): void {
+	static unsub(sckOrUser: Socket | User, topics: string | string[]): void {
 		const sck = (sckOrUser instanceof User ? sckOrUser.socket! : sckOrUser);
 		if (!(topics instanceof Array)) {
 			topics = [topics];
@@ -140,7 +140,7 @@ export default class WS {
 		}
 	}
 
-	public static pub(topics: string | string[], event: string, data: UserData = {}) {
+	static pub(topics: string | string[], event: string, data: UserData = {}) {
 		const json = WS.prepareDataBeforeEmit(event, data);
 		if (!(topics instanceof Array)) {
 			topics = [topics];
@@ -150,7 +150,7 @@ export default class WS {
 		}
 	}
 
-	public static getTopics(sckOrUser: Socket | User, startsWith?: string) {
+	static getTopics(sckOrUser: Socket | User, startsWith?: string) {
 		const sck = (sckOrUser instanceof User ? sckOrUser.socket! : sckOrUser);
 		const topics = sck.getTopics();
 		if (startsWith) {
@@ -164,7 +164,7 @@ export default class WS {
 	 *
 	 * If property is not JSONData, tries to apply method toPlain(). If it fails, throws an error
 	 **/
-	public static prepare<T>(list: T, keys: string[]): T extends unknown[] ? UserData[] : UserData {
+	static prepare<T>(list: T, keys: string[]): T extends unknown[] ? UserData[] : UserData {
 		if (list instanceof Set) {
 			return WS.prepareArray(Array.from(list), keys) as any;
 		}

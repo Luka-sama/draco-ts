@@ -8,10 +8,10 @@ interface IVector2 {
 @Embeddable()
 export class Vector2 {
 	@Property()
-	public readonly x: number = 0;
+	readonly x: number = 0;
 
 	@Property()
-	public readonly y: number = 0;
+	readonly y: number = 0;
 
 	constructor(x = 0, y = 0) {
 		this.x = x;
