@@ -55,7 +55,7 @@ export async function synchronize(): Promise<void> {
 			}
 
 			for (const user of users) {
-				const dataToEmitForUser = await getDataToEmitForUser(options, preparedData);
+				const dataToEmitForUser = getDataToEmitForUser(options, preparedData);
 				if (!dataToEmit.has(user)) {
 					dataToEmit.set(user, []);
 				}
@@ -115,12 +115,13 @@ function prepareDataToEmit(options: SyncOptions, changeSet: ChangeSet<AnyEntity>
 	return null;
 }
 
-async function getDataToEmitForUser(options: SyncOptions, preparedData: UserData) {
+function getDataToEmitForUser(options: SyncOptions, preparedData: UserData): UserData {
 	return preparedData;
 }
 
 @Subscriber()
 export class SyncSubscriber implements EventSubscriber {
+	// eslint-disable-next-line require-await
 	async afterFlush({uow}: FlushEventArgs): Promise<void> {
 		changeSets.push(...uow.getChangeSets());
 	}

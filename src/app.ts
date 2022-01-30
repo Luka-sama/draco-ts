@@ -8,7 +8,7 @@ export default class App {
 	private static started = false;
 
 	/** Auto-import to make @OnlyLogged() and other descriptors to work without explicit import */
-	static async init() {
+	static async init(): Promise<void> {
 		if (App.started) {
 			return;
 		}
@@ -21,7 +21,7 @@ export default class App {
 		await WS.init();
 	}
 
-	private static autoimport() {
+	private static autoimport(): void {
 		const ignore = ["./dist/**/*.entity.js", "./dist/**/*.test.js"];
 		const fileList = glob.sync("./dist/**/*.js", {ignore});
 		for (const file of fileList) {
@@ -29,7 +29,7 @@ export default class App {
 		}
 	}
 
-	private static catchExceptions() {
+	private static catchExceptions(): void {
 		process.on("uncaughtException", error => {
 			console.error(`UNCAUGHT EXCEPTION [${Date.now()}]:\r\n${error.stack}`);
 		});

@@ -12,10 +12,10 @@ export default class Zone extends CachedObject {
 	private readonly location: Location;
 	private readonly position: Vector2;
 	private users: Set<User> = new Set();
-	private get start() {
+	private get start(): Vector2 {
 		return this.position.mul(Zone.SIZE);
 	}
-	private get end() {
+	private get end(): Vector2 {
 		return this.start.add(Zone.SIZE);
 	}
 
@@ -26,7 +26,7 @@ export default class Zone extends CachedObject {
 		return this.getInstance();
 	}
 
-	async load() {
+	async load(): Promise<void> {
 		if (this.loaded) {
 			return;
 		}
@@ -38,11 +38,11 @@ export default class Zone extends CachedObject {
 		this.loaded = true;
 	}
 
-	getName() {
+	getName(): string {
 		return Zone.getNameFor(this.location, this.position);
 	}
 
-	isInside(userPosition: Vector2) {
+	isInside(userPosition: Vector2): boolean {
 		this.checkIfLoaded();
 		return Zone.getPosition(userPosition).equals(this.position);
 		/*if (tile.x >= this.start.x && tile.y >= this.start.y) {
@@ -51,16 +51,16 @@ export default class Zone extends CachedObject {
 		return false;*/
 	}
 
-	leave(user: User) {
+	leave(user: User): void {
 		this.users.delete(user);
 		this.emit("move", WS.prepare(user, ["id", "position"]));
 	}
 
-	enter(user: User) {
+	enter(user: User): void {
 		this.users.add(user);
 	}
 
-	async changeTo(user: User, oldZone: Zone) {
+	async changeTo(user: User, oldZone: Zone): Promise<void> {
 		if (oldZone != this) {
 			oldZone.leave(user);
 			this.enter(user);
@@ -68,7 +68,7 @@ export default class Zone extends CachedObject {
 		}
 	}
 
-	static async changeHandler(changeSet: ChangeSet<AnyEntity>) {
+	static async changeHandler(changeSet: ChangeSet<AnyEntity>): Promise<void> {
 		const original = changeSet.originalEntity;
 		if (!original) {
 			return;
@@ -82,7 +82,7 @@ export default class Zone extends CachedObject {
 		await newZone.changeTo(changeSet.entity as User, oldZone);
 	}
 
-	async emitAll(user: User) {
+	async emitAll(user: User): Promise<void> {
 		const users = await this.getVisibleUsers();
 		user.emit("load_zone", {
 			me: user.id,
@@ -90,7 +90,7 @@ export default class Zone extends CachedObject {
 		});
 	}
 
-	async emitToAll(event: string, data: UserData = {}) {
+	async emitToAll(event: string, data: UserData = {}): Promise<void> {
 		const users = await this.getConnectedUsers();
 		for (const user of users) {
 			user.emit(event, data);
@@ -109,36 +109,36 @@ export default class Zone extends CachedObject {
 		return new Set( users.filter(user => user.connected) );
 	}
 
-	static getPosition(userPosition: Vector2) {
+	static getPosition(userPosition: Vector2): Vector2 {
 		return userPosition.intdiv(Zone.SIZE);
 	}
 
-	static async getByUserPosition(location: Location, userPosition: Vector2) {
+	static async getByUserPosition(location: Location, userPosition: Vector2): Promise<Zone> {
 		const zonePosition = Zone.getPosition(userPosition);
 		return await Zone.get(location, zonePosition);
 	}
 
-	static async getByUser(user: User) {
-		return Zone.getByUserPosition(user.location, user.position);
+	static async getByUser(user: User): Promise<Zone> {
+		return await Zone.getByUserPosition(user.location, user.position);
 	}
 
-	static async get(location: Location, position: Vector2) {
+	static async get(location: Location, position: Vector2): Promise<Zone> {
 		const zone: Zone = new Zone(location, position);
 		await zone.load();
 		return zone;
 	}
 
-	static getNameFor(location: Location, position: Vector2) {
+	static getNameFor(location: Location, position: Vector2): string {
 		return `zone/location${location.id}/${position.x}x${position.y}`;
 	}
 
-	private checkIfLoaded() {
+	private checkIfLoaded(): void {
 		if (!this.loaded) {
 			throw new Error("Zone not loaded");
 		}
 	}
 
-	private async toAllAdjacent(func: (zone: Zone) => void) {
+	private async toAllAdjacent(func: (zone: Zone) => void): Promise<void> {
 		for (let y = -1; y <= 1; y++) {
 			for (let x = -1; x <= 1; x++) {
 				const newPos = this.position.add(Vec2(x, y));
@@ -149,7 +149,7 @@ export default class Zone extends CachedObject {
 		}
 	}
 
-	private emit(event: string, data: UserData = {}) {
+	private emit(event: string, data: UserData = {}): void {
 		for (const user of this.users) {
 			user.emit(event, data);
 		}

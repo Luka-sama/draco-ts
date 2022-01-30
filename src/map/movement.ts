@@ -5,7 +5,7 @@ import {LoggedArgs} from "../ws";
 
 export default class Movement {
 	@OnlyLogged()
-	async move({user, raw}: LoggedArgs) {
+	move({user, raw}: LoggedArgs): void {
 		const diff = ensure(raw, Is.vec2i);
 		assert(Math.abs(diff.x) <= 1 && Math.abs(diff.y) <= 1);
 		user.position = user.position.add(diff);

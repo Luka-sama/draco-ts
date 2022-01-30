@@ -16,6 +16,7 @@
         "@typescript-eslint"
     ],
     "rules": {
+        "@typescript-eslint/explicit-function-return-type": "error",
         "@typescript-eslint/explicit-member-accessibility": ["error", {"accessibility": "no-public"}],
         "@typescript-eslint/no-explicit-any": "off",
         "@typescript-eslint/no-non-null-assertion": "off",
@@ -27,6 +28,7 @@
         "default-param-last": "error",
         "func-name-matching": "error",
         "prefer-exponentiation-operator": "error",
+        "require-await": "error",
 
         "arrow-spacing": ["error", {"before": true, "after": true}],
         "indent": ["error", "tab", {"ignoredNodes": ["PropertyDefinition"]}],

@@ -14,7 +14,7 @@ import User from "./user.entity";
  */
 export default class Auth {
 	@ForAll()
-	static ping(sck: Socket) {
+	static ping(sck: Socket): void {
 		sck.emit("pong");
 	}
 
@@ -93,7 +93,7 @@ export default class Auth {
 
 	@OnlyGuest()
 	@Limit(1000)
-	static async signInByToken({sck, raw}: GuestArgs) {
+	static async signInByToken({sck, raw}: GuestArgs): Promise<void> {
 		const data = ensure(raw, {accountToken: Is.string, userName: Is.string});
 		const user = await EM.findOne(User, {name: data.userName}, {populate: ["account"]});
 		if (!user || user.account.token != data.accountToken) {
@@ -108,7 +108,7 @@ export default class Auth {
 	}
 
 	@OnlyLoggedAtLeastAccount()
-	static async logOutAccount({sck}: GuestArgs) {
+	static logOutAccount({sck}: GuestArgs): void {
 		if (sck.user) {
 			sck.user.connected = false;
 		}
@@ -117,17 +117,17 @@ export default class Auth {
 	}
 
 	@OnlyLogged()
-	static async logOutUser({user}: LoggedArgs) {
+	static logOutUser({user}: LoggedArgs): void {
 		delete user.socket!.user;
 	}
 
 	@OnlyLogged()
-	static async startGame({user}: LoggedArgs) {
+	static async startGame({user}: LoggedArgs): Promise<void> {
 		const zone = await Zone.getByUser(user);
 		await zone.emitAll(user);
 	}
 
-	private static async generateToken() {
+	private static async generateToken(): Promise<string> {
 		return (await promisify(randomBytes)(48)).toString("hex");
 	}
 }

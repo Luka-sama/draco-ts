@@ -18,38 +18,38 @@ export class Vector2 {
 		this.y = y;
 	}
 
-	add(v: Vector2) {
+	add(v: Vector2): Vector2 {
 		return new Vector2(this.x + v.x, this.y + v.y);
 	}
 
-	sub(v: Vector2) {
+	sub(v: Vector2): Vector2 {
 		return new Vector2(this.x - v.x, this.y - v.y);
 	}
 
-	mul(v: Vector2 | number) {
+	mul(v: Vector2 | number): Vector2 {
 		if (v instanceof Vector2) {
 			return new Vector2(this.x * v.x, this.y * v.y);
 		}
 		return new Vector2(this.x * v, this.y * v);
 	}
 
-	div(v: Vector2 | number) {
+	div(v: Vector2 | number): Vector2 {
 		if (v instanceof Vector2) {
 			return new Vector2(this.x / v.x, this.y / v.y);
 		}
 		return new Vector2(this.x / v, this.y / v);
 	}
 
-	intdiv(v: Vector2 | number) {
+	intdiv(v: Vector2 | number): Vector2 {
 		v = this.div(v);
 		return new Vector2(Math.floor(v.x), Math.floor(v.y));
 	}
 
-	equals(v: Vector2) {
+	equals(v: Vector2): boolean {
 		return (this.x == v.x && this.y == v.y);
 	}
 
-	toPlain() {
+	toPlain(): IVector2 {
 		return {x: this.x, y: this.y};
 	}
 }

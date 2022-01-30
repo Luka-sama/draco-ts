@@ -7,7 +7,7 @@ function OnlyCond(func: (sck: Socket) => string, addUserToArgs = false): MethodD
 	return function(target: unknown, propertyKey: string | symbol, descriptor: PropertyDescriptor): PropertyDescriptor {
 		const originalMethod: EventHandler = descriptor.value;
 
-		descriptor.value = async function(args: LoggedArgs) {
+		descriptor.value = async function(args: LoggedArgs): Promise<void> {
 			const text = (typeof jest == "object" ? "" : func(args.sck));
 			if (!text) {
 				if (addUserToArgs) {
@@ -82,7 +82,7 @@ export function Limit(ms: number, errorText = tr("LIMIT_REACHED"), times = 1): M
 		const targetName = (typeof target == "function" ? `${target.name}.` : "");
 		const methodName = `${targetName}${propertyKey.toString()}`;
 
-		descriptor.value = async function(args: GuestArgs) {
+		descriptor.value = async function(args: GuestArgs): Promise<void> {
 			const sck = args.sck;
 			if (!sck.limits[methodName]) {
 				sck.limits[methodName] = [];

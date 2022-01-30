@@ -89,7 +89,7 @@ export default class WS {
 	private static port = 9001;
 
 	/** Initializes WebSocket server */
-	static async init(): Promise<void> {
+	static init(): void {
 		if (WS.app) {
 			return;
 		}
@@ -140,7 +140,7 @@ export default class WS {
 		}
 	}
 
-	static pub(topics: string | string[], event: string, data: UserData = {}) {
+	static pub(topics: string | string[], event: string, data: UserData = {}): void {
 		const json = WS.prepareDataBeforeEmit(event, data);
 		if (!(topics instanceof Array)) {
 			topics = [topics];
@@ -150,7 +150,7 @@ export default class WS {
 		}
 	}
 
-	static getTopics(sckOrUser: Socket | User, startsWith?: string) {
+	static getTopics(sckOrUser: Socket | User, startsWith?: string): string[] {
 		const sck = (sckOrUser instanceof User ? sckOrUser.socket! : sckOrUser);
 		const topics = sck.getTopics();
 		if (startsWith) {
@@ -220,14 +220,18 @@ export default class WS {
 	}
 
 	/** Handles socket connection. Converts uWS.WebSocket to Socket */
-	private static async onOpen(sck: uWS.WebSocket): Promise<void> {
+	private static onOpen(sck: uWS.WebSocket): void {
 		sck.limits = {};
-		sck.emit = (event: string, data?: UserData) => WS.emit(sck, event, data);
-		sck.info = (text: string) => sck.emit("info", {text});
+		sck.emit = function(event: string, data?: UserData): void {
+			WS.emit(sck, event, data);
+		};
+		sck.info = function(text: string): void {
+			sck.emit("info", {text});
+		};
 	}
 
 	/** Handles socket close event */
-	private static async onClose(sck: uWS.WebSocket): Promise<void> {
+	private static onClose(sck: uWS.WebSocket): void {
 		if (sck.user) {
 			sck.user.connected = false;
 		}

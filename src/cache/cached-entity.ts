@@ -98,7 +98,7 @@ export abstract class CachedEntity {
 	}
 
 	// Should be public and not protected because TypeScript behaves strange if it is protected (e.g. in "sck.user = user;")
-	getInstance() {
+	getInstance(): this {
 		const cached = this.cached;
 		if (!cached) {
 			return this;

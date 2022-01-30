@@ -22,7 +22,7 @@ export default abstract class CachedObject {
 		}
 	}
 
-	protected getInstance() {
+	protected getInstance(): this {
 		const cached = this.cached;
 		if (!cached) {
 			return this;

@@ -16,7 +16,7 @@ export default class Cache {
 	private static started = false;
 	private static finalizationRegistry: FinalizationRegistry<any>;
 
-	static init() {
+	static init(): void {
 		if (Cache.started) {
 			return;
 		}

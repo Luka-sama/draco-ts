@@ -64,7 +64,7 @@ export default class User extends WeakCachedEntity {
 		return this.getInstance();
 	}
 
-	emit(event: string, data?: UserData) {
+	emit(event: string, data?: UserData): void {
 		if (this.socket) {
 			this.socket.emit(event, data);
 		} else if (process.env.WS_DEBUG == "true") {
@@ -72,7 +72,7 @@ export default class User extends WeakCachedEntity {
 		}
 	}
 
-	info(text: string) {
+	info(text: string): void {
 		this.emit("info", {text});
 	}
 }
