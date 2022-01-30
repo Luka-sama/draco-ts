@@ -61,11 +61,10 @@ export default class Zone extends CachedObject {
 	}
 
 	async changeTo(user: User, oldZone: Zone) {
-		const newZone = this;
-		if (oldZone != newZone) {
+		if (oldZone != this) {
 			oldZone.leave(user);
-			newZone.enter(user);
-			await newZone.emitAll(user);
+			this.enter(user);
+			await this.emitAll(user);
 		}
 	}
 

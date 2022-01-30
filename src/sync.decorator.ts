@@ -34,7 +34,8 @@ const changeSets: ChangeSet<AnyEntity>[] = [];
 
 export default function Sync(optionsOrList: SyncOptions | SyncOptions[]): ClassDecorator {
 	const list = (optionsOrList instanceof Array ? optionsOrList : [optionsOrList]);
-	return function(target: Function): void {
+	return function(target: unknown): void {
+		assert(typeof target == "function");
 		syncData[target.name] = list;
 	};
 }
@@ -119,7 +120,7 @@ async function getDataToEmitForUser(options: SyncOptions, preparedData: UserData
 }
 
 @Subscriber()
-class SyncSubscriber implements EventSubscriber {
+export class SyncSubscriber implements EventSubscriber {
 	async afterFlush({uow}: FlushEventArgs): Promise<void> {
 		changeSets.push(...uow.getChangeSets());
 	}
