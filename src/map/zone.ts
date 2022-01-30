@@ -74,7 +74,7 @@ export default class Zone extends CachedObject {
 			return;
 		}
 		const oldPosition = Vec2(original.x, original.y);
-		const oldLocation = await EM.findOneOrFail(Location, {id: original.location});
+		const oldLocation = await Location.getOrFail(original.location);
 		const oldZone = await Zone.getByUserPosition(oldLocation, oldPosition);
 
 		const entity = changeSet.entity;
