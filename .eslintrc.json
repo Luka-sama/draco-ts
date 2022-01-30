@@ -23,6 +23,7 @@
 
         "camelcase": "error",
         "capitalized-comments": "warn",
+        "class-methods-use-this": "error",
         "curly": "error",
         "default-case-last": "error",
         "default-param-last": "error",

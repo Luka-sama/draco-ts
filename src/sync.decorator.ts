@@ -121,7 +121,7 @@ function getDataToEmitForUser(options: SyncOptions, preparedData: UserData): Use
 
 @Subscriber()
 export class SyncSubscriber implements EventSubscriber {
-	// eslint-disable-next-line require-await
+	// eslint-disable-next-line class-methods-use-this, require-await
 	async afterFlush({uow}: FlushEventArgs): Promise<void> {
 		changeSets.push(...uow.getChangeSets());
 	}
