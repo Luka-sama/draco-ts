@@ -1,7 +1,13 @@
 import {Embedded, Entity, PrimaryKey, Property, Unique} from "@mikro-orm/core";
-import {Vector2} from "../vector.embeddable";
+import {Vector2} from "../math/vector.embeddable";
 import TileSet from "./tile-set.entity";
 
+/**
+ * Tile entity
+ *
+ * Describes single tile (where do you need to take the image with this tile from).
+ * @category Entity
+ */
 @Entity()
 @Unique({name: "tile_properties", properties: ["tileSet", "tile", "subtile_x", "subtile_y"]})
 export default class Tile {

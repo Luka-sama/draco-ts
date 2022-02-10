@@ -1,7 +1,7 @@
 import {ClassType, transformAndValidate, TransformValidationOptions} from "class-transformer-validator";
 import {ValidationError} from "class-validator";
-import {Vec2, Vector2} from "./vector.embeddable";
-import {UserData, UserDataExtended} from "./ws";
+import {Vec2, Vector2} from "./math/vector.embeddable";
+import {UserData, UserDataExtended} from "./ws.typings";
 
 /**
  * Converts raw user data to object

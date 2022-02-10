@@ -1,6 +1,6 @@
+import {Vector2} from "./math/vector.embeddable";
 import {ensure, Is, Of, WrongDataError} from "./validation";
-import {Vector2} from "./vector.embeddable";
-import {UserData, UserDataExtended} from "./ws";
+import {UserData, UserDataExtended} from "./ws.typings";
 
 function check(raw: UserData, result: boolean, shouldBe: UserDataExtended): void {
 	if (result) {

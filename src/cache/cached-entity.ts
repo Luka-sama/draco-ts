@@ -1,12 +1,27 @@
 import {wrap, WrappedEntity} from "@mikro-orm/core";
 import _ from "lodash";
 import {EM} from "../orm";
-import Cache, {CacheOptions} from "./cache";
+import Cache from "./cache";
+import {CacheOptions} from "./cache.typings";
 
-interface ICachedEntity {
+/**
+ * Internal interface
+ *
+ * It is exported to avoid TypeDoc warning (referenced, but not included in the documentation).
+ * It is used in the return type: T extends ICachedEntity.
+ * This means that the function returns class instance of some class that is child of CachedEntity.
+ *
+ * @category Cache
+ */
+export interface ICachedEntity {
 	new(...args: any): CachedEntity
 }
 
+/**
+ * Cached entity
+ *
+ * @category Cache
+ */
 export abstract class CachedEntity {
 	id!: number;
 	protected static readonly cacheOptions: CacheOptions = {};
@@ -140,6 +155,11 @@ export abstract class CachedEntity {
 	}
 }
 
+/**
+ * Weak cached entity
+ *
+ * @category Cache
+ */
 export abstract class WeakCachedEntity extends CachedEntity {
 	protected static readonly cacheOptions: CacheOptions = {weak: true};
 }

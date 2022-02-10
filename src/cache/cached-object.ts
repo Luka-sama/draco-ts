@@ -1,5 +1,11 @@
-import Cache, {CacheOptions} from "./cache";
+import Cache from "./cache";
+import {CacheOptions} from "./cache.typings";
 
+/**
+ * Cached object
+ *
+ * @category Cache
+ */
 export default abstract class CachedObject {
 	id!: number | string;
 	protected static readonly cacheOptions: CacheOptions = {};

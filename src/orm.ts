@@ -2,12 +2,18 @@ import {MikroORM} from "@mikro-orm/core";
 import {EntityManager, PostgreSqlDriver} from "@mikro-orm/postgresql";
 import config from "../mikro-orm.config";
 
+/**
+ * EntityManager instance
+ *
+ * As we use RequestContext helper, it will automatically pick the request specific context under the hood.
+ * @category ORM
+ */
 let EM: EntityManager;
 
 /**
  * Simple ORM wrapper
  *
- * @category Common
+ * @category ORM
  */
 export default class ORM {
 	private static orm: MikroORM<PostgreSqlDriver>;

@@ -1,8 +1,14 @@
 import {Embedded, Entity, ManyToOne, PrimaryKey} from "@mikro-orm/core";
-import {Vector2} from "../vector.embeddable";
+import {Vector2} from "../math/vector.embeddable";
 import Location from "./location.entity";
 import Tile from "./tile.entity";
 
+/**
+ * Tilemap entity
+ *
+ * Describes which tiles the location consists of
+ * @category Entity
+ */
 @Entity()
 export default class TileMap {
 	@PrimaryKey()

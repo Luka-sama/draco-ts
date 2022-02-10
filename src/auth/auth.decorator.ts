@@ -1,7 +1,8 @@
 import {isString} from "class-validator";
 import * as _ from "lodash";
 import {tr} from "../util";
-import WS, {EventHandler, GuestArgs, LoggedArgs, Socket} from "../ws";
+import WS from "../ws";
+import {EventHandler, GuestArgs, LoggedArgs, Socket} from "../ws.typings";
 
 function OnlyCond(func: (sck: Socket) => string, addUserToArgs = false): MethodDecorator {
 	return function(target: unknown, propertyKey: string | symbol, descriptor: PropertyDescriptor): PropertyDescriptor {

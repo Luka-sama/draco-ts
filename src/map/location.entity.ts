@@ -1,6 +1,11 @@
 import {Entity, PrimaryKey, Property, Unique} from "@mikro-orm/core";
 import {WeakCachedEntity} from "../cache/cached-entity";
 
+/**
+ * Location entity
+ *
+ * @category Entity
+ */
 @Entity()
 export default class Location extends WeakCachedEntity {
 	@PrimaryKey()

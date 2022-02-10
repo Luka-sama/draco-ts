@@ -1,6 +1,6 @@
 import {EntityManager} from "@mikro-orm/postgresql";
 import {mock, mockReset} from "jest-mock-extended";
-import {Socket} from "../ws";
+import {Socket} from "../ws.typings";
 import Auth from "./auth";
 
 const em = mock<EntityManager>();

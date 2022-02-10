@@ -1,9 +1,10 @@
 import {AnyEntity, ChangeSet} from "@mikro-orm/core";
 import User from "../auth/user.entity";
 import CachedObject from "../cache/cached-object";
+import {Vec2, Vector2} from "../math/vector.embeddable";
 import {EM} from "../orm";
-import {Vec2, Vector2} from "../vector.embeddable";
-import WS, {UserData} from "../ws";
+import WS from "../ws";
+import {UserData} from "../ws.typings";
 import Location from "./location.entity";
 
 export default class Zone extends CachedObject {

@@ -4,17 +4,19 @@ import Zone from "../map/zone";
 import {EM} from "../orm";
 import {tr} from "../util";
 import {ensure, hasErrors, Is, toObject} from "../validation";
-import {GuestArgs, LoggedArgs, Socket} from "../ws";
+import {GuestArgs, LoggedArgs} from "../ws.typings";
 import Account from "./account.entity";
 import {ForAll, Limit, OnlyGuest, OnlyLogged, OnlyLoggedAccount, OnlyLoggedAtLeastAccount} from "./auth.decorator";
 import User from "./user.entity";
 
 /**
  * Class for authorization (sign up and sign in)
+ *
+ * @category Controller
  */
 export default class Auth {
 	@ForAll()
-	static ping(sck: Socket): void {
+	static ping({sck}: GuestArgs): void {
 		sck.emit("pong");
 	}
 

@@ -1,16 +1,10 @@
-export interface CacheOptions {
-	weak?: boolean;
-}
+import {CacheOptions} from "./cache.typings";
 
-interface CacheParentInfo {
-	parent: {
-		[key: string]: any
-	};
-	last: string;
-	hasEntry: boolean;
-	entry: any;
-}
-
+/**
+ * Class for cache management
+ *
+ * @category Cache
+ */
 export default class Cache {
 	private static entries = {};
 	private static started = false;
@@ -46,7 +40,14 @@ export default class Cache {
 		delete parent[last];
 	}
 
-	private static getParent(name: string, shouldCreate = false): CacheParentInfo {
+	private static getParent(name: string, shouldCreate = false): {
+		parent: {
+			[key: string]: any
+		};
+		last: string;
+		hasEntry: boolean;
+		entry: any;
+	} {
 		const path = name.split("/");
 		let curr: any = Cache.entries, pathPart = "";
 		for (let i = 0; i < path.length - 1; i++) {

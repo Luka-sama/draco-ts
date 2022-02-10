@@ -12,7 +12,8 @@
     "emitDecoratorMetadata": true
   },
   "typedocOptions": {
-    "defaultCategory": "Game",
+    "categorizeByGroup": false,
+    "categoryOrder": ["Controller", "Entity", "*"],
     "entryPoints": ["src/"],
     "entryPointStrategy": "expand",
     "exclude": "src/mikro-orm.config.ts",

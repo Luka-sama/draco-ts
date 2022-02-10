@@ -1,91 +1,25 @@
-/**
- * Entity Manager
- *
- * @category ORM
- */
 import {RequestContext} from "@mikro-orm/core";
 import assert from "assert/strict";
 import {Buffer} from "buffer";
 import * as _ from "lodash";
 import * as uWS from "uWebSockets.js";
-import Account from "./auth/account.entity";
 import User from "./auth/user.entity";
 import {EM} from "./orm";
-import {synchronize} from "./sync.decorator";
+import Synchronization from "./sync/sync";
 import {tr} from "./util";
 import {ensure, Is, WrongDataError} from "./validation";
-import {Vector2} from "./vector.embeddable";
-
-/**
- * Entity Manager
- *
- * @category Common
- */
-export type JSONData = string | number | boolean | null | JSONData[] | UserData;
-export type UserData = {[key: string]: JSONData | undefined};
-export type UserDataExtended = {[key: string]: JSONData | undefined | Vector2 | Vector2[]} | Vector2;
-/**
- * Data which we get from user/send to user
- *
- * @category WS
- */
-export interface WSData {
-	event: string;
-	data: UserData;
-}
-
-/**
- * WebSocket with additional methods
- *
- * @category WS
- */
-export interface Socket extends uWS.WebSocket {
-	account?: Account;
-	user?: User;
-	limits: {
-		[key: string]: number[]
-	};
-
-	/** Sends a message wrapped in the interface WSData */
-	emit(event: string, data?: UserData): void;
-
-	/** Sends a event "info" with data {text: text} */
-	info(text: string): void;
-}
-
-/**
- * Type of event handler
- */
-export type EventHandler = (args: GuestArgs | LoggedArgs) => Promise<void> | Promise<boolean>;
-
-/**
- * Type of object with router events
- *
- * @category WS
- */
-export interface Events {
-	[key: string]: EventHandler;
-}
-
-export interface GuestArgs {
-	sck: Socket;
-	raw: UserData;
-}
-
-export interface LoggedArgs {
-	sck: Socket;
-	raw: UserData;
-	user: User;
-}
+import {EventHandler, GuestArgs, Socket, UserData, WSData} from "./ws.typings";
 
 /**
  * WS starts Web Socket server and handles getting/sending data
  *
- * @category Common
+ * @category WS
  */
 export default class WS {
 	private static app: uWS.TemplatedApp;
-	private static events: Events = {};
+	private static events: {
+		[key: string]: EventHandler;
+	} = {};
 	private static port = 9001;
 
 	/** Initializes WebSocket server */
@@ -290,7 +224,7 @@ export default class WS {
 			try {
 				await handleEvent({sck, raw} as GuestArgs);
 				await EM.flush();
-				await synchronize();
+				await Synchronization.synchronize();
 			} catch (e) {
 				sck.info(e instanceof WrongDataError || e instanceof assert.AssertionError ? tr("WRONG_DATA") : tr("UNKNOWN_ERROR"));
 				console.error(e);

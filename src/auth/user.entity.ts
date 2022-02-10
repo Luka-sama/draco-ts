@@ -3,15 +3,16 @@ import {Matches} from "class-validator";
 import {WeakCachedEntity} from "../cache/cached-entity";
 import Location from "../map/location.entity";
 import Zone from "../map/zone";
-import Sync from "../sync.decorator";
+import {Vector2} from "../math/vector.embeddable";
+import Sync from "../sync/sync.decorator";
 import {tr} from "../util";
-import {Vector2} from "../vector.embeddable";
-import {Socket, UserData} from "../ws";
+import {Socket, UserData} from "../ws.typings";
 import Account from "./account.entity";
 
 /**
- * User entity. Every {@link Account | account} can have multiple users
+ * User entity
  *
+ * Every {@link Account | account} can have multiple users.
  * @category Entity
  */
 @Entity()

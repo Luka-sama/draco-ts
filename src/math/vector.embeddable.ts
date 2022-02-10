@@ -1,10 +1,21 @@
 import {Embeddable, Property} from "@mikro-orm/core";
 
-interface IVector2 {
+/**
+ * Vector2 interface
+ *
+ * You can use it if you need plain object instead of class instance.
+ * @category Math
+ */
+export interface IVector2 {
 	x: number;
 	y: number;
 }
 
+/**
+ * Vector2 class
+ *
+ * @category Math
+ */
 @Embeddable()
 export class Vector2 {
 	@Property()
@@ -58,6 +69,13 @@ export function Vec2(x?: never, y?: never): Vector2;
 export function Vec2(x: IVector2, y?: never): Vector2;
 export function Vec2(x: number, y: number): Vector2;
 
+/**
+ * Function to create vectors
+ *
+ * This is the short form instead of constructor using. You can write Vec2(1, 1) or even Vec2(1) instead of new Vector2(1, 1).
+ * Vec2({x: 1, y: 1}) is also possible.
+ * @category Math
+ */
 export function Vec2(x?: number | IVector2, y?: number): Vector2 {
 	if (x === undefined && y === undefined) {
 		return new Vector2();

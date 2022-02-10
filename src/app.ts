@@ -4,10 +4,12 @@ import Cache from "./cache/cache";
 import ORM from "./orm";
 import WS from "./ws";
 
+/**
+ * App class
+ */
 export default class App {
 	private static started = false;
 
-	/** Auto-import to make @OnlyLogged() and other descriptors to work without explicit import */
 	static async init(): Promise<void> {
 		if (App.started) {
 			return;
@@ -21,6 +23,7 @@ export default class App {
 		await WS.init();
 	}
 
+	/** Auto-import to make @OnlyLogged() and other decorators to work without explicit import */
 	private static autoimport(): void {
 		const ignore = ["./dist/**/*.entity.js", "./dist/**/*.test.js"];
 		const fileList = glob.sync("./dist/**/*.js", {ignore});

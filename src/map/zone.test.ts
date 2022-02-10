@@ -1,4 +1,4 @@
-import {Vec2} from "../vector.embeddable";
+import {Vec2} from "../math/vector.embeddable";
 import Location from "./location.entity";
 import Zone from "./zone";
 
