@@ -26,9 +26,9 @@ export default class ORM {
 		}
 	}
 
-	/** Returns new EntityManager */
-	static fork(): EntityManager<PostgreSqlDriver> {
-		return ORM.orm.em.fork();
+	/** Returns the ORM instance */
+	static getInstance(): MikroORM<PostgreSqlDriver> {
+		return ORM.orm;
 	}
 }
 
