@@ -25,7 +25,7 @@ import Account from "./account.entity";
 			position: true
 		},
 		zone: true,
-		handler: Zone.changeHandler
+		handler: changeSet => Zone.changeHandler(changeSet) // Callback to avoid cyclic references
 	}
 ])
 export default class User extends WeakCachedEntity {

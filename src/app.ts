@@ -37,8 +37,8 @@ export default class App {
 			console.error(`UNCAUGHT EXCEPTION [${Date.now()}]:\r\n${error.stack}`);
 		});
 
-		process.on("unhandledRejection", error => {
-			console.error(`UNHANDLED REJECTION [${Date.now()}]:\r\n${error}`);
+		process.on("unhandledRejection", (error: Error) => {
+			console.error(`UNHANDLED REJECTION [${Date.now()}]:\r\n${error?.stack ? error.stack : error}`);
 		});
 	}
 }

@@ -47,7 +47,7 @@ export interface Socket extends uWS.WebSocket {
 	/** Sends a message wrapped in the interface WSData */
 	emit(event: string, data?: UserData): void;
 
-	/** Sends a event "info" with data {text: text} */
+	/** Sends an event "info" with data {text: text} */
 	info(text: string): void;
 }
 

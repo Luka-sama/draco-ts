@@ -20,6 +20,8 @@ export interface ICachedEntity {
 /**
  * Cached entity
  *
+ * Do not use "fields" option on cached entities.
+ * Use query builder with execute at the end if you want to select only a few fields.
  * @category Cache
  */
 export abstract class CachedEntity {
@@ -32,7 +34,7 @@ export abstract class CachedEntity {
 		if (!id) {
 			return null;
 		}
-		const cached = (this as any).getIfCached(EM, id);
+		const cached = (this as any).getIfCached(id);
 		return cached || (await EM.findOne(this, {id})) as InstanceType<T>;
 	}
 

@@ -33,6 +33,10 @@ export default class Synchronization {
 		const dataToEmit: Map<User, WSData[]> = new Map();
 		for (const changeSet of Synchronization.changeSets) {
 			const list = Synchronization.syncData[changeSet.name];
+			if (!list) {
+				continue;
+			}
+
 			for (const options of list) {
 				const users = await Synchronization.getUsers(options, changeSet.entity);
 				const preparedData = Synchronization.prepareDataToEmit(options, changeSet);

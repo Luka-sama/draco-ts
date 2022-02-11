@@ -89,7 +89,7 @@ export default class Auth {
 
 	@OnlyLoggedAccount()
 	static async getUserList({sck}: GuestArgs): Promise<void> {
-		const userList = (await EM.find(User, {account: sck.account}, {fields: ["name"]})).map(user => user.name);
+		const userList = (await EM.find(User, {account: sck.account})).map(user => user.name);
 		sck.emit("get_user_list", {list: userList});
 	}
 
