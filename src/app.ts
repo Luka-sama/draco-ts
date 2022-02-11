@@ -25,7 +25,7 @@ export default class App {
 
 	/** Auto-import to make @OnlyLogged() and other decorators to work without explicit import */
 	private static autoimport(): void {
-		const ignore = ["./dist/**/*.entity.js", "./dist/**/*.test.js", "./dist/seeder.js"];
+		const ignore = ["./dist/**/*.entity.js", "./dist/**/*.test.js", "./dist/seeder.js", "./dist/jest-setup.js"];
 		const fileList = glob.sync("./dist/**/*.js", {ignore});
 		for (const file of fileList) {
 			import(path.resolve(file));

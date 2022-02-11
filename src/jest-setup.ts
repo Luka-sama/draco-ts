@@ -12,6 +12,10 @@ declare global {
 	var guestArgs: GuestArgs;
 	// eslint-disable-next-line no-var
 	var loggedArgs: LoggedArgs;
+	// eslint-disable-next-line no-var
+	var account: Account;
+	// eslint-disable-next-line no-var
+	var user: User;
 }
 global.sck = mock<Socket>();
 global.guestArgs = {sck, raw: {}};
@@ -19,8 +23,8 @@ global.guestArgs = {sck, raw: {}};
 beforeAll(async () => {
 	Cache.init();
 	await ORM.init({allowGlobalContext: true});
-	sck.account = await Account.getOrFail(1);
-	const user = await User.getOrFail(1);
+	sck.account = global.account = await Account.getOrFail(1);
+	sck.user = global.user = await User.getOrFail(1);
 	global.loggedArgs = {...guestArgs, user};
 });
 
