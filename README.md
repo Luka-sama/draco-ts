@@ -22,8 +22,8 @@ MIKRO_ORM_DEBUG = false
 WS_DEBUG = false
 ```
 You can change the connection data or the debug options.
-* Create database schema with `npx mikro-orm schema:create -r`
-* Create link from server to client, e. g. using this command (in Windows): mklink /J "YOUR_PATH_TO_SERVER/client" "YOUR_PATH_TO_CLIENT"
+* Create database schema and seed database with `node dist/seeder`
+* Create link from server to client, e.g. using this command (in Windows): mklink /J "YOUR_PATH_TO_SERVER/client" "YOUR_PATH_TO_CLIENT"
 
 PhpStorm setup
 ------------
@@ -39,3 +39,4 @@ Useful commands
 * Run tests: `npm t`
 * Run mutants: `npx stryker run`
 * Check project with ESLint: `npm run eslint`
+* (Re)create database schema and seed database: `node dist/seeder`

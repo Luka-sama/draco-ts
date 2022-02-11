@@ -16,7 +16,7 @@ export default class Seeder {
 		Seeder.started = true;
 
 		console.log("Seeder started...");
-		await ORM.init();
+		await ORM.init({persistOnCreate: true});
 		await ORM.getInstance().getSchemaGenerator().refreshDatabase();
 		faker.seed(123);
 		await RequestContext.createAsync(EM, Seeder.seed);
@@ -25,42 +25,45 @@ export default class Seeder {
 	}
 
 	static async seed(): Promise<void> {
-		const accounts = Seeder.getAccounts();
-		const locations = Seeder.getLocations();
-		const users = Seeder.getUsers(accounts, locations);
-		await EM.persistAndFlush(locations.concat(accounts).concat(users));
+		const accounts = Seeder.getAccounts(10);
+		const locations = Seeder.getLocations(10);
+		Seeder.getUsers(10, accounts, locations);
+		await EM.flush();
 	}
 
-	static getAccounts(): Account[] {
+	static getAccounts(count: number): Account[] {
 		const accounts: Account[] = [];
-		for (let i = 0; i < 10; i++) {
-			const name = faker.name.firstName();
+		const dates = faker.date.betweens(faker.date.past(2).toString(), faker.date.past(1).toString(), count);
+		for (let i = 0; i < count; i++) {
+			const name = ["Luka-sama"][i] || faker.name.firstName();
 			accounts.push( EM.create(Account, {
 				name,
 				mail: faker.internet.email(name),
-				pass: faker.internet.password(),
+				pass: ["123456789"][i] || faker.internet.password(),
 				salt: "",
-				regDate: faker.date.past(),
+				regDate: dates[i],
 				token: faker.datatype.hexaDecimal(96).substring(2).toLowerCase(),
 			}) );
 		}
-		return accounts.sort((a, b) => (a.regDate < b.regDate ? -1 : 1));
+		return accounts;
 	}
 
-	static getLocations(): Location[] {
+	static getLocations(count: number): Location[] {
 		const locations: Location[] = [];
 
-		const location = EM.create(Location, {
-			name: "world"
-		});
-		locations.push(location);
+		for (let i = 0; i < count; i++) {
+			const location = EM.create(Location, {
+				name: ["world"][i] || faker.datatype.string()
+			});
+			locations.push(location);
+		}
 
 		return locations;
 	}
 
-	static getUsers(accounts: Account[], locations: Location[]): User[] {
+	static getUsers(count: number, accounts: Account[], locations: Location[]): User[] {
 		const users: User[] = [];
-		for (let i = 0; i < 10; i++) {
+		for (let i = 0; i < count; i++) {
 			users.push( EM.create(User, {
 				name: ["Luka", "Test"][i] || faker.name.firstName(),
 				account: accounts[i < 2 ? 0 : i],
