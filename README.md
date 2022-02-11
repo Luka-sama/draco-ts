@@ -36,6 +36,6 @@ Useful commands
 * Run server: `node dist`
 * Build project: `npx tsc`
 * Generate documentation: `npx typedoc`
-* Run tests: `npx jest` or `npm t`
+* Run tests: `npm t`
 * Run mutants: `npx stryker run`
 * Check project with ESLint: `npm run eslint`

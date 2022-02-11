@@ -9,7 +9,7 @@ test.each([
 	[Zone.SIZE.mul(2).add(Vec2(-1, -1)), true],
 	[Zone.SIZE.mul(2).add(Vec2(-1, 0)), false],
 ])("isInside", async (v, expected) => {
-	const location = new Location("test");
+	const location = await Location.getOrFail(1);
 	const zone = await Zone.get(location, Vec2(1, 1));
 
 	expect(zone.isInside(v)).toBe(expected);
