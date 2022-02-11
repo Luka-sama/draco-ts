@@ -6,8 +6,11 @@ import ORM, {EM} from "./orm";
 import {GuestArgs, LoggedArgs, Socket} from "./ws.typings";
 
 declare global {
+	// eslint-disable-next-line no-var
 	var sck: Socket;
+	// eslint-disable-next-line no-var
 	var guestArgs: GuestArgs;
+	// eslint-disable-next-line no-var
 	var loggedArgs: LoggedArgs;
 }
 global.sck = mock<Socket>();
@@ -25,7 +28,7 @@ afterAll(async () => {
 	await ORM.getInstance().close();
 });
 
-beforeEach(async () => {
+beforeEach(() => {
 	mockReset(sck);
 	EM.clear();
 });

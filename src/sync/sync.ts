@@ -21,11 +21,11 @@ export default class Synchronization {
 	} = {};
 	private static changeSets: ChangeSet<AnyEntity>[] = [];
 
-	static addToSyncData(name: string, list: SyncOptions[]) {
+	static addToSyncData(name: string, list: SyncOptions[]): void {
 		Synchronization.syncData[name] = list;
 	}
 
-	static addToChangeSets(changeSets: ChangeSet<AnyEntity>[]) {
+	static addToChangeSets(changeSets: ChangeSet<AnyEntity>[]): void {
 		Synchronization.changeSets.push(...changeSets);
 	}
 
@@ -114,6 +114,7 @@ export default class Synchronization {
 }
 
 @Subscriber()
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class SyncSubscriber implements EventSubscriber {
 	// eslint-disable-next-line class-methods-use-this, require-await
 	async afterFlush({uow}: FlushEventArgs): Promise<void> {
