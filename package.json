@@ -33,18 +33,16 @@
     "typescript": "^4.5.5"
   },
   "dependencies": {
-    "@mikro-orm/cli": "^5.0.0-rc.0",
-    "@mikro-orm/core": "^5.0.0-rc.0",
-    "@mikro-orm/migrations": "^5.0.0-rc.0",
-    "@mikro-orm/postgresql": "^5.0.0-rc.0",
-    "@mikro-orm/reflection": "^5.0.0-rc.0",
-    "@mikro-orm/seeder": "^5.0.0-rc.0",
+    "@mikro-orm/cli": "^5.0.0",
+    "@mikro-orm/core": "^5.0.0",
+    "@mikro-orm/migrations": "^5.0.0",
+    "@mikro-orm/postgresql": "^5.0.0",
+    "@mikro-orm/reflection": "^5.0.0",
     "class-transformer": "^0.5.1",
     "class-transformer-validator": "^0.9.1",
     "class-validator": "^0.13.2",
     "glob": "^7.2.0",
     "lodash": "^4.17.21",
-    "reflect-metadata": "^0.1.13",
     "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.0.0"
   }
 }
