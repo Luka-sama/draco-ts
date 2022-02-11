@@ -86,7 +86,7 @@ export default class Synchronization {
 	private static prepareDataToEmit(options: SyncOptions, changeSet: ChangeSet<AnyEntity>): UserData | null {
 		const metaProperties = EM.getMetadata().get(changeSet.name).properties;
 		const properties = Object.keys(options.properties);
-		// Gets original property if this is embeddable property (e. g. replaces x with position)
+		// Gets original property if this is embeddable property (e.g. replaces x with position)
 		const changed = Object.keys(changeSet.payload).map(property => _.get(metaProperties[property], "embedded[0]", property));
 		if (changed.some(property => properties.includes(property))) {
 			const data = WS.prepare(changeSet.entity, properties.filter(property => {

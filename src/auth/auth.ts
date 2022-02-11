@@ -81,7 +81,6 @@ export default class Auth {
 		}
 
 		user.connected = true;
-		user.account = sck.account!;
 		sck.user = user;
 		user.socket = sck;
 		user.emit("sign_in_user", {accountToken: user.account.token, userName: user.name});
