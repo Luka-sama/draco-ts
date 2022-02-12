@@ -35,4 +35,7 @@ afterAll(async () => {
 beforeEach(() => {
 	mockReset(sck);
 	EM.clear();
+	Cache.clear();
+	account.cache();
+	user.cache();
 });

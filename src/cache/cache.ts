@@ -40,6 +40,10 @@ export default class Cache {
 		delete parent[last];
 	}
 
+	static clear(): void {
+		Cache.entries = {};
+	}
+
 	private static getParent(name: string, shouldCreate = false): {
 		parent: {
 			[key: string]: any

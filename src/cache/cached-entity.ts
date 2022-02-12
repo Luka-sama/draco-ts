@@ -1,4 +1,4 @@
-import {wrap, WrappedEntity} from "@mikro-orm/core";
+import {EventArgs, EventSubscriber, Subscriber, wrap, WrappedEntity} from "@mikro-orm/core";
 import _ from "lodash";
 import {EM} from "../orm";
 import Cache from "./cache";
@@ -29,6 +29,8 @@ export abstract class CachedEntity {
 	protected static readonly cacheOptions: CacheOptions = {};
 	private cached?: any;
 	private removed?: boolean;
+	private initialized?: boolean;
+	private touched?: boolean;
 
 	static async get<T extends ICachedEntity>(this: T, id: number): Promise<InstanceType<T> | null> {
 		if (!id) {
@@ -131,7 +133,21 @@ export abstract class CachedEntity {
 			}
 		}
 
+		const wrapped = wrap(cached);
+		cached.initialized = wrapped.isInitialized();
+		cached.touched = wrapped.isTouched();
 		return cached;
+	}
+
+	setInternalProps(): void {
+		if (this.initialized !== undefined) {
+			(this as any).__helper.__initialized = this.initialized;
+			delete this.initialized;
+		}
+		if (this.touched !== undefined) {
+			(this as any).__helper.__touched = this.touched;
+			delete this.touched;
+		}
 	}
 
 	protected constructor(id: number) {
@@ -164,4 +180,15 @@ export abstract class CachedEntity {
  */
 export abstract class WeakCachedEntity extends CachedEntity {
 	protected static readonly cacheOptions: CacheOptions = {weak: true};
+}
+
+@Subscriber()
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+class CachedEntitySubscriber implements EventSubscriber {
+	// eslint-disable-next-line class-methods-use-this
+	onInit<T>({entity}: EventArgs<T>): void {
+		if (entity instanceof CachedEntity) {
+			entity.setInternalProps();
+		}
+	}
 }
