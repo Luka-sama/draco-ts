@@ -1,8 +1,8 @@
 import {RequestContext} from "@mikro-orm/core";
 import assert from "assert/strict";
 import {Buffer} from "buffer";
-import * as _ from "lodash";
-import * as uWS from "uWebSockets.js";
+import _ from "lodash";
+import uWS from "uWebSockets.js";
 import User from "./auth/user.entity";
 import {EM} from "./orm";
 import Synchronization from "./sync/sync";

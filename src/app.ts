@@ -1,5 +1,4 @@
 import glob from "glob";
-import path from "path";
 import Cache from "./cache/cache";
 import ORM from "./orm";
 import WS from "./ws";
@@ -25,10 +24,13 @@ export default class App {
 
 	/** Auto-import to make @OnlyLogged() and other decorators to work without explicit import */
 	private static autoimport(): void {
-		const ignore = ["./dist/**/*.entity.js", "./dist/**/*.test.js", "./dist/seeder.js", "./dist/jest-setup.js"];
-		const fileList = glob.sync("./dist/**/*.js", {ignore});
-		for (const file of fileList) {
-			import(path.resolve(file));
+		const ignore = [
+			"./**/*.entity.js", "./**/*.test.js", "./**/*.typings.js",
+			"./seeder.js", "./jest-setup.js",
+		];
+		const files = glob.sync("./**/*.js", {ignore, cwd: "./dist"});
+		for (const file of files) {
+			import(file);
 		}
 	}
 

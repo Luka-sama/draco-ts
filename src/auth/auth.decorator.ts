@@ -1,5 +1,5 @@
 import {isString} from "class-validator";
-import * as _ from "lodash";
+import _ from "lodash";
 import {tr} from "../util";
 import WS from "../ws";
 import {EventHandler, GuestArgs, LoggedArgs, Socket} from "../ws.typings";
