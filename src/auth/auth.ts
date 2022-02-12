@@ -1,3 +1,4 @@
+import {QueryOrder} from "@mikro-orm/core";
 import {randomBytes} from "crypto";
 import {promisify} from "util";
 import Zone from "../map/zone";
@@ -88,7 +89,7 @@ export default class Auth {
 
 	@OnlyLoggedAccount()
 	static async getUserList({sck}: GuestArgs): Promise<void> {
-		const userList = (await EM.find(User, {account: sck.account})).map(user => user.name);
+		const userList = (await EM.find(User, {account: sck.account}, {orderBy: {id: QueryOrder.ASC}})).map(user => user.name);
 		sck.emit("get_user_list", {list: userList});
 	}
 
