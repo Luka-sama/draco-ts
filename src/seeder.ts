@@ -1,5 +1,6 @@
 import faker from "@faker-js/faker";
 import {RequestContext} from "@mikro-orm/core";
+import assert from "assert/strict";
 import Account from "./auth/account.entity";
 import User from "./auth/user.entity";
 import Location from "./map/location.entity";
@@ -17,6 +18,7 @@ export default class Seeder {
 
 		console.log("Seeder started...");
 		await ORM.init({persistOnCreate: true});
+		assert(process.env.NODE_ENV == "development", "You should start seeder only in development environment.");
 		await ORM.getInstance().getSchemaGenerator().refreshDatabase();
 		faker.seed(123);
 		await RequestContext.createAsync(EM, Seeder.seed);

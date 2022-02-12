@@ -13,13 +13,14 @@ Installation
 * Build the project with `npx tsc`
 * Create .env-file with the content:
 ```
-MIKRO_ORM_HOST = localhost
-MIKRO_ORM_PORT = 5432
-MIKRO_ORM_USER = postgres
-MIKRO_ORM_PASSWORD = YOUR_PASSWORD_HERE
-MIKRO_ORM_DB_NAME = enveltia
-MIKRO_ORM_DEBUG = false
-WS_DEBUG = false
+NODE_ENV=development
+MIKRO_ORM_HOST=localhost
+MIKRO_ORM_PORT=5432
+MIKRO_ORM_USER=postgres
+MIKRO_ORM_PASSWORD=YOUR_PASSWORD_HERE
+MIKRO_ORM_DB_NAME=enveltia
+MIKRO_ORM_DEBUG=false
+WS_DEBUG=false
 ```
 You can change the connection data or the debug options.
 * Create database schema and seed database with `node dist/seeder`
