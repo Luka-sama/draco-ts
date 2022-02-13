@@ -26,7 +26,7 @@ beforeAll(async () => {
 	sck.account = global.account = await Account.getOrFail(1);
 	sck.user = global.user = await User.getOrFail(1);
 	global.loggedArgs = {...guestArgs, user};
-});
+}, 15000);
 
 afterAll(async () => {
 	await ORM.getInstance().close();

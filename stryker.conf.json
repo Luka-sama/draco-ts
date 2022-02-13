@@ -6,14 +6,11 @@
     "clear-text",
     "progress-append-only"
   ],
-  "testRunner": "command",
+  "testRunner": "jest",
   "coverageAnalysis": "perTest",
   "tempDirName": "stryker-tmp",
   "checkers": ["typescript"],
   "mutate": ["src/**/*.ts", "!src/**/*.entity.ts", "!src/**/*.test.ts"],
-  "jest": {
-    "configFile": "dist/jest.config.js"
-  },
   "htmlReporter": {
     "baseDir": "stryker-report"
   }

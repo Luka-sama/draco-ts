@@ -1,11 +1,12 @@
 /** @type {import('ts-jest/dist/types').InitialOptionsTsJest} */
 module.exports = {
-  preset: 'ts-jest',
+  preset: "ts-jest",
   rootDir: "src/",
-  testEnvironment: 'node',
+  testEnvironment: "node",
   clearMocks: true,
   collectCoverage: true,
   coverageDirectory: "../coverage/",
   coverageProvider: "v8",
+  coverageReporters: ["lcov"],
   setupFilesAfterEnv: ["./jest-setup.ts"],
 };
