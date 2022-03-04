@@ -1,4 +1,5 @@
 import {AnyEntity, ChangeSet} from "@mikro-orm/core";
+import assert from "assert/strict";
 import User from "../auth/user.entity";
 import CachedObject from "../cache/cached-object";
 import {Vec2, Vector2} from "../math/vector.embeddable";
@@ -78,9 +79,10 @@ export default class Zone extends CachedObject {
 		const oldLocation = await Location.getOrFail(original.location);
 		const oldZone = await Zone.getByUserPosition(oldLocation, oldPosition);
 
-		const entity = changeSet.entity;
-		const newZone = await Zone.getByUserPosition(entity.location, entity.position);
-		await newZone.changeTo(changeSet.entity as User, oldZone);
+		const user = changeSet.entity;
+		assert(user instanceof User);
+		const newZone = await Zone.getByUser(user);
+		await newZone.changeTo(user, oldZone);
 	}
 
 	async emitAll(user: User): Promise<void> {
