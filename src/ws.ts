@@ -167,7 +167,9 @@ export default class WS {
 	/** Handles socket close event */
 	private static onClose(sck: uWS.WebSocket): void {
 		if (sck.user) {
-			sck.user.connected = false;
+			const user = sck.user as User;
+			user.connected = false;
+			delete user.socket;
 		}
 	}
 

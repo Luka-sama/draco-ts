@@ -1,7 +1,9 @@
 import {QueryOrder} from "@mikro-orm/core";
 import {randomBytes} from "crypto";
 import {promisify} from "util";
+import Location from "../map/location.entity";
 import Zone from "../map/zone";
+import {Vec2} from "../math/vector.embeddable";
 import {EM} from "../orm";
 import {tr} from "../util";
 import {ensure, hasErrors, Is, toObject} from "../validation";
@@ -66,7 +68,12 @@ export default class Auth {
 		}
 
 		user.account = sck.account!;
-		await EM.persist(user);
+		user.location = EM.getReference(Location, 1);
+		user.position = Vec2(0, 0);
+		await user.create();
+		const zone = await Zone.getByUser(user);
+		zone.enter(user);
+
 		sck.emit("sign_up_user");
 		return true;
 	}
