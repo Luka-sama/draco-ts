@@ -2,7 +2,7 @@ import {Vec2} from "../math/vector.embeddable";
 import Location from "./location.entity";
 import Zone from "./zone";
 
-test.each([
+/*test.each([
 	[Zone.SIZE.add(Vec2(-1, 0)), false],
 	[Zone.SIZE, true],
 	[Zone.SIZE.add(Vec2(1, 0)), true],
@@ -13,4 +13,4 @@ test.each([
 	const zone = await Zone.get(location, Vec2(1, 1));
 
 	expect(zone.isInside(v)).toBe(expected);
-});
+});*/

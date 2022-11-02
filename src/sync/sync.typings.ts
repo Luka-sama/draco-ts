@@ -1,30 +1,34 @@
-import {AnyEntity, ChangeSet} from "@mikro-orm/core";
-import Zone from "../map/zone";
-import {JSONData} from "../ws.typings";
-
 /**
  * Synchronization options for a single property
  *
  * @category Synchronization
  */
+import {JSONData, UserData} from "../ws.typings";
+
 export interface SyncProperty {
+	for?: SyncForCustom;
 	as?: string;
-	value?: any;
 	map?: (value: any) => JSONData;
-	onChanged?: (value: any) => void;
-	hidden?: true;
 }
 
 /**
- * Synchronization options
+ * Synchronization options for a single model
  *
  * @category Synchronization
  */
-export interface SyncOptions {
-	event: string;
-	properties: {
-		[key: string]: true | SyncProperty;
-	};
-	zone?: true | (() => Zone);
-	handler?: (changeSet: ChangeSet<AnyEntity>) => Promise<void>;
+export interface SyncModel {
+	[key: string]: SyncProperty
+}
+
+export enum SyncFor {This, Zone}
+export type SyncForCustom = string | SyncFor | {
+	location: string;
+	position: string;
+};
+export type SyncType = "create" | "update" | "delete";
+
+export interface SyncInfo extends UserData {
+	model: string;
+	type: SyncType;
+	entity: UserData;
 }

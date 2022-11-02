@@ -2,11 +2,11 @@ import {Embedded, Entity, ManyToOne, PrimaryKey, Property, Unique} from "@mikro-
 import {Matches} from "class-validator";
 import {WeakCachedEntity} from "../cache/cached-entity";
 import Location from "../map/location.entity";
-import Zone from "../map/zone";
 import {Vector2} from "../math/vector.embeddable";
 import Sync from "../sync/sync.decorator";
+import {SyncFor} from "../sync/sync.typings";
 import {tr} from "../util";
-import {Socket, UserData} from "../ws.typings";
+import {Emitter, Socket, UserData} from "../ws.typings";
 import Account from "./account.entity";
 
 /**
@@ -16,27 +16,16 @@ import Account from "./account.entity";
  * @category Entity
  */
 @Entity()
-@Sync([
-	{
-		event: "move",
-		properties: {
-			id: true,
-			location: {hidden: true},
-			position: true
-		},
-		zone: true,
-		// Callback to avoid cyclic references
-		handler: (changeSet): Promise<void> => Zone.changeHandler(changeSet)
-	}
-])
-export default class User extends WeakCachedEntity {
+export default class User extends WeakCachedEntity implements Emitter {
 	// Main properties
 	@PrimaryKey()
+	@Sync()
 	id!: number;
 
 	@Unique()
 	@Property()
 	@Matches(/^[A-Z][a-z]*$/, {message: tr("USER_NAME_FORMAT_WRONG")})
+	@Sync({for: SyncFor.Zone})
 	name: string;
 
 	@ManyToOne()
@@ -50,6 +39,7 @@ export default class User extends WeakCachedEntity {
 	location: Location;
 
 	@Embedded({nullable: true, prefix: false})
+	@Sync({for: SyncFor.Zone})
 	position: Vector2;
 
 	// Other

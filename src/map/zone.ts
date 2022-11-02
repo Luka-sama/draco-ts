@@ -1,30 +1,22 @@
-import {AnyEntity, ChangeSet} from "@mikro-orm/core";
-import assert from "assert/strict";
+import {AnyEntity} from "@mikro-orm/core";
 import User from "../auth/user.entity";
 import CachedObject from "../cache/cached-object";
 import {Vec2, Vector2} from "../math/vector.embeddable";
-import {EM} from "../orm";
-import WS from "../ws";
-import {UserData} from "../ws.typings";
+import {Emitter, UserData} from "../ws.typings";
 import Location from "./location.entity";
+import Subzone, {ZoneEntities} from "./subzone";
 
-export default class Zone extends CachedObject {
-	static readonly SIZE = Vec2(16, 16);
+export default class Zone extends CachedObject implements Emitter {
+	static readonly SIZE = Subzone.SIZE.mul(3);
 	private loaded = false;
 	private readonly location: Location;
-	private readonly position: Vector2;
-	private users: Set<User> = new Set();
-	private get start(): Vector2 {
-		return this.position.mul(Zone.SIZE);
-	}
-	private get end(): Vector2 {
-		return this.start.add(Zone.SIZE);
-	}
-
-	constructor(location: Location, position: Vector2) {
-		super(location, position);
+	private readonly mapPosition: Vector2;
+	private subzones: Set<Subzone> = new Set();
+	private centralSubzone!: Subzone;
+	constructor(location: Location, mapPosition: Vector2) {
+		super(location, mapPosition);
 		this.location = location;
-		this.position = position;
+		this.mapPosition = mapPosition;
 		return this.getInstance();
 	}
 
@@ -32,92 +24,97 @@ export default class Zone extends CachedObject {
 		if (this.loaded) {
 			return;
 		}
-		const where = {location: this.location, position: {
-			x: {$gte: this.start.x, $lt: this.end.x},
-			y: {$gte: this.start.y, $lt: this.end.y}
-		}};
-		this.users = new Set( await EM.find(User, where) );
+
+		for (let y = -1; y <= 1; y++) {
+			for (let x = -1; x <= 1; x++) {
+				const mapPos = this.mapPosition.add(Vec2(x, y));
+				const subzone = new Subzone(this.location, mapPos);
+				await subzone.load();
+				this.subzones.add(subzone);
+				if (x == 0 && y == 0) {
+					this.centralSubzone = subzone;
+				}
+			}
+		}
+
 		this.loaded = true;
 	}
 
 	getName(): string {
-		return Zone.getNameFor(this.location, this.position);
+		return Zone.getNameFor(this.location, this.mapPosition);
 	}
 
-	isInside(userPosition: Vector2): boolean {
+	/*isInside(userPosition: Vector2): boolean {
 		this.checkIfLoaded();
-		return Zone.getPosition(userPosition).equals(this.position);
+		return Zone.getPosition(userPosition).equals(this.mapPosition);
 		/*if (tile.x >= this.start.x && tile.y >= this.start.y) {
 			return (tile.x < this.end.x && tile.y < this.end.y);
 		}
-		return false;*/
+		return false;*
+	}*/
+
+	leave(entity: AnyEntity): void {
+		this.centralSubzone.leave(entity);
 	}
 
-	leave(user: User): void {
-		this.users.delete(user);
-		this.emit("move", WS.prepare(user, ["id", "position"]));
+	enter(entity: AnyEntity): void {
+		this.centralSubzone.enter(entity);
 	}
 
-	enter(user: User): void {
-		this.users.add(user);
-	}
-
-	async changeTo(user: User, oldZone: Zone): Promise<void> {
-		if (oldZone != this) {
-			oldZone.leave(user);
-			this.enter(user);
-			await this.emitAll(user);
+	emit(event: string, data: UserData = {}): void {
+		this.checkIfLoaded();
+		for (const subzone of this.subzones) {
+			subzone.emit(event, data);
 		}
 	}
 
-	static async changeHandler(changeSet: ChangeSet<AnyEntity>): Promise<void> {
-		const original = changeSet.originalEntity;
-		if (!original) {
-			return;
+	info(text: string): void {
+		this.emit("info", {text});
+	}
+
+	getModels(): string[] {
+		return Object.keys(this.centralSubzone.getEntities());
+	}
+
+	getEntities(): ZoneEntities {
+		this.checkIfLoaded();
+		return Zone.getEntitiesFromSubzones(this.subzones);
+	}
+
+	static getEntitiesFromSubzones(subzones: Set<Subzone>): ZoneEntities {
+		const zoneEntities = {} as ZoneEntities;
+		for (const subzone of subzones) {
+			const subzoneEntities = subzone.getEntities();
+			const models = Object.keys(subzoneEntities) as Array<keyof ZoneEntities>;
+			for (const model of models) {
+				const set = zoneEntities[model] || new Set();
+				subzoneEntities[model].forEach(entity => set.add(entity));
+				zoneEntities[model] = set;
+			}
 		}
-		const oldPosition = Vec2(original.x, original.y);
-		const oldLocation = await Location.getOrFail(original.location);
-		const oldZone = await Zone.getByUserPosition(oldLocation, oldPosition);
-
-		const user = changeSet.entity;
-		assert(user instanceof User);
-		const newZone = await Zone.getByUser(user);
-		await newZone.changeTo(user, oldZone);
+		return zoneEntities;
 	}
 
-	async emitAll(user: User): Promise<void> {
-		const users = await this.getVisibleUsers();
-		user.emit("load_zone", {
-			me: user.id,
-			users: WS.prepare(users, ["id", "name", "position"]),
-		});
-	}
-
-	async emitToAll(event: string, data: UserData = {}): Promise<void> {
-		const users = await this.getConnectedUsers();
-		for (const user of users) {
-			user.emit(event, data);
+	getNewSubzones(oldZone: Zone): Set<Subzone> {
+		const result: Set<Subzone> = new Set();
+		for (const subzone of this.subzones) {
+			if (!oldZone.subzones.has(subzone)) {
+				result.add(subzone);
+			}
 		}
+		return result;
 	}
 
-	async getVisibleUsers(): Promise<Set<User>> {
-		const users: User[] = [];
-		await this.toAllAdjacent(zone => users.push(...zone.users));
-		return new Set(users);
+	getLeftSubzones(oldZone: Zone): Set<Subzone> {
+		return oldZone.getNewSubzones(this);
 	}
 
-	async getConnectedUsers(): Promise<Set<User>> {
-		const users: User[] = [];
-		await this.toAllAdjacent(zone => users.push(...zone.users));
-		return new Set( users.filter(user => user.connected) );
-	}
-
-	static getPosition(userPosition: Vector2): Vector2 {
-		return userPosition.intdiv(Zone.SIZE);
+	static getMapPosition(userPosition: Vector2): Vector2 {
+		return Subzone.getMapPosition(userPosition);
 	}
 
 	static async getByUserPosition(location: Location, userPosition: Vector2): Promise<Zone> {
-		const zonePosition = Zone.getPosition(userPosition);
+		const zonePosition = Zone.getMapPosition(userPosition);
 		return await Zone.get(location, zonePosition);
 	}
 
@@ -125,36 +122,19 @@ export default class Zone extends CachedObject {
 		return await Zone.getByUserPosition(user.location, user.position);
 	}
 
-	static async get(location: Location, position: Vector2): Promise<Zone> {
-		const zone: Zone = new Zone(location, position);
+	static async get(location: Location, mapPosition: Vector2): Promise<Zone> {
+		const zone: Zone = new Zone(location, mapPosition);
 		await zone.load();
 		return zone;
 	}
 
-	static getNameFor(location: Location, position: Vector2): string {
-		return `zone/location${location.id}/${position.x}x${position.y}`;
+	static getNameFor(location: Location, mapPosition: Vector2): string {
+		return `zone/location${location.id}/${mapPosition.x}x${mapPosition.y}`;
 	}
 
 	private checkIfLoaded(): void {
 		if (!this.loaded) {
 			throw new Error("Zone not loaded");
-		}
-	}
-
-	private async toAllAdjacent(func: (zone: Zone) => void): Promise<void> {
-		for (let y = -1; y <= 1; y++) {
-			for (let x = -1; x <= 1; x++) {
-				const newPos = this.position.add(Vec2(x, y));
-				const zone = new Zone(this.location, newPos);
-				await zone.load();
-				func(zone);
-			}
-		}
-	}
-
-	private emit(event: string, data: UserData = {}): void {
-		for (const user of this.users) {
-			user.emit(event, data);
 		}
 	}
 }

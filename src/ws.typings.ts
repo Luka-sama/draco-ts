@@ -33,22 +33,29 @@ export interface WSData {
 }
 
 /**
- * WebSocket with additional methods
+ * Anything that can emit (user, zone etc)
  *
  * @category WS
  */
-export interface Socket extends uWS.WebSocket {
-	account?: Account;
-	user?: User;
-	limits: {
-		[key: string]: number[]
-	};
-
+export interface Emitter {
 	/** Sends a message wrapped in the interface WSData */
 	emit(event: string, data?: UserData): void;
 
 	/** Sends an event "info" with data {text: text} */
 	info(text: string): void;
+}
+
+/**
+ * WebSocket with additional methods
+ *
+ * @category WS
+ */
+export interface Socket extends uWS.WebSocket, Emitter {
+	account?: Account;
+	user?: User;
+	limits: {
+		[key: string]: number[]
+	};
 }
 
 /**

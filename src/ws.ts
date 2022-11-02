@@ -5,7 +5,7 @@ import _ from "lodash";
 import uWS from "uWebSockets.js";
 import User from "./auth/user.entity";
 import {EM} from "./orm";
-import Synchronization from "./sync/sync";
+import Synchronizer from "./sync/sync";
 import {tr} from "./util";
 import {ensure, Is, WrongDataError} from "./validation";
 import {EventHandler, GuestArgs, Socket, UserData, WSData} from "./ws.typings";
@@ -226,7 +226,7 @@ export default class WS {
 			try {
 				await handleEvent({sck, raw} as GuestArgs);
 				await EM.flush();
-				await Synchronization.synchronize();
+				await Synchronizer.synchronize();
 			} catch (e) {
 				sck.info(e instanceof WrongDataError || e instanceof assert.AssertionError ? tr("WRONG_DATA") : tr("UNKNOWN_ERROR"));
 				console.error(e);
