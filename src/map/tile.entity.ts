@@ -6,7 +6,6 @@ import TileSet from "./tile-set.entity";
  * Tile entity
  *
  * Describes single tile (where do you need to take the image with this tile from).
- * @category Entity
  */
 @Entity()
 @Unique({name: "tile_properties", properties: ["tileSet", "tile", "subtile_x", "subtile_y"]})

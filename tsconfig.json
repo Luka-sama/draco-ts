@@ -12,11 +12,11 @@
     "emitDecoratorMetadata": true
   },
   "typedocOptions": {
-    "categorizeByGroup": false,
-    "categoryOrder": ["Controller", "Entity", "*"],
     "entryPoints": ["src/"],
     "entryPointStrategy": "expand",
-    "exclude": "src/mikro-orm.config.ts",
-    "sort": "source-order"
+    "exclude": "src/jest-setup.ts",
+    "out": "docs",
+    "sort": "source-order",
+    "theme": "hierarchy"
   }
 }

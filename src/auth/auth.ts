@@ -1,22 +1,18 @@
 import {QueryOrder} from "@mikro-orm/core";
 import {randomBytes} from "crypto";
 import {promisify} from "util";
+import {EM} from "../core/orm";
+import Synchronizer from "../core/sync";
+import {tr} from "../core/util";
+import {ensure, hasErrors, Is, toObject} from "../core/validation";
+import {GuestArgs, LoggedArgs} from "../core/ws.typings";
 import Location from "../map/location.entity";
 import {Vec2} from "../math/vector.embeddable";
-import {EM} from "../orm";
-import Synchronizer from "../sync/sync";
-import {tr} from "../util";
-import {ensure, hasErrors, Is, toObject} from "../validation";
-import {GuestArgs, LoggedArgs} from "../ws.typings";
 import Account from "./account.entity";
 import {ForAll, Limit, OnlyGuest, OnlyLogged, OnlyLoggedAccount, OnlyLoggedAtLeastAccount} from "./auth.decorator";
 import User from "./user.entity";
 
-/**
- * Class for authorization (sign up and sign in)
- *
- * @category Controller
- */
+/** Class for authorization (sign up and sign in) */
 export default class Auth {
 	@ForAll()
 	static ping({sck}: GuestArgs): void {

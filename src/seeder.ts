@@ -5,7 +5,7 @@ import Account from "./auth/account.entity";
 import User from "./auth/user.entity";
 import Location from "./map/location.entity";
 import {Vec2} from "./math/vector.embeddable";
-import ORM, {EM} from "./orm";
+import ORM, {EM} from "./core/orm";
 
 export default class Seeder {
 	static started = false;
@@ -27,13 +27,13 @@ export default class Seeder {
 	}
 
 	static async seed(): Promise<void> {
-		const accounts = Seeder.getAccounts(10);
-		const locations = Seeder.getLocations(10);
-		Seeder.getUsers(10, accounts, locations);
+		const accounts = Seeder.createAccounts(10);
+		const locations = Seeder.createLocations(10);
+		Seeder.createUsers(10, accounts, locations);
 		await EM.flush();
 	}
 
-	static getAccounts(count: number): Account[] {
+	static createAccounts(count: number): Account[] {
 		const accounts: Account[] = [];
 		const dates = faker.date.betweens(faker.date.past(2).toString(), faker.date.past(1).toString(), count);
 		for (let i = 0; i < count; i++) {
@@ -50,7 +50,7 @@ export default class Seeder {
 		return accounts;
 	}
 
-	static getLocations(count: number): Location[] {
+	static createLocations(count: number): Location[] {
 		const locations: Location[] = [];
 
 		for (let i = 0; i < count; i++) {
@@ -63,7 +63,7 @@ export default class Seeder {
 		return locations;
 	}
 
-	static getUsers(count: number, accounts: Account[], locations: Location[]): User[] {
+	static createUsers(count: number, accounts: Account[], locations: Location[]): User[] {
 		const users: User[] = [];
 		for (let i = 0; i < count; i++) {
 			users.push( EM.create(User, {

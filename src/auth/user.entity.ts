@@ -1,23 +1,21 @@
 import {Embedded, Entity, ManyToOne, PrimaryKey, Property, Unique} from "@mikro-orm/core";
 import {Matches} from "class-validator";
 import {WeakCachedEntity} from "../cache/cached-entity";
+import Sync from "../core/sync.decorator";
+import {SyncFor} from "../core/sync.typings";
+import {tr} from "../core/util";
+import {Emitter, Socket, UserData} from "../core/ws.typings";
 import Location from "../map/location.entity";
 import {Vector2} from "../math/vector.embeddable";
-import Sync from "../sync/sync.decorator";
-import {SyncFor} from "../sync/sync.typings";
-import {tr} from "../util";
-import {Emitter, Socket, UserData} from "../ws.typings";
 import Account from "./account.entity";
 
 /**
  * User entity
  *
  * Every {@link Account | account} can have multiple users.
- * @category Entity
  */
 @Entity()
 export default class User extends WeakCachedEntity implements Emitter {
-	// Main properties
 	@PrimaryKey()
 	@Sync()
 	id!: number;
@@ -34,7 +32,6 @@ export default class User extends WeakCachedEntity implements Emitter {
 	@Property({nullable: true})
 	regDate = new Date();
 
-	// Map
 	@ManyToOne({nullable: true})
 	location: Location;
 
@@ -42,7 +39,6 @@ export default class User extends WeakCachedEntity implements Emitter {
 	@Sync({for: SyncFor.Zone})
 	position: Vector2;
 
-	// Other
 	socket?: Socket;
 
 	connected = false;

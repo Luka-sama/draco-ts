@@ -1,5 +1,5 @@
 import User from "../auth/user.entity";
-import {EM} from "../orm";
+import {EM} from "../core/orm";
 
 test("referred entity should remain initialized when cached", async() => {
 	const user1 = await EM.findOneOrFail(User, {name: "Luka"});

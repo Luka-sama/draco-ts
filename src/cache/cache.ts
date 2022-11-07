@@ -1,10 +1,6 @@
 import {CacheOptions} from "./cache.typings";
 
-/**
- * Class for cache management
- *
- * @category Cache
- */
+/** Class for cache management */
 export default class Cache {
 	private static entries = {};
 	private static started = false;

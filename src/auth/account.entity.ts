@@ -1,13 +1,9 @@
 import {Entity, PrimaryKey, Property, Unique} from "@mikro-orm/core";
 import {IsEmail, Length, Matches} from "class-validator";
 import {WeakCachedEntity} from "../cache/cached-entity";
-import {tr} from "../util";
+import {tr} from "../core/util";
 
-/**
- * Account entity
- *
- * @category Entity
- */
+/** Account entity */
 @Entity()
 export default class Account extends WeakCachedEntity {
 	@PrimaryKey()

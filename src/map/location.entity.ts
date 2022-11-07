@@ -1,14 +1,7 @@
 import {Entity, PrimaryKey, Property, Unique} from "@mikro-orm/core";
-import User from "../auth/user.entity";
 import {WeakCachedEntity} from "../cache/cached-entity";
-import Sync from "../sync/sync.decorator";
-import {UserData} from "../ws.typings";
 
-/**
- * Location entity
- *
- * @category Entity
- */
+/** Location entity */
 @Entity()
 export default class Location extends WeakCachedEntity {
 	@PrimaryKey()

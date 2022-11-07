@@ -1,13 +1,9 @@
 import assert from "assert/strict";
 import {OnlyLogged} from "../auth/auth.decorator";
-import {ensure, Is} from "../validation";
-import {LoggedArgs} from "../ws.typings";
+import {ensure, Is} from "../core/validation";
+import {LoggedArgs} from "../core/ws.typings";
 
-/**
- * This class handles movement of player.
- *
- * @category Controller
- */
+/** This class handles movement of players. */
 export default class Movement {
 	@OnlyLogged()
 	static move({user, raw}: LoggedArgs): void {

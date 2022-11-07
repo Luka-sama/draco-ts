@@ -1,14 +1,14 @@
 import glob from "glob";
-import Cache from "./cache/cache";
+import * as path from "path";
+import Cache from "../cache/cache";
 import ORM from "./orm";
 import WS from "./ws";
 
-/**
- * App class
- */
+/** App class */
 export default class App {
 	private static started = false;
 
+	/** Initializes all components (Cache, ORM, WS etc) */
 	static async init(): Promise<void> {
 		if (App.started) {
 			return;
@@ -28,9 +28,9 @@ export default class App {
 			"./**/*.entity.js", "./**/*.test.js", "./**/*.typings.js",
 			"./seeder.js", "./jest-setup.js",
 		];
-		const files = glob.sync("./**/*.js", {ignore, cwd: "./dist"});
+		const files = glob.sync("./**/*.js", {ignore, cwd: "./dist", root: __dirname});
 		for (const file of files) {
-			import(file);
+			import(path.join("..", file));
 		}
 	}
 

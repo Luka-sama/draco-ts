@@ -1,23 +1,18 @@
 import {AnyEntity} from "@mikro-orm/core";
 import User from "../auth/user.entity";
 import CachedObject from "../cache/cached-object";
+import {EM} from "../core/orm";
+import {Emitter, UserData} from "../core/ws.typings";
 import {Vec2, Vector2} from "../math/vector.embeddable";
-import {EM} from "../orm";
-import {Emitter, UserData} from "../ws.typings";
 import Location from "./location.entity";
-
-export interface ZoneEntities {
-	User: Set<User>;
-}
+import ZoneEntities from "./zone-entities";
 
 export default class Subzone extends CachedObject implements Emitter {
 	static readonly SIZE = Vec2(16, 16);
 	private loaded = false;
 	private readonly location: Location;
 	private readonly mapPosition: Vector2;
-	private entities: ZoneEntities = {
-		User: new Set()
-	};
+	private entities: ZoneEntities = new ZoneEntities();
 	private get start(): Vector2 {
 		return this.mapPosition.mul(Subzone.SIZE);
 	}
@@ -37,9 +32,9 @@ export default class Subzone extends CachedObject implements Emitter {
 			return;
 		}
 		const where = {location: this.location, position: {
-				x: {$gte: this.start.x, $lt: this.end.x},
-				y: {$gte: this.start.y, $lt: this.end.y}
-			}};
+			x: {$gte: this.start.x, $lt: this.end.x},
+			y: {$gte: this.start.y, $lt: this.end.y}
+		}};
 		this.entities.User = new Set( await EM.find(User, where) );
 		this.loaded = true;
 	}
@@ -64,17 +59,11 @@ export default class Subzone extends CachedObject implements Emitter {
 	}
 
 	leave(entity: AnyEntity): void {
-		const model = entity.constructor.name;
-		if (model in this.entities) {
-			this.entities[model as keyof ZoneEntities].delete(entity as any);
-		}
+		this.entities.delete(entity);
 	}
 
 	enter(entity: AnyEntity): void {
-		const model = entity.constructor.name;
-		if (model in this.entities) {
-			this.entities[model as keyof ZoneEntities].add(entity as any);
-		}
+		this.entities.enter(entity);
 	}
 
 	static getNameFor(location: Location, position: Vector2): string {

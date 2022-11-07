@@ -3,18 +3,14 @@ import assert from "assert/strict";
 import {Buffer} from "buffer";
 import _ from "lodash";
 import uWS from "uWebSockets.js";
-import User from "./auth/user.entity";
+import User from "../auth/user.entity";
 import {EM} from "./orm";
-import Synchronizer from "./sync/sync";
+import Synchronizer from "./sync";
 import {tr} from "./util";
 import {ensure, Is, WrongDataError} from "./validation";
 import {EventHandler, GuestArgs, Socket, UserData, WSData} from "./ws.typings";
 
-/**
- * WS starts Web Socket server and handles getting/sending data
- *
- * @category WS
- */
+/** WS starts Web Socket server and handles getting/sending data */
 export default class WS {
 	private static app: uWS.TemplatedApp;
 	private static events: {
@@ -173,7 +169,7 @@ export default class WS {
 		}
 	}
 
-	/** Handles getting data. Parses JSON, calls [[WS.route]] */
+	/** Handles getting data. Parses JSON, calls {@link WS.route} */
 	private static async onMessage(sck: uWS.WebSocket, message: ArrayBuffer): Promise<void> {
 		const data = WS.bufferToWSData(message);
 		if (!data) {

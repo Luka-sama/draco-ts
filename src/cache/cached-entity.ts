@@ -1,6 +1,6 @@
 import {EventArgs, EventSubscriber, Subscriber, wrap, WrappedEntity} from "@mikro-orm/core";
 import _ from "lodash";
-import {EM} from "../orm";
+import {EM} from "../core/orm";
 import Cache from "./cache";
 import {CacheOptions} from "./cache.typings";
 
@@ -10,8 +10,6 @@ import {CacheOptions} from "./cache.typings";
  * It is exported to avoid TypeDoc warning (referenced, but not included in the documentation).
  * It is used in the return type: T extends ICachedEntity.
  * This means that the function returns class instance of some class that is child of CachedEntity.
- *
- * @category Cache
  */
 export interface ICachedEntity {
 	new(...args: any): CachedEntity
@@ -20,9 +18,7 @@ export interface ICachedEntity {
 /**
  * Cached entity
  *
- * Do not use "fields" option on cached entities.
- * Use query builder with execute at the end if you want to select only a few fields.
- * @category Cache
+ * Do not use "fields" option on cached entities. Use query builder with execute at the end if you want to select only a few fields.
  */
 export abstract class CachedEntity {
 	id!: number;
@@ -173,11 +169,7 @@ export abstract class CachedEntity {
 	}
 }
 
-/**
- * Weak cached entity
- *
- * @category Cache
- */
+/** Weak cached entity */
 export abstract class WeakCachedEntity extends CachedEntity {
 	protected static readonly cacheOptions: CacheOptions = {weak: true};
 }

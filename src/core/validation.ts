@@ -1,16 +1,14 @@
 import {ClassType, transformAndValidate, TransformValidationOptions} from "class-transformer-validator";
 import {ValidationError} from "class-validator";
-import {Vec2, Vector2} from "./math/vector.embeddable";
+import {Vec2, Vector2} from "../math/vector.embeddable";
 import {UserData, UserDataExtended} from "./ws.typings";
 
 /**
  * Converts raw user data to object
  *
  * If user sent wrong data, returns array with violated constraints.
- * Use [[hasErrors]] to check if the conversion has failed.
+ * Use {@link hasErrors} to check if the conversion has failed.
  * See also [class-transformer-validator](https://github.com/MichalLytek/class-transformer-validator) for details.
- *
- * @category Validation
  */
 export async function toObject<T extends object>(classType: ClassType<T>, object: object, options?: TransformValidationOptions): Promise<T | string[]> {
 	try {
@@ -27,20 +25,14 @@ export async function toObject<T extends object>(classType: ClassType<T>, object
 }
 
 /**
- * Checks if the conversion from [[toObject]] has failed
+ * Checks if the conversion from {@link toObject} has failed
  * @param obj Converted object (from user data)
- *
- * @category Validation
  */
 export function hasErrors(obj: unknown): obj is string[] {
 	return obj instanceof Array;
 }
 
-/**
- * Function [[ensure]] throws this error if user sent wrong data
- *
- * @category Validation
- */
+/** Function {@link ensure} throws this error if user sent wrong data */
 export class WrongDataError extends Error {
 	constructor(message: string) {
 		super(message);
@@ -48,41 +40,31 @@ export class WrongDataError extends Error {
 	}
 }
 
-/**
- * Provides types for [[ensure]]
- *
- * @category Validation
- */
-export class Is {
-	static string = "";
-	static double = 0.5;
-	static int = 0;
-	static bool = true;
-	static null = null;
-	static vec2f = Vec2(0.5, 0.5);
-	static vec2i = Vec2();
-	static array<T>(values: T): Array<T> {
-		return [values] as Array<T>;
+/** Provides types for {@link ensure} */
+export const Is = {
+	string: "",
+	double: 0.5,
+	int: 0,
+	bool: true,
+	null: null,
+	vec2f: Vec2(0.5, 0.5),
+	vec2i: Vec2(),
+	array<T>(values: T): T[] {
+		return [values] as T[];
 	}
-}
+};
 
-/**
- * Provides types for [[ensure]] (for arrays)
- *
- * @category Validation
- */
-export class Of {
-	static strings = "";
-	static doubles = 0.5;
-	static ints = 0;
-	static bools = true;
-	static nulls = null;
-	static vec2fs = Is.vec2f;
-	static vec2is = Is.vec2i;
-	static arrays<T>(values: T): Array<T> {
-		return [values] as Array<T>;
-	}
-}
+/** Provides types for {@link ensure} (for arrays) */
+export const Of = {
+	strings: Is.string,
+	doubles: Is.double,
+	ints: Is.int,
+	bools: Is.bool,
+	nulls: Is.null,
+	vec2fs: Is.vec2f,
+	vec2is: Is.vec2i,
+	arrays: Is.array
+};
 
 /**
  * Checks if user sent correct data
@@ -90,8 +72,6 @@ export class Of {
  * @param raw Raw user data
  * @param shouldBe Template to which the data should correspond
  * @param allowUnknownKeys Are unknown keys allowed?
- *
- * @category Validation
  */
 export function ensure<T extends UserDataExtended>(raw: UserData, shouldBe: T, allowUnknownKeys = false): T {
 	if (!allowUnknownKeys) {

@@ -1,4 +1,4 @@
-import {Vector2} from "./math/vector.embeddable";
+import {Vector2} from "../math/vector.embeddable";
 import {ensure, Is, Of, WrongDataError} from "./validation";
 import {UserData, UserDataExtended} from "./ws.typings";
 

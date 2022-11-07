@@ -2,9 +2,10 @@ import {AnyEntity} from "@mikro-orm/core";
 import User from "../auth/user.entity";
 import CachedObject from "../cache/cached-object";
 import {Vec2, Vector2} from "../math/vector.embeddable";
-import {Emitter, UserData} from "../ws.typings";
+import {Emitter, UserData} from "../core/ws.typings";
 import Location from "./location.entity";
-import Subzone, {ZoneEntities} from "./subzone";
+import Subzone from "./subzone";
+import ZoneEntities from "./zone-entities";
 
 export default class Zone extends CachedObject implements Emitter {
 	static readonly SIZE = Subzone.SIZE.mul(3);
@@ -73,7 +74,7 @@ export default class Zone extends CachedObject implements Emitter {
 	}
 
 	getModels(): string[] {
-		return Object.keys(this.centralSubzone.getEntities());
+		return this.centralSubzone.getEntities().getModels();
 	}
 
 	getEntities(): ZoneEntities {
@@ -82,16 +83,8 @@ export default class Zone extends CachedObject implements Emitter {
 	}
 
 	static getEntitiesFromSubzones(subzones: Set<Subzone>): ZoneEntities {
-		const zoneEntities = {} as ZoneEntities;
-		for (const subzone of subzones) {
-			const subzoneEntities = subzone.getEntities();
-			const models = Object.keys(subzoneEntities) as Array<keyof ZoneEntities>;
-			for (const model of models) {
-				const set = zoneEntities[model] || new Set();
-				subzoneEntities[model].forEach(entity => set.add(entity));
-				zoneEntities[model] = set;
-			}
-		}
+		const zoneEntities = new ZoneEntities();
+		subzones.forEach(subzone => zoneEntities.merge(subzone.getEntities()));
 		return zoneEntities;
 	}
 
@@ -113,13 +106,13 @@ export default class Zone extends CachedObject implements Emitter {
 		return Subzone.getMapPosition(userPosition);
 	}
 
-	static async getByUserPosition(location: Location, userPosition: Vector2): Promise<Zone> {
+	static async getByPosition(location: Location, userPosition: Vector2): Promise<Zone> {
 		const zonePosition = Zone.getMapPosition(userPosition);
 		return await Zone.get(location, zonePosition);
 	}
 
 	static async getByUser(user: User): Promise<Zone> {
-		return await Zone.getByUserPosition(user.location, user.position);
+		return await Zone.getByPosition(user.location, user.position);
 	}
 
 	static async get(location: Location, mapPosition: Vector2): Promise<Zone> {

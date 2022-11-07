@@ -6,8 +6,7 @@ import Tile from "./tile.entity";
 /**
  * Tilemap entity
  *
- * Describes which tiles the location consists of
- * @category Entity
+ * Describes which tiles the location consists of.
  */
 @Entity()
 export default class TileMap {

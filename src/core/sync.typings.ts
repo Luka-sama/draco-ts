@@ -1,9 +1,5 @@
-/**
- * Synchronization options for a single property
- *
- * @category Synchronization
- */
-import {JSONData, UserData} from "../ws.typings";
+/** Synchronization options for a single property */
+import {JSONData, UserData} from "./ws.typings";
 
 export interface SyncProperty {
 	for?: SyncForCustom;
@@ -11,11 +7,7 @@ export interface SyncProperty {
 	map?: (value: any) => JSONData;
 }
 
-/**
- * Synchronization options for a single model
- *
- * @category Synchronization
- */
+/** Synchronization options for a single model */
 export interface SyncModel {
 	[key: string]: SyncProperty
 }

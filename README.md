@@ -4,7 +4,6 @@ This is one of the game repositories.
 
 Installation
 ------------
-
 * Install Node.JS 16.13.0 or newer
 * Install PostgreSQL 14.0 or newer
 * Create database enveltia (encoding UTF8, collation C)
