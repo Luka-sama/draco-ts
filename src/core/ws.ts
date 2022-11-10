@@ -5,12 +5,11 @@ import _ from "lodash";
 import uWS from "uWebSockets.js";
 import User from "../auth/user.entity";
 import {EM} from "./orm";
-import Synchronizer from "./sync";
 import {tr} from "./util";
 import {ensure, Is, WrongDataError} from "./validation";
 import {EventHandler, GuestArgs, Socket, UserData, WSData} from "./ws.typings";
 
-/** WS starts Web Socket server and handles getting/sending data */
+/** This class starts WebSocket server and handles getting/sending data */
 export default class WS {
 	private static app: uWS.TemplatedApp;
 	private static events: {
@@ -45,11 +44,12 @@ export default class WS {
 		console.assert(sck.send(json), `Event ${event} was not emitted to account=${sck.account?.id || 0}`);
 	}
 
-	/** Adds event to event list */
+	/** Adds an event to the event list */
 	static addEvent(event: string, func: EventHandler): void {
 		WS.events[event] = func;
 	}
 
+	/** Subscribes the socket or the user to a topic or topics */
 	static sub(sckOrUser: Socket | User, topics: string | string[]): void {
 		const sck = (sckOrUser instanceof User ? sckOrUser.socket! : sckOrUser);
 		if (!(topics instanceof Array)) {
@@ -60,6 +60,7 @@ export default class WS {
 		}
 	}
 
+	/** Unsubscribes the socket or the user from a topic or topics */
 	static unsub(sckOrUser: Socket | User, topics: string | string[]): void {
 		const sck = (sckOrUser instanceof User ? sckOrUser.socket! : sckOrUser);
 		if (!(topics instanceof Array)) {
@@ -70,6 +71,7 @@ export default class WS {
 		}
 	}
 
+	/** Sends a message to all users that are subscribed to the given topics */
 	static pub(topics: string | string[], event: string, data: UserData = {}): void {
 		const json = WS.prepareDataBeforeEmit(event, data);
 		if (!(topics instanceof Array)) {
@@ -80,6 +82,7 @@ export default class WS {
 		}
 	}
 
+	/** Returns all topics to them the socket or the user is subscribed */
 	static getTopics(sckOrUser: Socket | User, startsWith?: string): string[] {
 		const sck = (sckOrUser instanceof User ? sckOrUser.socket! : sckOrUser);
 		const topics = sck.getTopics();
@@ -92,7 +95,7 @@ export default class WS {
 	/**
 	 * Creates an object composed of the picked object properties (or object list with such objects)
 	 *
-	 * If property is not JSONData, tries to apply method toPlain(). If it fails, throws an error
+	 * If property is not JSONData, tries to apply method toPlain(). If it fails, throws an error.
 	 **/
 	static prepare<T>(list: T, keys: string[]): T extends unknown[] ? UserData[] : UserData {
 		if (list instanceof Set) {
@@ -101,6 +104,7 @@ export default class WS {
 		return (list instanceof Array ? WS.prepareArray(list, keys) : WS.prepareOne(list, keys)) as any;
 	}
 
+	/** A helper method for {@link prepare} */
 	private static prepareArray(list: any[], keys: string[]): UserData[] {
 		return list.map(object => {
 			if (object instanceof Array) {
@@ -110,6 +114,7 @@ export default class WS {
 		});
 	}
 
+	/** A helper method for {@link prepare} */
 	private static prepareOne(object: any, keys: string[]): UserData {
 		if (typeof object != "object") {
 			throw new Error(`Tried to send wrong data to user (${object}, typeof=${typeof object})`);
@@ -190,7 +195,7 @@ export default class WS {
 		return result;
 	}
 
-	/** Converts data to json with snake case */
+	/** Converts data to JSON with snake case */
 	private static prepareDataBeforeEmit(event: string, data: UserData): string {
 		const dataToSend: WSData = {event, data: WS.convertKeysInData(data, _.snakeCase)};
 		const json = JSON.stringify(dataToSend);
@@ -222,7 +227,6 @@ export default class WS {
 			try {
 				await handleEvent({sck, raw} as GuestArgs);
 				await EM.flush();
-				await Synchronizer.synchronize();
 			} catch (e) {
 				sck.info(e instanceof WrongDataError || e instanceof assert.AssertionError ? tr("WRONG_DATA") : tr("UNKNOWN_ERROR"));
 				console.error(e);

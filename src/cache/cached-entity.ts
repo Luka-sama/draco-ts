@@ -16,9 +16,38 @@ export interface ICachedEntity {
 }
 
 /**
- * Cached entity
+ * Cached MikroORM-entity
  *
- * Do not use "fields" option on cached entities. Use query builder with execute at the end if you want to select only a few fields.
+ * If a class derives CachedEntity or WeakCachedEntity, it will be ensured that there is only one instance of this class for each ID,
+ * see example:
+ * ```ts
+ * const user = await User.getOrFail(1);
+ * const acc1 = user.account;
+ * const acc2 = await EM.findOne(Account, {id: acc1.id});
+ * console.log(acc1 == acc2); // true
+ * ```
+ *
+ * This class is intended for the entities that will be stored in the DB. If this is not the case, use {@link CachedObject}.
+ *
+ * To use this, the constructor must be modified as follows, see also example below:
+ * - The last argument must be id with default value 0.
+ * - ```super(id);``` must be the first line of the constructor.
+ * - ```return this.getInstance();``` must be the last line of the constructor.
+ *
+ * ```ts
+ * constructor(name: string, account: Account, location: Location, position: Vector2, id = 0) {
+ *  super(id);
+ *  this.name = name;
+ *  this.account = account;
+ *  this.location = location;
+ *  this.position = position;
+ *  return this.getInstance();
+ * }
+ * ```
+ *
+ * **IMPORTANT!** Do not use option "fields" (select only some fields) on cached entities, as it results in broken entities.
+ * Use query builder with "execute" at the end if you really need to select only a few fields
+ * (so you will get plain objects instead of entities).
  */
 export abstract class CachedEntity {
 	id!: number;
@@ -28,6 +57,7 @@ export abstract class CachedEntity {
 	private initialized?: boolean;
 	private touched?: boolean;
 
+	/** Gets the entity by ID either from the cache or from the DB */
 	static async get<T extends ICachedEntity>(this: T, id: number): Promise<InstanceType<T> | null> {
 		if (!id) {
 			return null;
@@ -36,11 +66,13 @@ export abstract class CachedEntity {
 		return cached || (await EM.findOne(this, {id})) as InstanceType<T>;
 	}
 
+	/** Gets the entity by ID either from the cache or from the DB. If the entity is not found, throws an exception */
 	static async getOrFail<T extends ICachedEntity>(this: T, id: number): Promise<InstanceType<T>> {
 		const cached = (this as any).getIfCached(id);
 		return cached || (await EM.findOneOrFail(this, {id})) as InstanceType<T>;
 	}
 
+	/** Gets the entity by ID from the cache. If the entity is not cached, returns null */
 	static getIfCached<T extends ICachedEntity>(this: T, id: number): InstanceType<T> | null {
 		if (!id) {
 			return null;
@@ -56,35 +88,37 @@ export abstract class CachedEntity {
 		return null;
 	}
 
+	/** Returns the name that will be used to identify the entity in the cache */
 	getName(): string {
 		return (this.constructor as any).getNameFor(this.id);
 	}
 
-	/** Returns true if entity is not yet created **/
+	/** Returns ```true``` if entity is not yet created **/
 	isNotYetCreated(): boolean {
 		return !this.id;
 	}
 
-	/** Returns true if entity was fully loaded from DB **/
+	/** Returns ```true``` if entity was fully loaded from DB **/
 	isInitialized(): boolean {
 		return wrap(this).isInitialized();
 	}
 
-	/** Returns true if entity is saved in DB **/
+	/** Returns ```true``` if entity is saved in DB **/
 	isSaved(): boolean {
 		return !this.isNotYetCreated() && !this.isRemoved();
 	}
 
-	/** Returns true if entity was removed from DB **/
+	/** Returns ```true``` if entity was removed from DB **/
 	isRemoved(): boolean {
 		return !!this.removed;
 	}
 
-	/** Returns true if entity is saved in DB and initialized (was fully loaded from DB) **/
+	/** Returns ```true``` if entity is saved in DB and initialized (was fully loaded from DB) **/
 	isActive(): boolean {
 		return this.isInitialized() && this.isSaved();
 	}
 
+	/** Caches the entity (if it has ID, i.e. it is saved in DB) */
 	cache(): void {
 		if (this.id) {
 			const derived = this.constructor as any;
@@ -93,6 +127,7 @@ export abstract class CachedEntity {
 		}
 	}
 
+	/** Removes the entity from cache if it is cached */
 	uncache(): void {
 		if (this.id) {
 			const derived = this.constructor as any;
@@ -101,18 +136,31 @@ export abstract class CachedEntity {
 		}
 	}
 
+	/** Creates the entity in the DB and caches this entity */
 	async create(): Promise<void> {
 		await EM.persistAndFlush(this);
 		this.cache();
 	}
 
+	/** Removes the entity from the DB and the cache */
 	async remove(): Promise<void> {
 		this.removed = true;
 		await EM.removeAndFlush(this);
 		this.uncache();
 	}
 
-	// Should be public and not protected because TypeScript behaves strange if it is protected (e.g. in "sck.user = user;")
+	/**
+	 * Returns the entity instance that should be used.
+	 * The result of this method must be returned from the constructor of the derived class.
+	 *
+	 * If the entity is not cached, it simply returns ```this```.
+	 * If it is cached, returns the cached instance instead.
+	 * If a reference (e.g. user.account) is not loaded in the cached instance, but is loaded in this,
+	 * replaces the reference with the loaded one.
+	 * Also, flags "initialized" and "touched" are saved to restore them later in {@link setInternalProps}.
+	 *
+	 * Should be public and not protected because TypeScript behaves strange if it is protected (e.g. in ```sck.user = user;```).
+	 */
 	getInstance(): this {
 		const cached = this.cached;
 		if (!cached) {
@@ -135,6 +183,7 @@ export abstract class CachedEntity {
 		return cached;
 	}
 
+	/** Restores the flags (initialized and touched) after MikroORM resets them */
 	setInternalProps(): void {
 		if (this.initialized !== undefined) {
 			(this as any).__helper.__initialized = this.initialized;
@@ -146,6 +195,17 @@ export abstract class CachedEntity {
 		}
 	}
 
+	/**
+	 * Superclass constructor
+	 *
+	 * Here are three possible cases:
+	 * - The entity is not cached. In this case it will be cached.
+	 * - The entity is cached, but not loaded. In this case the cached entity
+	 * is returned and updated by the constructor of the derived class.
+	 * - The entity is cached and loaded. In this case the cached entity is saved in this.cached
+	 * and must be returned in the constructor of the derived class with {@link getInstance}.
+	 * This approach is necessary to avoid the resetting properties to their default values.
+	 */
 	protected constructor(id: number) {
 		if (id == 0) {
 			return;
@@ -164,12 +224,13 @@ export abstract class CachedEntity {
 		}
 	}
 
+	/** Returns the name for the given ID that will be used to identify the entity in the cache */
 	private static getNameFor(id: number): string {
 		return _.camelCase(this.name) + `/${id}`;
 	}
 }
 
-/** Weak cached entity */
+/** The cached entity class with weak=true in options (see {@link CachedEntity} and {@link CacheOptions} for details) */
 export abstract class WeakCachedEntity extends CachedEntity {
 	protected static readonly cacheOptions: CacheOptions = {weak: true};
 }

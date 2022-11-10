@@ -7,15 +7,22 @@ import {Vec2, Vector2} from "../math/vector.embeddable";
 import Location from "./location.entity";
 import ZoneEntities from "./zone-entities";
 
+/**
+ * Subzone class
+ *
+ * See {@link Zone} for details.
+ */
 export default class Subzone extends CachedObject implements Emitter {
 	static readonly SIZE = Vec2(16, 16);
 	private loaded = false;
 	private readonly location: Location;
-	private readonly mapPosition: Vector2;
+	private readonly zonePosition: Vector2;
 	private entities: ZoneEntities = new ZoneEntities();
+	/** Returns position of the start tile (included in this zone) */
 	private get start(): Vector2 {
-		return this.mapPosition.mul(Subzone.SIZE);
+		return this.zonePosition.mul(Subzone.SIZE);
 	}
+	/** Returns position of the last tile plus (1, 1), i.e. not included in this zone */
 	private get end(): Vector2 {
 		return this.start.add(Subzone.SIZE);
 	}
@@ -23,10 +30,11 @@ export default class Subzone extends CachedObject implements Emitter {
 	constructor(location: Location, position: Vector2) {
 		super(location, position);
 		this.location = location;
-		this.mapPosition = position;
+		this.zonePosition = position;
 		return this.getInstance();
 	}
 
+	/** Loads all entities that are in this subzone */
 	async load(): Promise<void> {
 		if (this.loaded) {
 			return;
@@ -39,8 +47,9 @@ export default class Subzone extends CachedObject implements Emitter {
 		this.loaded = true;
 	}
 
+	/** Returns the name of this subzone */
 	getName(): string {
-		return Subzone.getNameFor(this.location, this.mapPosition);
+		return Subzone.getNameFor(this.location, this.zonePosition);
 	}
 
 	emit(event: string, data: UserData = {}): void {
@@ -53,27 +62,46 @@ export default class Subzone extends CachedObject implements Emitter {
 		this.emit("info", {text});
 	}
 
+	/** Returns all entities of this subzone */
 	getEntities(): ZoneEntities {
 		this.checkIfLoaded();
 		return this.entities;
 	}
 
+	/** Removes en entity from this subzone */
 	leave(entity: AnyEntity): void {
 		this.entities.delete(entity);
 	}
 
+	/** Adds en entity to this subzone */
 	enter(entity: AnyEntity): void {
 		this.entities.enter(entity);
 	}
 
-	static getNameFor(location: Location, position: Vector2): string {
-		return `subzone/location${location.id}/${position.x}x${position.y}`;
+	/** Returns ```true``` if the given position is inside of this subzone */
+	isInside(position: Vector2): boolean {
+		this.checkIfLoaded();
+		return Subzone.getZonePosition(position).equals(this.zonePosition);
 	}
 
-	static getMapPosition(userPosition: Vector2): Vector2 {
-		return userPosition.intdiv(Subzone.SIZE);
+	/** Returns the name of a subzone with the given location and zone position */
+	static getNameFor(location: Location, zonePosition: Vector2): string {
+		return `subzone/location${location.id}/${zonePosition.x}x${zonePosition.y}`;
 	}
 
+	/** Converts a tile position (e.g. the position of a user, a item etc) to a zone position */
+	static getZonePosition(position: Vector2): Vector2 {
+		return position.intdiv(Subzone.SIZE);
+	}
+
+	/** Returns a loaded subzone by a given location and zone position */
+	static async get(location: Location, zonePosition: Vector2): Promise<Subzone> {
+		const subzone = new Subzone(location, zonePosition);
+		await subzone.load();
+		return subzone;
+	}
+
+	/** Throws an exception if this subzone is not loaded */
 	private checkIfLoaded(): void {
 		if (!this.loaded) {
 			throw new Error("Subzone not loaded");

@@ -4,6 +4,10 @@ import {tr} from "../core/util";
 import WS from "../core/ws";
 import {EventHandler, GuestArgs, LoggedArgs, Socket} from "../core/ws.typings";
 
+/**
+ * The decorated method is available only if func returns an empty string, otherwise the returned string will be sent as info-event.
+ * If addUserToArgs is true, adds user to arguments that the method will get.
+ */
 function OnlyCond(func: (sck: Socket) => string, addUserToArgs = false): MethodDecorator {
 	return function(target: unknown, propertyKey: string | symbol, descriptor: PropertyDescriptor): PropertyDescriptor {
 		const originalMethod: EventHandler = descriptor.value;
@@ -27,31 +31,35 @@ function OnlyCond(func: (sck: Socket) => string, addUserToArgs = false): MethodD
 	};
 }
 
-/** Decorated method is available to guests only */
+/** The decorated method is available to guests only */
 export function OnlyGuest(): MethodDecorator {
 	return OnlyCond((sck: Socket) => sck.account ? tr("PLEASE_LOGOUT") : "");
 }
 
-/** Decorated method is available to logged account (but not logged user) only */
+/** The decorated method is available to logged account (but not logged user) only */
 export function OnlyLoggedAccount(): MethodDecorator {
 	return OnlyCond((sck: Socket) => sck.account ? (sck.user ? tr("PLEASE_LOGOUT") : "") : tr("PLEASE_LOGIN_ACCOUNT"));
 }
 
-/** Decorated method is available to logged account or logged user (but not to guest) */
+/** The decorated method is available to logged account or logged user (but not to guest) */
 export function OnlyLoggedAtLeastAccount(): MethodDecorator {
 	return OnlyCond((sck: Socket) => sck.account ? "" : tr("PLEASE_LOGIN_ACCOUNT"));
 }
 
-/** Decorated method is available to logged user only */
+/** The decorated method is available to logged user only */
 export function OnlyLogged(): MethodDecorator {
 	return OnlyCond((sck: Socket) => sck.account ? (sck.user ? "" : tr("PLEASE_LOGIN_USER")) : tr("PLEASE_LOGIN_ACCOUNT"), true);
 }
 
-/** Decorated method is available for all */
+/** The decorated method is available for all */
 export function ForAll(): MethodDecorator {
 	return OnlyCond(() => "");
 }
 
+/**
+ * The decorated method can be called at most ```times``` times per ```ms``` ms,
+ * otherwise the user will get an info-event with text ```errorText```.
+ */
 export function Limit(ms: number, errorText = tr("LIMIT_REACHED"), times = 1): MethodDecorator {
 	return function(target: unknown, propertyKey: string | symbol, descriptor: PropertyDescriptor): PropertyDescriptor {
 		const originalMethod: EventHandler = descriptor.value;

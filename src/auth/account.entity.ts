@@ -29,6 +29,7 @@ export default class Account extends WeakCachedEntity {
 	@Property()
 	regDate = new Date();
 
+	/** Authorization token with which the user can sign in */
 	@Unique()
 	@Property()
 	token: string;

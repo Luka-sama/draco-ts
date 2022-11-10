@@ -88,12 +88,14 @@ export default class Auth {
 		user.emit("sign_in_user", {accountToken: user.account.token, userName: user.name});
 	}
 
+	/** Returns a list of usernames. The player can see this list after logging into the account */
 	@OnlyLoggedAccount()
 	static async getUserList({sck}: GuestArgs): Promise<void> {
 		const userList = (await EM.find(User, {account: sck.account}, {orderBy: {id: QueryOrder.ASC}})).map(user => user.name);
 		sck.emit("get_user_list", {list: userList});
 	}
 
+	/** Quick sign in by token (signs in both account and user) */
 	@OnlyGuest()
 	@Limit(1000)
 	static async signInByToken({sck, raw}: GuestArgs): Promise<void> {
@@ -114,6 +116,7 @@ export default class Auth {
 	static logOutAccount({sck}: GuestArgs): void {
 		if (sck.user) {
 			sck.user.connected = false;
+			delete sck.user.socket;
 		}
 		delete sck.account;
 		delete sck.user;
@@ -126,6 +129,7 @@ export default class Auth {
 
 	@OnlyLogged()
 	static async startGame({user}: LoggedArgs): Promise<void> {
+		user.emit("my_id", {myId: user.id});
 		await Synchronizer.firstLoad(user);
 	}
 

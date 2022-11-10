@@ -17,7 +17,6 @@ import Account from "./account.entity";
 @Entity()
 export default class User extends WeakCachedEntity implements Emitter {
 	@PrimaryKey()
-	@Sync()
 	id!: number;
 
 	@Unique()

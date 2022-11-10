@@ -1,11 +1,10 @@
-import faker from "@faker-js/faker";
-import {RequestContext} from "@mikro-orm/core";
+import {faker} from "@faker-js/faker";
 import assert from "assert/strict";
 import Account from "./auth/account.entity";
 import User from "./auth/user.entity";
+import ORM, {EM} from "./core/orm";
 import Location from "./map/location.entity";
 import {Vec2} from "./math/vector.embeddable";
-import ORM, {EM} from "./core/orm";
 
 export default class Seeder {
 	static started = false;
@@ -17,11 +16,12 @@ export default class Seeder {
 		Seeder.started = true;
 
 		console.log("Seeder started...");
-		await ORM.init({persistOnCreate: true});
+		await ORM.init({allowGlobalContext: true, persistOnCreate: true});
 		assert(process.env.NODE_ENV == "development", "You should start seeder only in development environment.");
 		await ORM.getInstance().getSchemaGenerator().refreshDatabase();
 		faker.seed(123);
-		await RequestContext.createAsync(EM, Seeder.seed);
+		await Seeder.seed();
+		await EM.flush();
 		await ORM.getInstance().close();
 		console.log("Seeder finished!");
 	}
@@ -30,7 +30,6 @@ export default class Seeder {
 		const accounts = Seeder.createAccounts(10);
 		const locations = Seeder.createLocations(10);
 		Seeder.createUsers(10, accounts, locations);
-		await EM.flush();
 	}
 
 	static createAccounts(count: number): Account[] {
@@ -40,11 +39,11 @@ export default class Seeder {
 			const name = ["Luka-sama"][i] || faker.name.firstName();
 			accounts.push( EM.create(Account, {
 				name,
-				mail: faker.internet.email(name),
+				mail: faker.helpers.unique(faker.internet.email, [name]),
 				pass: ["123456789"][i] || faker.internet.password(),
 				salt: "",
 				regDate: dates[i],
-				token: faker.datatype.hexaDecimal(96).substring(2).toLowerCase(),
+				token: faker.datatype.hexadecimal({length: 96}).substring(2).toLowerCase(),
 			}) );
 		}
 		return accounts;

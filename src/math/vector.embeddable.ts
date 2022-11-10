@@ -3,14 +3,15 @@ import {Embeddable, Property} from "@mikro-orm/core";
 /**
  * Vector2 interface
  *
- * You can use it if you need a plain object instead of a class instance.
+ * You can use it if you need a plain object instead of a class instance, e.g. to send a vector to user.
+ * Normally, however, you do not need this, since the conversion is done automatically (siehe {@link Vector2.toPlain}).
  */
 export interface IVector2 {
 	x: number;
 	y: number;
 }
 
-/** Vector2 class */
+/** Vector2 class. Usually used to represent positions */
 @Embeddable()
 export class Vector2 {
 	@Property()
@@ -24,14 +25,17 @@ export class Vector2 {
 		this.y = y;
 	}
 
+	/** Adds a vector to this vector */
 	add(v: Vector2): Vector2 {
 		return new Vector2(this.x + v.x, this.y + v.y);
 	}
 
+	/** Subtracts a vector from this vector */
 	sub(v: Vector2): Vector2 {
 		return new Vector2(this.x - v.x, this.y - v.y);
 	}
 
+	/** Multiplies this vector by a given vector (componentwise) or by a given number */
 	mul(v: Vector2 | number): Vector2 {
 		if (v instanceof Vector2) {
 			return new Vector2(this.x * v.x, this.y * v.y);
@@ -39,6 +43,7 @@ export class Vector2 {
 		return new Vector2(this.x * v, this.y * v);
 	}
 
+	/** Divides this vector by a given vector (componentwise) or by a given number */
 	div(v: Vector2 | number): Vector2 {
 		if (v instanceof Vector2) {
 			return new Vector2(this.x / v.x, this.y / v.y);
@@ -46,15 +51,18 @@ export class Vector2 {
 		return new Vector2(this.x / v, this.y / v);
 	}
 
+	/** Returns the integer quotient of the division of this vector and a given vector (componentwise) or a given number */
 	intdiv(v: Vector2 | number): Vector2 {
 		v = this.div(v);
 		return new Vector2(Math.floor(v.x), Math.floor(v.y));
 	}
 
+	/** Returns ```true``` if this vector and a given vector are equal */
 	equals(v: Vector2): boolean {
 		return (this.x == v.x && this.y == v.y);
 	}
 
+	/** Converts this vector to a plain object. Used by {@link WS.prepare | WS.prepare} to prepare data before sending to the user */
 	toPlain(): IVector2 {
 		return {x: this.x, y: this.y};
 	}
@@ -62,6 +70,7 @@ export class Vector2 {
 
 export function Vec2(x?: never, y?: never): Vector2;
 export function Vec2(x: IVector2, y?: never): Vector2;
+export function Vec2(x: number, y?: never): Vector2;
 export function Vec2(x: number, y: number): Vector2;
 
 /**

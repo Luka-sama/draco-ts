@@ -17,9 +17,9 @@ export default class App {
 
 		App.autoimport();
 		App.catchExceptions();
-		Cache.init();
 		await ORM.init();
 		await WS.init();
+		Cache.init();
 	}
 
 	/** Auto-import to make @OnlyLogged() and other decorators to work without explicit import */
@@ -34,13 +34,14 @@ export default class App {
 		}
 	}
 
+	/** Catches uncaught exceptions and unhandled rejections */
 	private static catchExceptions(): void {
 		process.on("uncaughtException", error => {
-			console.error(`UNCAUGHT EXCEPTION [${Date.now()}]:\r\n${error.stack}`);
+			console.error(`Uncaught exception [${new Date()}]:\r\n${error.stack}`);
 		});
 
 		process.on("unhandledRejection", (error: Error) => {
-			console.error(`UNHANDLED REJECTION [${Date.now()}]:\r\n${error?.stack ? error.stack : error}`);
+			console.error(`Unhandled rejection [${new Date()}]:\r\n${error?.stack ? error.stack : error}`);
 		});
 	}
 }

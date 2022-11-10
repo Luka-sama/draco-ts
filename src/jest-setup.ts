@@ -5,18 +5,15 @@ import Cache from "./cache/cache";
 import ORM, {EM} from "./core/orm";
 import {GuestArgs, LoggedArgs, Socket} from "./core/ws.typings";
 
+/* eslint-disable no-var */
 declare global {
-	// eslint-disable-next-line no-var
 	var sck: Socket;
-	// eslint-disable-next-line no-var
 	var guestArgs: GuestArgs;
-	// eslint-disable-next-line no-var
 	var loggedArgs: LoggedArgs;
-	// eslint-disable-next-line no-var
 	var account: Account;
-	// eslint-disable-next-line no-var
 	var user: User;
 }
+/* eslint-enable */
 global.sck = mock<Socket>();
 global.guestArgs = {sck, raw: {}};
 

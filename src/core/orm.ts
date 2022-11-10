@@ -11,19 +11,26 @@ let EM: EntityManager;
 
 /** Simple ORM wrapper */
 export default class ORM {
-	private static orm: MikroORM<PostgreSqlDriver>;
+	private static started = false;
+	private static instance: MikroORM<PostgreSqlDriver>;
 
 	/** Initializes the ORM */
 	static async init(replacedOptions: Options<PostgreSqlDriver> = {}): Promise<void> {
-		if (!ORM.orm) {
-			ORM.orm = await MikroORM.init({...config, ...replacedOptions});
-			EM = ORM.orm.em;
+		if (!ORM.started) {
+			ORM.instance = await MikroORM.init({...config, ...replacedOptions});
+			EM = ORM.instance.em;
+			ORM.started = true;
 		}
 	}
 
 	/** Returns the ORM instance */
 	static getInstance(): MikroORM<PostgreSqlDriver> {
-		return ORM.orm;
+		return ORM.instance;
+	}
+
+	/** Returns ```true``` if the ORM has already started */
+	static isStarted(): boolean {
+		return ORM.started;
 	}
 }
 

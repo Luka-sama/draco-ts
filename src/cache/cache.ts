@@ -1,11 +1,27 @@
 import {CacheOptions} from "./cache.typings";
 
-/** Class for cache management */
+/**
+ * Class for the cache management
+ *
+ * This class uses the nested objects to store the entries.
+ * For example, zone/location1/2x3 is internally saved as:
+ * ```ts
+ * Cache.entries = {
+ *     "zone": {
+ *         "location1": {
+ *             "2x3": storedValue
+ *         }
+ *     }
+ * };
+ * ```
+ * This can be useful to have e.g. statistics on how many of which objects are cached.
+ */
 export default class Cache {
 	private static entries = {};
 	private static started = false;
 	private static finalizationRegistry: FinalizationRegistry<any>;
 
+	/** Initializes cache */
 	static init(): void {
 		if (Cache.started) {
 			return;
@@ -14,15 +30,18 @@ export default class Cache {
 		Cache.finalizationRegistry = new FinalizationRegistry(Cache.delete);
 	}
 
+	/** Returns ```true``` if cache has an entry with the given name */
 	static has(name: string): boolean {
 		return Cache.getParent(name).hasEntry;
 	}
 
+	/** Returns an entry with the given name if it is saved, otherwise returns defaultValue (by default null) */
 	static get(name: string, defaultValue: any = null): any {
 		const {hasEntry, entry} = Cache.getParent(name);
 		return (hasEntry ? entry : defaultValue);
 	}
 
+	/** Sets a value and options for an entry with the given name */
 	static set(name: string, value: any, options: CacheOptions = {}): void {
 		const {parent, last} = Cache.getParent(name, true);
 		parent[last] = (options.weak ? new WeakRef(value) : value);
@@ -31,15 +50,18 @@ export default class Cache {
 		}
 	}
 
+	/** Deletes an entry with the given name */
 	static delete(name: string): void {
 		const {parent, last} = Cache.getParent(name);
 		delete parent[last];
 	}
 
+	/** Deletes all entries */
 	static clear(): void {
 		Cache.entries = {};
 	}
 
+	/** Returns info for the given name */
 	private static getParent(name: string, shouldCreate = false): {
 		parent: {
 			[key: string]: any
