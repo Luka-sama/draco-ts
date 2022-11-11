@@ -1,4 +1,4 @@
-import {EventArgs, EventSubscriber, Subscriber, wrap, WrappedEntity} from "@mikro-orm/core";
+import {EventArgs, EventSubscriber, PrimaryKey, Subscriber, wrap, WrappedEntity} from "@mikro-orm/core";
 import _ from "lodash";
 import {EM} from "../core/orm";
 import Cache from "./cache";
@@ -33,6 +33,7 @@ export interface ICachedEntity {
  * - The last argument must be id with default value 0.
  * - ```super(id);``` must be the first line of the constructor.
  * - ```return this.getInstance();``` must be the last line of the constructor.
+ * Also, the id property should be removed since it's already declared in CachedEntity.
  *
  * ```ts
  * constructor(name: string, account: Account, location: Location, position: Vector2, id = 0) {
@@ -50,7 +51,9 @@ export interface ICachedEntity {
  * (so you will get plain objects instead of entities).
  */
 export abstract class CachedEntity {
+	@PrimaryKey()
 	id!: number;
+
 	protected static readonly cacheOptions: CacheOptions = {};
 	private cached?: any;
 	private removed?: boolean;

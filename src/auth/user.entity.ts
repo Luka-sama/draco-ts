@@ -1,4 +1,4 @@
-import {Embedded, Entity, ManyToOne, PrimaryKey, Property, Unique} from "@mikro-orm/core";
+import {Embedded, Entity, ManyToOne, Property, Unique} from "@mikro-orm/core";
 import {Matches} from "class-validator";
 import {WeakCachedEntity} from "../cache/cached-entity";
 import Sync from "../core/sync.decorator";
@@ -16,9 +16,6 @@ import Account from "./account.entity";
  */
 @Entity()
 export default class User extends WeakCachedEntity implements Emitter {
-	@PrimaryKey()
-	id!: number;
-
 	@Unique()
 	@Property()
 	@Matches(/^[A-Z][a-z]*$/, {message: tr("USER_NAME_FORMAT_WRONG")})

@@ -1,4 +1,4 @@
-import {Entity, PrimaryKey, Property, Unique} from "@mikro-orm/core";
+import {Entity, Property, Unique} from "@mikro-orm/core";
 import {IsEmail, Length, Matches} from "class-validator";
 import {WeakCachedEntity} from "../cache/cached-entity";
 import {tr} from "../core/util";
@@ -6,9 +6,6 @@ import {tr} from "../core/util";
 /** Account entity */
 @Entity()
 export default class Account extends WeakCachedEntity {
-	@PrimaryKey()
-	id!: number;
-
 	@Unique()
 	@Property()
 	@Matches(/^[a-z0-9-]+$/i, {message: tr("ACCOUNT_NAME_FORMAT_WRONG")})
