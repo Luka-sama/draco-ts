@@ -25,13 +25,13 @@ export default class User extends WeakCachedEntity implements Emitter {
 	@ManyToOne()
 	account: Account;
 
-	@Property({nullable: true})
+	@Property()
 	regDate = new Date();
 
-	@ManyToOne({nullable: true})
+	@ManyToOne()
 	location: Location;
 
-	@Embedded({nullable: true, prefix: false})
+	@Embedded({prefix: false})
 	@Sync({for: SyncFor.Zone})
 	position: Vector2;
 
