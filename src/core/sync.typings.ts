@@ -6,8 +6,8 @@ export interface SyncProperty {
 	for: SyncForCustom;
 	/** The name of this property on the client-side */
 	as?: string;
-	/** The value of this property on the client-side */
-	map?: (value: any) => JSONDataExtended;
+	/** The value of this property on the client-side. The string, e.g. "name", is shorthand for `value => value.name` */
+	map?: ((value: any) => JSONDataExtended) | string;
 }
 
 /** Sync options for a single model */
