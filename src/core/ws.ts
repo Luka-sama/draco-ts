@@ -96,8 +96,9 @@ export default class WS {
 	 * Creates an object composed of the picked object properties (or object list with such objects)
 	 *
 	 * If property is not JSONData, tries to apply method toPlain(). If it fails, throws an error.
+	 * If no keys provided, it picks all existing keys (i.e. it simply converts object to user data).
 	 **/
-	static prepare<T>(list: T, keys: string[]): T extends unknown[] ? UserData[] : UserData {
+	static prepare<T>(list: T, keys?: string[]): T extends unknown[] ? UserData[] : UserData {
 		if (list instanceof Set) {
 			return WS.prepareArray(Array.from(list), keys) as any;
 		}
@@ -105,7 +106,7 @@ export default class WS {
 	}
 
 	/** A helper method for {@link prepare} */
-	private static prepareArray(list: any[], keys: string[]): UserData[] {
+	private static prepareArray(list: any[], keys?: string[]): UserData[] {
 		return list.map(object => {
 			if (object instanceof Array) {
 				throw new Error(`Tried to send wrong data to user (${object}, is array)`);
@@ -115,12 +116,12 @@ export default class WS {
 	}
 
 	/** A helper method for {@link prepare} */
-	private static prepareOne(object: any, keys: string[]): UserData {
+	private static prepareOne(object: any, keys?: string[]): UserData {
 		if (typeof object != "object") {
 			throw new Error(`Tried to send wrong data to user (${object}, typeof=${typeof object})`);
 		}
 
-		const picked = _.pick(object, keys);
+		const picked = (keys ? _.pick(object, keys) : object);
 		for (const key in picked) {
 			const value: any = picked[key];
 			const type = typeof value;

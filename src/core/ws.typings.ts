@@ -5,6 +5,8 @@ import {Vector2} from "../math/vector.embeddable";
 
 /** This is the return type of JSON.parse() */
 export type JSONData = string | number | boolean | null | JSONData[] | UserData;
+/** This is the type that can be transformed to JSON */
+export type JSONDataExtended = string | number | boolean | null | Vector2 | JSONDataExtended[] | UserData;
 /** This is the type for the data that we can get from a user or send to a user */
 export type UserData = {[key: string]: JSONData | undefined};
 /** This is the type for the data that we can get from a user after we transform this data with {@link ensure} */

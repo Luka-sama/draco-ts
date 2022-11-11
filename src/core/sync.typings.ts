@@ -1,4 +1,4 @@
-import {Emitter, JSONData, UserData} from "./ws.typings";
+import {Emitter, JSONDataExtended, UserData} from "./ws.typings";
 
 /** Synchronization options for a single property (how this property should be synced) */
 export interface SyncProperty {
@@ -7,7 +7,7 @@ export interface SyncProperty {
 	/** The name of this property on the client-side */
 	as?: string;
 	/** The value of this property on the client-side */
-	map?: (value: any) => JSONData;
+	map?: (value: any) => JSONDataExtended;
 }
 
 /** Sync options for a single model */

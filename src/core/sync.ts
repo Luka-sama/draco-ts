@@ -7,7 +7,9 @@ import Zone from "../map/zone";
 import ZoneEntities from "../map/zone-entities";
 import {Vec2, Vector2} from "../math/vector.embeddable";
 import {EM} from "./orm";
+import {toSync} from "./sync.decorator";
 import {Sync, SyncFor, SyncForCustom, SyncMap, SyncModel, SyncProperty, SyncType} from "./sync.typings";
+import WS from "./ws";
 import {Emitter, UserData} from "./ws.typings";
 
 /**
@@ -18,21 +20,12 @@ import {Emitter, UserData} from "./ws.typings";
  * Every few milliseconds all accumulated syncs are emitted and the sync map is cleared.
  */
 export default class Synchronizer {
-	/** The information about which properties in which models and how should be synced */
-	private static toSync: {
-		[key: string]: SyncModel;
-	} = {};
 	/** The accumulated changes to sync */
 	private static syncMap: SyncMap = new Map();
 
 	/** Initializes an infinite loop with {@link synchronize} */
 	static init(): void {
 		setInterval(Synchronizer.synchronize, 10);
-	}
-
-	/** Adds an information about which property in which model and how should be synced */
-	static addToSyncProperty(model: string, propertyKey: string, options: SyncProperty[]): void {
-		_.set(Synchronizer.toSync, [model, propertyKey], options);
 	}
 
 	/** Calculates sync map for given change sets */
@@ -75,7 +68,7 @@ export default class Synchronizer {
 	 * It is internally used by {@link createEntityInZone} and {@link deleteEntityFromZone}
 	 */
 	private static async createOrDeleteEntity(entity: AnyEntity, toCreate: boolean): Promise<void> {
-		const model = entity.constuctor.name;
+		const model = entity.constructor.name;
 		const syncList = (toCreate ?
 			Synchronizer.getCreateList(model, entity, SyncFor.Zone) :
 			Synchronizer.getDeleteList(model, entity)
@@ -85,6 +78,12 @@ export default class Synchronizer {
 		const syncMap: SyncMap = new Map();
 		subzones.forEach(subzone => syncMap.set(subzone, syncList));
 		Synchronizer.mergeSyncMaps(Synchronizer.syncMap, syncMap);
+
+		if (toCreate) {
+			zone.enter(entity);
+		} else {
+			zone.leave(entity);
+		}
 	}
 
 	/** Emits the given sync list to the given emitter(s) */
@@ -101,7 +100,7 @@ export default class Synchronizer {
 	 * Only those properties will be used whose syncFor is equal to the given syncFor
 	 */
 	private static getCreateList(model: string, entities: Set<AnyEntity> | AnyEntity, syncFor: SyncForCustom): Sync[] {
-		const toSyncModel = Synchronizer.toSync[model];
+		const toSyncModel = toSync[model];
 		if (!toSyncModel) {
 			return [];
 		}
@@ -120,7 +119,7 @@ export default class Synchronizer {
 
 	/** Returns a sync list for the deletion of a given entity (entities) of the given model */
 	private static getDeleteList(model: string, entities: Set<AnyEntity> | AnyEntity): Sync[] {
-		const toSyncModel = Synchronizer.toSync[model];
+		const toSyncModel = toSync[model];
 		if (!toSyncModel) {
 			return [];
 		}
@@ -155,7 +154,7 @@ export default class Synchronizer {
 		const model = changeSet.name;
 		const entity = changeSet.entity;
 		const type = Synchronizer.getSyncType(changeSet);
-		const toSyncModel = Synchronizer.toSync[model];
+		const toSyncModel = toSync[model];
 		const syncedProperties = Synchronizer.getSyncedProperties(toSyncModel, changeSet, type);
 		if (!syncedProperties.length) {
 			return syncMap;
@@ -179,7 +178,7 @@ export default class Synchronizer {
 		}
 
 		for (const [emitter, entity] of collectedData) {
-			const sync: Sync = {model: _.snakeCase(model), type, entity};
+			const sync: Sync = {model: _.snakeCase(model), type, entity: WS.prepare(entity)};
 			if (emitter instanceof Zone) {
 				const subzones = emitter.getSubzones();
 				for (const subzone of subzones) {
@@ -210,7 +209,7 @@ export default class Synchronizer {
 				}
 			}
 		}
-		return convertedEntity;
+		return WS.prepare(convertedEntity);
 	}
 
 	/** Converts ChangeSetType of MikroORM to {@link SyncType} */
