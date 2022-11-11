@@ -1,5 +1,4 @@
 import {AnyEntity} from "@mikro-orm/core";
-import User from "../auth/user.entity";
 import CachedObject from "../cache/cached-object";
 import {Emitter, UserData} from "../core/ws.typings";
 import {Vec2, Vector2} from "../math/vector.embeddable";
@@ -42,9 +41,9 @@ export default class Zone extends CachedObject implements Emitter {
 		return await Zone.get(location, zonePosition);
 	}
 
-	/** Returns a loaded zone by a given user */
-	static async getByUser(user: User): Promise<Zone> {
-		return await Zone.getByPosition(user.location, user.position);
+	/** Returns a loaded zone by a given entity with location and position */
+	static async getByEntity(entity: AnyEntity): Promise<Zone> {
+		return await Zone.getByPosition(entity.location, entity.position);
 	}
 
 	/** Returns a loaded zone by a given location and zone position */

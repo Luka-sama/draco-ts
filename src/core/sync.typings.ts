@@ -1,7 +1,6 @@
-/** Synchronization options for a single property */
 import {Emitter, JSONData, UserData} from "./ws.typings";
 
-/** Property options: the details on how property should be synced */
+/** Synchronization options for a single property (how this property should be synced) */
 export interface SyncProperty {
 	/** The recipient emitter */
 	for: SyncForCustom;
@@ -38,10 +37,11 @@ export type SyncForCustom = SyncFor | string | {
 export type SyncType = "create" | "update" | "delete";
 
 /** Objects with this info will be sent to the user during sync */
-export interface SyncInfo extends UserData {
+export interface Sync extends UserData {
 	model: string;
 	type: SyncType;
 	entity: UserData;
 }
 
-export type SyncInfoMap = Map<Emitter, SyncInfo[]>;
+/** A map containing information about which {@link Sync | syncs} should be sent to which emitters */
+export type SyncMap = Map<Emitter, Sync[]>;

@@ -29,7 +29,7 @@ export default class Auth {
 		}
 
 		acc.token = await Auth.generateToken();
-		await EM.persist(acc);
+		EM.persist(acc);
 		sck.emit("sign_up_account");
 		return true;
 	}

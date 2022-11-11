@@ -20,13 +20,13 @@ export default class Seeder {
 		assert(process.env.NODE_ENV == "development", "You should start seeder only in development environment.");
 		await ORM.getInstance().getSchemaGenerator().refreshDatabase();
 		faker.seed(123);
-		await Seeder.seed();
+		Seeder.seed();
 		await EM.flush();
 		await ORM.getInstance().close();
 		console.log("Seeder finished!");
 	}
 
-	static async seed(): Promise<void> {
+	static seed(): void {
 		const accounts = Seeder.createAccounts(10);
 		const locations = Seeder.createLocations(10);
 		Seeder.createUsers(10, accounts, locations);

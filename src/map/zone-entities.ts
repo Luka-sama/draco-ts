@@ -12,7 +12,7 @@ export default class ZoneEntities {
 	}
 
 	/** Returns entity set for the given model */
-	get(model: string): Set<User> {
+	get(model: string): Set<AnyEntity> {
 		const set = this[model as keyof ZoneEntities];
 		assert(set instanceof Set);
 		return set;

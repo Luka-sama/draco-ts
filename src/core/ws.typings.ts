@@ -5,12 +5,12 @@ import {Vector2} from "../math/vector.embeddable";
 
 /** This is the return type of JSON.parse() */
 export type JSONData = string | number | boolean | null | JSONData[] | UserData;
-/** This is the type for data that we can get from user or send to user */
+/** This is the type for the data that we can get from a user or send to a user */
 export type UserData = {[key: string]: JSONData | undefined};
-/** This is the type for data that we can get from user after we transform this data with {@link ensure} */
+/** This is the type for the data that we can get from a user after we transform this data with {@link ensure} */
 export type UserDataExtended = {[key: string]: JSONData | undefined | Vector2 | Vector2[]} | Vector2;
 
-/** Data which we get from user or send to user with event name */
+/** Data which we get from a user or send to a user with event name */
 export interface WSData {
 	event: string;
 	data: UserData;
