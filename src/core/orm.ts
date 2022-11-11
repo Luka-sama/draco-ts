@@ -28,7 +28,7 @@ export default class ORM {
 		return ORM.instance;
 	}
 
-	/** Returns ```true``` if the ORM has already started */
+	/** Returns `true` if the ORM has already started */
 	static isStarted(): boolean {
 		return ORM.started;
 	}

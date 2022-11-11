@@ -57,8 +57,8 @@ export function ForAll(): MethodDecorator {
 }
 
 /**
- * The decorated method can be called at most ```times``` times per ```ms``` ms,
- * otherwise the user will get an info-event with text ```errorText```.
+ * The decorated method can be called at most `times` times per `ms` ms,
+ * otherwise the user will get an info-event with text `errorText`.
  */
 export function Limit(ms: number, errorText = tr("LIMIT_REACHED"), times = 1): MethodDecorator {
 	return function(target: unknown, propertyKey: string | symbol, descriptor: PropertyDescriptor): PropertyDescriptor {

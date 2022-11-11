@@ -78,7 +78,7 @@ export default class Subzone extends CachedObject implements Emitter {
 		this.entities.enter(entity);
 	}
 
-	/** Returns ```true``` if the given position is inside of this subzone */
+	/** Returns `true` if the given position is inside of this subzone */
 	isInside(position: Vector2): boolean {
 		this.checkIfLoaded();
 		return Subzone.getZonePosition(position).equals(this.zonePosition);

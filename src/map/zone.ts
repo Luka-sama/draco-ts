@@ -108,7 +108,7 @@ export default class Zone extends CachedObject implements Emitter {
 		this.emit("info", {text});
 	}
 
-	/** Returns ```true``` if the given position is inside of this zone */
+	/** Returns `true` if the given position is inside of this zone */
 	isInside(position: Vector2): boolean {
 		this.checkIfLoaded();
 		for (const subzone of this.subzones) {

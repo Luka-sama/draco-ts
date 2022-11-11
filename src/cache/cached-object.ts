@@ -18,7 +18,7 @@ import {CacheOptions} from "./cache.typings";
  * - The static method getNameFor must be implemented. It returns a unique name that is used to identify identical objects.
  * - The non-static method getName must be implemented and use static method getNameFor.
  * - In the constructor, "super" must be called with the arguments that will be passed to getNameFor.
- * - ```return this.getInstance();``` must be the last line of the constructor.
+ * - `return this.getInstance();` must be the last line of the constructor.
  *
  * ```ts
  * export default class Zone extends CachedObject {
@@ -76,7 +76,7 @@ export default abstract class CachedObject {
 	 * Returns the object instance that should be used.
 	 * The result of this method must be returned from the constructor of the derived class.
 	 *
-	 * If the entity is not cached, it simply returns ```this```.
+	 * If the entity is not cached, it simply returns `this`.
 	 * If it is cached, returns the cached instance instead.
 	 */
 	protected getInstance(): this {

@@ -31,8 +31,8 @@ export interface ICachedEntity {
  *
  * To use this, the constructor must be modified as follows, see also example below:
  * - The last argument must be id with default value 0.
- * - ```super(id);``` must be the first line of the constructor.
- * - ```return this.getInstance();``` must be the last line of the constructor.
+ * - `super(id);` must be the first line of the constructor.
+ * - `return this.getInstance();` must be the last line of the constructor.
  * Also, the id property should be removed since it's already declared in CachedEntity.
  *
  * ```ts
@@ -96,27 +96,27 @@ export abstract class CachedEntity {
 		return (this.constructor as any).getNameFor(this.id);
 	}
 
-	/** Returns ```true``` if entity is not yet created **/
+	/** Returns `true` if entity is not yet created **/
 	isNotYetCreated(): boolean {
 		return !this.id;
 	}
 
-	/** Returns ```true``` if entity was fully loaded from DB **/
+	/** Returns `true` if entity was fully loaded from DB **/
 	isInitialized(): boolean {
 		return wrap(this).isInitialized();
 	}
 
-	/** Returns ```true``` if entity is saved in DB **/
+	/** Returns `true` if entity is saved in DB **/
 	isSaved(): boolean {
 		return !this.isNotYetCreated() && !this.isRemoved();
 	}
 
-	/** Returns ```true``` if entity was removed from DB **/
+	/** Returns `true` if entity was removed from DB **/
 	isRemoved(): boolean {
 		return !!this.removed;
 	}
 
-	/** Returns ```true``` if entity is saved in DB and initialized (was fully loaded from DB) **/
+	/** Returns `true` if entity is saved in DB and initialized (was fully loaded from DB) **/
 	isActive(): boolean {
 		return this.isInitialized() && this.isSaved();
 	}
@@ -156,13 +156,13 @@ export abstract class CachedEntity {
 	 * Returns the entity instance that should be used.
 	 * The result of this method must be returned from the constructor of the derived class.
 	 *
-	 * If the entity is not cached, it simply returns ```this```.
+	 * If the entity is not cached, it simply returns `this`.
 	 * If it is cached, returns the cached instance instead.
 	 * If a reference (e.g. user.account) is not loaded in the cached instance, but is loaded in this,
 	 * replaces the reference with the loaded one.
 	 * Also, flags "initialized" and "touched" are saved to restore them later in {@link setInternalProps}.
 	 *
-	 * Should be public and not protected because TypeScript behaves strange if it is protected (e.g. in ```sck.user = user;```).
+	 * Should be public and not protected because TypeScript behaves strange if it is protected (e.g. in `sck.user = user;`).
 	 */
 	getInstance(): this {
 		const cached = this.cached;

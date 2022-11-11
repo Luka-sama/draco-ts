@@ -57,7 +57,7 @@ export class Vector2 {
 		return new Vector2(Math.floor(v.x), Math.floor(v.y));
 	}
 
-	/** Returns ```true``` if this vector and a given vector are equal */
+	/** Returns `true` if this vector and a given vector are equal */
 	equals(v: Vector2): boolean {
 		return (this.x == v.x && this.y == v.y);
 	}
@@ -77,7 +77,7 @@ export function Vec2(x: number, y: number): Vector2;
  * Function to create vectors
  *
  * This is the short form instead of constructor using.
- * You can write ```Vec2(1, 1)``` or even ```Vec2(1)``` instead of ```new Vector2(1, 1)```. ```Vec2({x: 1, y: 1})``` is also possible.
+ * You can write `Vec2(1, 1)` or even `Vec2(1)` instead of `new Vector2(1, 1)`. `Vec2({x: 1, y: 1})` is also possible.
  */
 export function Vec2(x?: number | IVector2, y?: number): Vector2 {
 	if (x === undefined && y === undefined) {

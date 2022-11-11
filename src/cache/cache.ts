@@ -30,7 +30,7 @@ export default class Cache {
 		Cache.finalizationRegistry = new FinalizationRegistry(Cache.delete);
 	}
 
-	/** Returns ```true``` if cache has an entry with the given name */
+	/** Returns `true` if cache has an entry with the given name */
 	static has(name: string): boolean {
 		return Cache.getParent(name).hasEntry;
 	}
