@@ -1,4 +1,4 @@
-import {AnyEntity} from "@mikro-orm/core";
+import {AnyEntity, QueryOrder} from "@mikro-orm/core";
 import User from "../auth/user.entity";
 import CachedObject from "../cache/cached-object";
 import Chat from "../chat/chat";
@@ -45,12 +45,13 @@ export default class Subzone extends CachedObject implements Emitter {
 			x: {$gte: this.start.x, $lt: this.end.x},
 			y: {$gte: this.start.y, $lt: this.end.y}
 		}};
+		const orderBy = {id: QueryOrder.ASC};
 
-		this.entities.User = new Set( await EM.find(User, where) );
+		this.entities.User = new Set( await EM.find(User, where, {orderBy}) );
 
 		const minDate = new Date();
 		minDate.setMilliseconds(minDate.getMilliseconds() - Chat.DELETE_AFTER_MS);
-		this.entities.Message = new Set( await EM.find(Message, {...where, date: {$gt: minDate}}) );
+		this.entities.Message = new Set( await EM.find(Message, {...where, date: {$gt: minDate}}, {orderBy}) );
 
 		this.loaded = true;
 	}
