@@ -1,36 +1,5 @@
-import {ClassType, transformAndValidate, TransformValidationOptions} from "class-transformer-validator";
-import {ValidationError} from "class-validator";
 import {Vec2, Vector2} from "../math/vector.embeddable";
 import {UserData, UserDataExtended} from "./ws.typings";
-
-/**
- * Converts raw user data to object
- *
- * If user sent wrong data, returns array with violated constraints.
- * Use {@link hasErrors} to check if the conversion has failed.
- * See also [class-transformer-validator](https://github.com/MichalLytek/class-transformer-validator) for details.
- */
-export async function toObject<T extends object>(classType: ClassType<T>, object: object, options?: TransformValidationOptions): Promise<T | string[]> {
-	try {
-		return await transformAndValidate(classType, object, options);
-	} catch(errors) {
-		const constraints = [];
-		for (const error of errors as ValidationError[]) {
-			if (error.constraints) {
-				constraints.push(...Object.values(error.constraints));
-			}
-		}
-		return constraints;
-	}
-}
-
-/**
- * Checks if the conversion from {@link toObject} has failed
- * @param obj Converted object (from user data)
- */
-export function hasErrors(obj: unknown): obj is string[] {
-	return obj instanceof Array;
-}
 
 /** Function {@link ensure} throws this error if user sent wrong data */
 export class WrongDataError extends Error {

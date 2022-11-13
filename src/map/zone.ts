@@ -18,7 +18,6 @@ import ZoneEntities from "./zone-entities";
  * the tile with position 12x7 will be in the zone 0x0.
  */
 export default class Zone extends CachedObject implements Emitter {
-	static readonly SIZE = Subzone.SIZE.mul(3);
 	private loaded = false;
 	private readonly location: Location;
 	private readonly zonePosition: Vector2;

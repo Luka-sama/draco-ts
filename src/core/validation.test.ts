@@ -1,30 +1,6 @@
-import assert from "assert/strict";
-import {IsEmail} from "class-validator";
 import {Vector2} from "../math/vector.embeddable";
-import {ensure, hasErrors, Is, Of, toObject, WrongDataError} from "./validation";
+import {ensure, Is, Of, WrongDataError} from "./validation";
 import {UserData, UserDataExtended} from "./ws.typings";
-
-describe("toObject, hasErrors", () => {
-	class SomeEntity {
-		@IsEmail({}, {message: "MAIL_FORMAT_WRONG"})
-		mail = "";
-	}
-
-	test("wrong mail", async () => {
-		const raw = {mail: "wrong mail"};
-		const entity = await toObject(SomeEntity, raw);
-		expect(hasErrors(entity)).toBeTruthy();
-		expect(entity).toEqual(["MAIL_FORMAT_WRONG"]);
-	});
-
-	test("success", async () => {
-		const raw = {mail: "test@test.org"};
-		const entity = await toObject(SomeEntity, raw);
-		expect(entity).toBeInstanceOf(SomeEntity);
-		assert(!hasErrors(entity));
-		expect(entity.mail).toBe(raw.mail);
-	});
-});
 
 describe("ensure", () => {
 	function check(raw: UserData, result: boolean, shouldBe: UserDataExtended): void {

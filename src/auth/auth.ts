@@ -4,7 +4,7 @@ import {promisify} from "util";
 import {EM} from "../core/orm";
 import Synchronizer from "../core/sync";
 import {tr} from "../core/util";
-import {ensure, hasErrors, Is, toObject} from "../core/validation";
+import {ensure, Is} from "../core/validation";
 import {GuestArgs, LoggedArgs} from "../core/ws.typings";
 import Location from "../map/location.entity";
 import {Vec2} from "../math/vector.embeddable";
@@ -22,14 +22,20 @@ export default class Auth {
 	@OnlyGuest()
 	@Limit(60000)
 	static async signUpAccount({sck, raw}: GuestArgs): Promise<boolean> {
-		const acc = await toObject(Account, raw);
-		if (hasErrors(acc)) {
-			sck.emit("sign_up_account_errors", {errors: acc});
+		const {name, mail, pass} = ensure(raw, {name: Is.string, mail: Is.string, pass: Is.string});
+		const errors = [
+			(!/^[a-z0-9-]+$/i.test(name) ? tr("ACCOUNT_NAME_FORMAT_WRONG") : null),
+			(!/^(.+)@(.+)\.(.+)$/i.test(mail) ? tr("MAIL_FORMAT_WRONG") : null),
+			(pass.length < 8 || pass.length > 32 ? tr("PASS_LENGTH_WRONG") : null),
+		].filter(error => error);
+		if (errors.length > 0) {
+			sck.emit("sign_up_account_errors", {errors});
 			return false;
 		}
 
-		acc.token = await Auth.generateToken();
-		EM.persist(acc);
+		const token = await Auth.generateToken();
+		const account = new Account(name, mail, pass, token);
+		await account.create();
 		sck.emit("sign_up_account");
 		return true;
 	}
@@ -57,17 +63,20 @@ export default class Auth {
 	@OnlyLoggedAccount()
 	@Limit(60000)
 	static async signUpUser({sck, raw}: GuestArgs): Promise<boolean> {
-		const user = await toObject(User, raw);
-		if (hasErrors(user)) {
-			sck.emit("sign_up_user_errors", {errors: user});
+		const {name} = ensure(raw, {name: Is.string});
+		const errors = [
+			(/^[A-Z][a-z]*$/.test(name) ? tr("USER_NAME_FORMAT_WRONG") : null),
+		].filter(error => error);
+		if (errors.length > 0) {
+			sck.emit("sign_up_user_errors", {errors});
 			return false;
 		}
 
-		user.account = sck.account!;
-		user.location = EM.getReference(Location, 1);
-		user.position = Vec2(0, 0);
+		const account = sck.account!;
+		const location = EM.getReference(Location, 1);
+		const position = Vec2(0, 0);
+		const user = new User(name, account, location, position);
 		await user.create();
-
 		sck.emit("sign_up_user");
 		return true;
 	}

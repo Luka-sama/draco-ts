@@ -1,10 +1,5 @@
 import Auth from "./auth";
 
-test("signUpAccount", async() => {
-	await Auth.signUpAccount(guestArgs);
-	expect(sck.emit).toHaveBeenCalledWith("sign_up_account_errors", {errors: expect.any(Array)});
-});
-
 describe("signInAccount", () => {
 	test("wrong name", async() => {
 		await Auth.signInAccount({...guestArgs, raw: {nameOrMail: "some user that doesn't exist", pass: "123"}});

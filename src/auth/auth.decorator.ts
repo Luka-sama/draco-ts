@@ -1,4 +1,3 @@
-import {isString} from "class-validator";
 import _ from "lodash";
 import {tr} from "../core/util";
 import WS from "../core/ws";
@@ -23,7 +22,7 @@ function OnlyCond(func: (sck: Socket) => string, addUserToArgs = false): MethodD
 				return args.sck.info(text);
 			}
 		};
-		if (isString(propertyKey)) {
+		if (typeof propertyKey == "string") {
 			WS.addEvent(_.snakeCase(propertyKey.replace(/^WS([A-Z])/, "$1")), descriptor.value);
 		}
 

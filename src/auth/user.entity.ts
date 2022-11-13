@@ -1,9 +1,7 @@
 import {Embedded, Entity, ManyToOne, Property, Unique} from "@mikro-orm/core";
-import {Matches} from "class-validator";
 import {WeakCachedEntity} from "../cache/cached-entity";
 import Sync from "../core/sync.decorator";
 import {SyncFor} from "../core/sync.typings";
-import {tr} from "../core/util";
 import {Emitter, Socket, UserData} from "../core/ws.typings";
 import Location from "../map/location.entity";
 import {Vector2} from "../math/vector.embeddable";
@@ -18,7 +16,6 @@ import Account from "./account.entity";
 export default class User extends WeakCachedEntity implements Emitter {
 	@Unique()
 	@Property()
-	@Matches(/^[A-Z][a-z]*$/, {message: tr("USER_NAME_FORMAT_WRONG")})
 	@Sync({for: SyncFor.Zone})
 	name: string;
 
