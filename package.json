@@ -39,8 +39,12 @@
     "@mikro-orm/migrations": "^5.5.3",
     "@mikro-orm/postgresql": "^5.5.3",
     "@mikro-orm/reflection": "^5.5.3",
+    "@types/gettext-parser": "^4.0.1",
+    "@types/node-gettext": "^3.0.3",
+    "gettext-parser": "^6.0.0",
     "glob": "^8.0.3",
     "lodash": "^4.17.21",
+    "node-gettext": "^3.0.0",
     "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.15.0"
   }
 }

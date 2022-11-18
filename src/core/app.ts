@@ -1,7 +1,8 @@
 import glob from "glob";
-import * as path from "path";
+import path from "path";
 import Cache from "../cache/cache";
 import ORM from "./orm";
+import Tr from "./tr";
 import WS from "./ws";
 
 /** App class */
@@ -15,9 +16,10 @@ export default class App {
 		}
 		App.started = true;
 
+		await ORM.init();
+		Tr.init();
 		App.autoimport();
 		App.catchExceptions();
-		await ORM.init();
 		await WS.init();
 		Cache.init();
 	}
@@ -28,7 +30,7 @@ export default class App {
 			"./**/*.entity.js", "./**/*.test.js", "./**/*.typings.js",
 			"./seeder.js", "./jest-setup.js",
 		];
-		const files = glob.sync("./**/*.js", {ignore, cwd: "./dist", root: __dirname});
+		const files = glob.sync("./**/*.js", {ignore, cwd: "./dist"});
 		for (const file of files) {
 			import(path.join("..", file));
 		}

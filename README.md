@@ -20,8 +20,9 @@ MIKRO_ORM_PASSWORD=YOUR_PASSWORD_HERE
 MIKRO_ORM_DB_NAME=enveltia
 MIKRO_ORM_DEBUG=false
 WS_DEBUG=false
+LOCALE=en_US
 ```
-You can change the connection data or the debug options.
+You can change the connection data, the debug options or the locale.
 * Create database schema and seed database with `node dist/seeder`
 * Create link from server to client, e.g. using this command (in Windows): mklink /J "YOUR_PATH_TO_SERVER/client" "YOUR_PATH_TO_CLIENT"
 

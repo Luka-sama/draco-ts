@@ -1,5 +1,5 @@
 import _ from "lodash";
-import {tr} from "../core/util";
+import Tr from "../core/tr";
 import WS from "../core/ws";
 import {EventHandler, GuestArgs, LoggedArgs, Socket} from "../core/ws.typings";
 
@@ -32,22 +32,22 @@ function OnlyCond(func: (sck: Socket) => string, addUserToArgs = false): MethodD
 
 /** The decorated method is available to guests only */
 export function OnlyGuest(): MethodDecorator {
-	return OnlyCond((sck: Socket) => sck.account ? tr("PLEASE_LOGOUT") : "");
+	return OnlyCond((sck: Socket) => sck.account ? Tr.get("PLEASE_LOGOUT") : "");
 }
 
 /** The decorated method is available to logged account (but not logged user) only */
 export function OnlyLoggedAccount(): MethodDecorator {
-	return OnlyCond((sck: Socket) => sck.account ? (sck.user ? tr("PLEASE_LOGOUT") : "") : tr("PLEASE_LOGIN_ACCOUNT"));
+	return OnlyCond((sck: Socket) => sck.account ? (sck.user ? Tr.get("PLEASE_LOGOUT") : "") : Tr.get("PLEASE_LOGIN_ACCOUNT"));
 }
 
 /** The decorated method is available to logged account or logged user (but not to guest) */
 export function OnlyLoggedAtLeastAccount(): MethodDecorator {
-	return OnlyCond((sck: Socket) => sck.account ? "" : tr("PLEASE_LOGIN_ACCOUNT"));
+	return OnlyCond((sck: Socket) => sck.account ? "" : Tr.get("PLEASE_LOGIN_ACCOUNT"));
 }
 
 /** The decorated method is available to logged user only */
 export function OnlyLogged(): MethodDecorator {
-	return OnlyCond((sck: Socket) => sck.account ? (sck.user ? "" : tr("PLEASE_LOGIN_USER")) : tr("PLEASE_LOGIN_ACCOUNT"), true);
+	return OnlyCond((sck: Socket) => sck.account ? (sck.user ? "" : Tr.get("PLEASE_LOGIN_USER")) : Tr.get("PLEASE_LOGIN_ACCOUNT"), true);
 }
 
 /** The decorated method is available for all */
@@ -59,7 +59,7 @@ export function ForAll(): MethodDecorator {
  * The decorated method can be called at most `times` times per `ms` ms,
  * otherwise the user will get an info-event with text `errorText`.
  */
-export function Limit(ms: number, errorText = tr("LIMIT_REACHED"), times = 1): MethodDecorator {
+export function Limit(ms: number, errorText = Tr.get("LIMIT_REACHED"), times = 1): MethodDecorator {
 	return function(target: unknown, propertyKey: string | symbol, descriptor: PropertyDescriptor): PropertyDescriptor {
 		const originalMethod: EventHandler = descriptor.value;
 		const targetName = (typeof target == "function" ? `${target.name}.` : "");
