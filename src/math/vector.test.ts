@@ -81,7 +81,7 @@ describe("Vec2", () => {
 	});
 
 	test("one numeric argument", () => {
-		const a = Vec2(7, 7);
+		const a = Vec2(7);
 		expect(a).toBeInstanceOf(Vector2);
 		expect(a.x).toBe(7);
 		expect(a.y).toBe(7);

@@ -20,7 +20,7 @@ export class Vector2 {
 	@Property()
 	readonly y: number = 0;
 
-	constructor(x = 0, y = 0) {
+	constructor(x: number, y: number) {
 		this.x = x;
 		this.y = y;
 	}
@@ -80,10 +80,10 @@ export function Vec2(x: number, y: number): Vector2;
  * You can write `Vec2(1, 1)` or even `Vec2(1)` instead of `new Vector2(1, 1)`. `Vec2({x: 1, y: 1})` is also possible.
  */
 export function Vec2(x?: number | IVector2, y?: number): Vector2 {
-	if (x === undefined && y === undefined) {
-		return new Vector2();
-	} else if (typeof x == "object") {
+	if (typeof x == "object") {
 		return new Vector2(x.x, x.y);
+	} else if (x !== undefined && y === undefined) {
+		return new Vector2(x, x);
 	}
-	return new Vector2(x, y);
+	return new Vector2(x || 0, y || 0);
 }
