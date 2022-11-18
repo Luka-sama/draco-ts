@@ -2,7 +2,7 @@ import assert from "assert/strict";
 import _ from "lodash";
 import {SyncFor, SyncModel, SyncProperty} from "./sync.typings";
 
-/** The information about which properties in which models and how should be synced */
+/** The information about which properties in which models and how should be synced (see {@link SyncModel}) */
 export const toSync: {
 	[key: string]: SyncModel;
 } = {};
@@ -13,6 +13,7 @@ export default function Sync(options?: SyncProperty | SyncProperty[]): PropertyD
 		assert(target && typeof target == "object" && typeof target.constructor == "function");
 		assert(typeof propertyKey == "string");
 		const model = target.constructor.name;
+
 		options = options || {for: SyncFor.This};
 		if (!(options instanceof Array)) {
 			options = [options];

@@ -1,3 +1,4 @@
+import {Area} from "../map/area";
 import {Emitter, JSONDataExtended, UserData} from "./ws.typings";
 
 /** Synchronization options for a single property (how this property should be synced) */
@@ -12,8 +13,11 @@ export interface SyncProperty {
 
 /** Sync options for a single model */
 export interface SyncModel {
-	[key: string]: SyncProperty[]
+	[key: string]: SyncProperty[];
 }
+
+/** Any type that extends {@link Area} */
+export type AreaType = (new (...args: any) => Area);
 
 /**
  * Which emitter should be used?
@@ -27,11 +31,12 @@ export enum SyncFor {This, Zone}
  * - {@link SyncFor} (most commonly used)
  * - A string with the name of a field that contains ID of the recipient user
  * - An object with the names of fields that contain location and position of the recipient zone
+ * - An area (e.g. RoundArea). In this case an entity method `getAreaParams` that returns constructor params should be provided
  */
 export type SyncForCustom = SyncFor | string | {
 	location: string;
 	position: string;
-};
+} | AreaType;
 
 /** Type that shows whether the entity should be created, updated or deleted on the client-side */
 export type SyncType = "create" | "update" | "delete";

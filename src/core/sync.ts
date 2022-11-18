@@ -8,7 +8,7 @@ import ZoneEntities from "../map/zone-entities";
 import {Vec2, Vector2} from "../math/vector.embeddable";
 import {EM} from "./orm";
 import {toSync} from "./sync.decorator";
-import {Sync, SyncFor, SyncForCustom, SyncMap, SyncModel, SyncProperty, SyncType} from "./sync.typings";
+import {AreaType, Sync, SyncFor, SyncForCustom, SyncMap, SyncModel, SyncProperty, SyncType} from "./sync.typings";
 import WS from "./ws";
 import {Emitter, UserData} from "./ws.typings";
 
@@ -160,7 +160,7 @@ export default class Synchronizer {
 			return syncMap;
 		}
 
-		const collectedData: Map<Emitter, UserData> = new Map();
+		const collectedData: Map<Emitter | AreaType, UserData> = new Map();
 		for (const property of syncedProperties) {
 			for (const toSyncProperty of toSyncModel[property]) {
 				const emitter = await Synchronizer.getEmitter(toSyncProperty, entity);
@@ -177,8 +177,17 @@ export default class Synchronizer {
 			}
 		}
 
-		for (const [emitter, entity] of collectedData) {
-			const sync: Sync = {model: _.snakeCase(model), type, entity: WS.prepare(entity)};
+		for (const [rawEmitter, convertedEntity] of collectedData) {
+			let emitter: Emitter;
+			if (typeof rawEmitter == "function") {
+				const area = new rawEmitter(...entity.getAreaParams());
+				await area.load();
+				emitter = area;
+			} else {
+				emitter = rawEmitter;
+			}
+
+			const sync: Sync = {model: _.snakeCase(model), type, entity: WS.prepare(convertedEntity)};
 			if (emitter instanceof Zone) {
 				const subzones = emitter.getSubzones();
 				for (const subzone of subzones) {
@@ -315,7 +324,7 @@ export default class Synchronizer {
 	}
 
 	/** Returns an emitter object for the given entity and property */
-	private static async getEmitter(toSyncProperty: SyncProperty, entity: AnyEntity): Promise<Emitter> {
+	private static async getEmitter(toSyncProperty: SyncProperty, entity: AnyEntity): Promise<Emitter | AreaType> {
 		const syncFor = toSyncProperty.for;
 		if (syncFor == SyncFor.This) {
 			assert(typeof entity.emit == "function" && typeof entity.info == "function");
@@ -325,6 +334,8 @@ export default class Synchronizer {
 			return await Zone.getByPosition(entity.location, entity.position);
 		} else if (typeof syncFor == "string") {
 			return await User.getOrFail(entity[syncFor]);
+		} else if (typeof syncFor == "function") {
+			return syncFor;
 		} else if (syncFor.location && syncFor.position) {
 			const location = entity[syncFor.location];
 			const position = entity[syncFor.position];

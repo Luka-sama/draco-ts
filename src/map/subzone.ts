@@ -1,8 +1,6 @@
 import {AnyEntity, QueryOrder} from "@mikro-orm/core";
 import User from "../auth/user.entity";
 import CachedObject from "../cache/cached-object";
-import Chat from "../chat/chat";
-import Message from "../chat/message.entity";
 import {EM} from "../core/orm";
 import {Emitter, UserData} from "../core/ws.typings";
 import {Vec2, Vector2} from "../math/vector.embeddable";
@@ -46,12 +44,7 @@ export default class Subzone extends CachedObject implements Emitter {
 			y: {$gte: this.start.y, $lt: this.end.y}
 		}};
 		const orderBy = {id: QueryOrder.ASC};
-
 		this.entities.User = new Set( await EM.find(User, where, {orderBy}) );
-
-		const minDate = new Date();
-		minDate.setMilliseconds(minDate.getMilliseconds() - Chat.DELETE_AFTER_MS);
-		this.entities.Message = new Set( await EM.find(Message, {...where, date: {$gt: minDate}}, {orderBy}) );
 
 		this.loaded = true;
 	}
@@ -75,6 +68,11 @@ export default class Subzone extends CachedObject implements Emitter {
 	getEntities(): ZoneEntities {
 		this.checkIfLoaded();
 		return this.entities;
+	}
+
+	getUsers(): Set<User> {
+		this.checkIfLoaded();
+		return this.entities.get("User") as Set<User>;
 	}
 
 	/** Removes en entity from this subzone */
