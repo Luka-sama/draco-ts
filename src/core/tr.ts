@@ -18,7 +18,9 @@ export default class Tr {
 			Tr.gt.addTranslations(locale, "messages", parsed);
 		}
 
-		Tr.gt.setLocale(process.env.LOCALE || "en_US");
+		const env = fs.readFileSync(".env").toString();
+		const locale = env.split("LOCALE=")[1]?.split("\n")[0].trim() || "en_US";
+		Tr.gt.setLocale(locale);
 		Tr.gt.on("error", Tr.onError);
 	}
 

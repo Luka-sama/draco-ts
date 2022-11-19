@@ -16,10 +16,10 @@ export default class App {
 		}
 		App.started = true;
 
-		await ORM.init();
 		Tr.init();
 		App.autoimport();
 		App.catchExceptions();
+		await ORM.init();
 		await WS.init();
 		Cache.init();
 	}

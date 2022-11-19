@@ -7,7 +7,7 @@ import User from "../auth/user.entity";
 import {EM} from "./orm";
 import Tr from "./tr";
 import {ensure, Is, WrongDataError} from "./validation";
-import {EventHandler, GuestArgs, Socket, UserData, WSData} from "./ws.typings";
+import {EventHandler, GuestArgs, JSONData, Socket, UserData, WSData} from "./ws.typings";
 
 /** This class starts WebSocket server and handles getting/sending data */
 export default class WS {
@@ -182,7 +182,6 @@ export default class WS {
 			return console.error("uWS JSON parsing error or false schema");
 		}
 		await WS.route(sck as Socket, data);
-
 	}
 
 	/** Converts all property names in UserData from snake_case to camelCase */
@@ -190,10 +189,29 @@ export default class WS {
 		const result: UserData = {};
 		for (const key in data) {
 			const val = data[key];
-			const isObject = (val && typeof val == "object" && !(val instanceof Array));
-			result[func(key)] = (isObject ? WS.convertKeysInData(val, func) : val);
+			const newKey = func(key);
+			if (val instanceof Array) {
+				result[newKey] = WS.convertKeysInArray(val, func);
+			} else if (val && typeof val == "object") {
+				result[newKey] = WS.convertKeysInData(val, func);
+			} else {
+				result[newKey] = val;
+			}
 		}
 		return result;
+	}
+
+	/** Converts all property names in JSONData[] from snake_case to camelCase */
+	private static convertKeysInArray(data: JSONData[], func: (str: string) => string): JSONData[] {
+		return data.map(el => {
+			if (el instanceof Array) {
+				return WS.convertKeysInArray(el, func);
+			}
+			if (el && typeof el == "object") {
+				return WS.convertKeysInData(el, func);
+			}
+			return el;
+		});
 	}
 
 	/** Converts data to JSON with snake case */
@@ -228,7 +246,7 @@ export default class WS {
 			try {
 				await handleEvent({sck, raw} as GuestArgs);
 				await EM.flush();
-			} catch (e) {
+			} catch(e) {
 				const isWrongData = (e instanceof WrongDataError || e instanceof assert.AssertionError);
 				sck.info(isWrongData ? Tr.get("WRONG_DATA") : Tr.get("UNKNOWN_ERROR"));
 				console.error(e);
