@@ -41,7 +41,7 @@ export default class WS {
 	/** Sends a message wrapped in the interface WSData to the given socket */
 	static emit(sck: uWS.WebSocket, event: string, data: UserData = {}): void {
 		const json = WS.prepareDataBeforeEmit(event, data);
-		console.assert(sck.send(json), `Event ${event} was not emitted to account=${sck.account?.id || 0}`);
+		console.assert(sck.send(json, false, true) == 1, `Event ${event} was not emitted to account=${sck.account?.id || 0}`);
 	}
 
 	/** Adds an event to the event list */

@@ -23,6 +23,8 @@ WS_DEBUG=false
 LOCALE=en_US
 ```
 You can change the connection data, the debug options or the locale.
+
+WS_DEBUG can also be `verbose`. In this case, the events for unconnected users are also logged.
 * Create database schema and seed database with `node dist/seeder`
 * Create link from server to client, e.g. using this command (in Windows): mklink /J "YOUR_PATH_TO_SERVER/client" "YOUR_PATH_TO_CLIENT"
 

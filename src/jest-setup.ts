@@ -4,6 +4,7 @@ import User from "./auth/user.entity";
 import Cache from "./cache/cache";
 import ORM, {EM} from "./core/orm";
 import {GuestArgs, LoggedArgs, Socket} from "./core/ws.typings";
+import Zone from "./map/zone";
 
 /* eslint-disable no-var */
 declare global {
@@ -12,6 +13,7 @@ declare global {
 	var loggedArgs: LoggedArgs;
 	var account: Account;
 	var user: User;
+	var zone: Zone;
 }
 /* eslint-enable */
 global.sck = mock<Socket>();
@@ -22,11 +24,12 @@ beforeAll(async () => {
 	await ORM.init({allowGlobalContext: true});
 	sck.account = global.account = await Account.getOrFail(1);
 	sck.user = global.user = await User.getOrFail(1);
-	global.loggedArgs = {...guestArgs, user};
+	global.zone = await Zone.getByEntity(user);
+	global.loggedArgs = {...guestArgs, user, zone};
 }, 15000);
 
 afterAll(async () => {
-	await ORM.getInstance().close();
+	await ORM.close();
 });
 
 beforeEach(() => {

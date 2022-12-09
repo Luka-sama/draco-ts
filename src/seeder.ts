@@ -22,7 +22,7 @@ export default class Seeder {
 		faker.seed(123);
 		Seeder.seed();
 		await EM.flush();
-		await ORM.getInstance().close();
+		await ORM.close();
 		console.log("Seeder finished!");
 	}
 

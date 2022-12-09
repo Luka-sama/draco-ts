@@ -20,7 +20,7 @@ export default class App {
 		App.autoimport();
 		App.catchExceptions();
 		await ORM.init();
-		await WS.init();
+		WS.init();
 		Cache.init();
 	}
 

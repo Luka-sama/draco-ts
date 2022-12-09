@@ -48,7 +48,7 @@ export default class User extends WeakCachedEntity implements Emitter {
 	emit(event: string, data?: UserData): void {
 		if (this.socket) {
 			this.socket.emit(event, data);
-		} else if (process.env.WS_DEBUG == "true") {
+		} else if (process.env.WS_DEBUG == "verbose") {
 			console.log(`User ${this.name} (ID=${this.id}) has no socket for event=${event} with data=${JSON.stringify(data)}`);
 		}
 	}

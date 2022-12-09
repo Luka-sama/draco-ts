@@ -23,6 +23,10 @@ export default class ORM {
 		}
 	}
 
+	static async close(): Promise<void> {
+		await ORM.instance.close();
+	}
+
 	/** Returns the ORM instance */
 	static getInstance(): MikroORM<PostgreSqlDriver> {
 		return ORM.instance;

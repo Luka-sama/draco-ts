@@ -2,20 +2,22 @@ import _ from "lodash";
 import Tr from "../core/tr";
 import WS from "../core/ws";
 import {EventHandler, GuestArgs, LoggedArgs, Socket} from "../core/ws.typings";
+import Zone from "../map/zone";
 
 /**
  * The decorated method is available only if func returns an empty string, otherwise the returned string will be sent as info-event.
  * If addUserToArgs is true, adds user to arguments that the method will get.
  */
-function OnlyCond(func: (sck: Socket) => string, addUserToArgs = false): MethodDecorator {
+function OnlyCond(func: (sck: Socket) => string, loggedArgs = false): MethodDecorator {
 	return function(target: unknown, propertyKey: string | symbol, descriptor: PropertyDescriptor): PropertyDescriptor {
 		const originalMethod: EventHandler = descriptor.value;
 
 		descriptor.value = async function(args: LoggedArgs): Promise<void> {
 			const text = (typeof jest == "object" ? "" : func(args.sck));
 			if (!text) {
-				if (addUserToArgs) {
+				if (loggedArgs) {
 					args.user = args.sck.user!;
+					args.zone = await Zone.getByEntity(args.user);
 				}
 				await originalMethod.call(this, args);
 			} else {
