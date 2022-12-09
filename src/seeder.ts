@@ -36,7 +36,7 @@ export default class Seeder {
 		const accounts: Account[] = [];
 		const dates = faker.date.betweens(faker.date.past(2).toString(), faker.date.past(1).toString(), count);
 		for (let i = 0; i < count; i++) {
-			const name = ["Luka-sama"][i] || faker.name.firstName();
+			const name = ["Luka-sama"][i] || faker.helpers.unique(faker.name.firstName);
 			accounts.push( EM.create(Account, {
 				name,
 				mail: faker.helpers.unique(faker.internet.email, [name]),
@@ -53,10 +53,9 @@ export default class Seeder {
 		const locations: Location[] = [];
 
 		for (let i = 0; i < count; i++) {
-			const location = EM.create(Location, {
+			locations.push( EM.create(Location, {
 				name: ["world"][i] || faker.datatype.string()
-			});
-			locations.push(location);
+			}) );
 		}
 
 		return locations;
@@ -65,10 +64,11 @@ export default class Seeder {
 	static createUsers(count: number, accounts: Account[], locations: Location[]): User[] {
 		const users: User[] = [];
 		for (let i = 0; i < count; i++) {
+			const account = accounts[i < 2 ? 0 : Math.min(i, accounts.length - 1)];
 			users.push( EM.create(User, {
-				name: ["Luka", "Test"][i] || faker.name.firstName(),
-				account: accounts[i < 2 ? 0 : i],
-				regDate: faker.date.soon(10, accounts[i].regDate.toString()),
+				name: ["Luka", "Test"][i] || faker.helpers.unique(faker.name.firstName),
+				account,
+				regDate: faker.date.soon(10, account.regDate.toString()),
 				location: locations[0],
 				position: Vec2(faker.datatype.number({min: 0, max: 30}), faker.datatype.number({min: 0, max: 30})),
 				connected: false,
