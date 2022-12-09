@@ -8,7 +8,17 @@ import ZoneEntities from "../map/zone-entities";
 import {Vec2, Vector2} from "../math/vector.embeddable";
 import {EM} from "./orm";
 import {toSync} from "./sync.decorator";
-import {AreaType, Sync, SyncFor, SyncForCustom, SyncMap, SyncModel, SyncProperty, SyncType} from "./sync.typings";
+import {
+	AreaType,
+	Sync,
+	SyncFor,
+	SyncForCustom,
+	SyncMap,
+	SyncModel,
+	SyncProperty,
+	SyncType,
+	UserContainer
+} from "./sync.typings";
 import WS from "./ws";
 import {Emitter, UserData} from "./ws.typings";
 
@@ -20,19 +30,27 @@ import {Emitter, UserData} from "./ws.typings";
  * Every few milliseconds all accumulated syncs are emitted and the sync map is cleared.
  */
 export default class Synchronizer {
+	static SYNC_FREQUENCY_MS = 10;
+
 	/** The accumulated changes to sync */
 	private static syncMap: SyncMap = new Map();
+	private static lastSyncTime = 0;
+	private static syncTimeout: NodeJS.Timeout;
 
-	/** Initializes an infinite loop with {@link synchronize} */
-	static init(): void {
-		setInterval(Synchronizer.synchronize, 10);
-	}
-
-	/** Calculates sync map for given change sets */
+	/** Calculates a sync map for the given change sets */
 	static async addChangeSets(changeSets: ChangeSet<AnyEntity>[]): Promise<void> {
+		clearTimeout(Synchronizer.syncTimeout);
+
 		for (const changeSet of changeSets) {
 			const syncMap = await Synchronizer.getSyncMap(changeSet);
 			Synchronizer.mergeSyncMaps(Synchronizer.syncMap, syncMap);
+		}
+
+		const msLeft = Synchronizer.SYNC_FREQUENCY_MS - (Date.now() - Synchronizer.lastSyncTime);
+		if (msLeft > 0) {
+			Synchronizer.syncTimeout = setTimeout(Synchronizer.synchronize, msLeft);
+		} else {
+			Synchronizer.synchronize();
 		}
 	}
 
@@ -47,10 +65,11 @@ export default class Synchronizer {
 
 	/** Emits all accumulated changes */
 	static synchronize(): void {
-		for (const [emitter, syncList] of Synchronizer.syncMap) {
-			Synchronizer.emitSync(emitter, syncList);
+		for (const [user, syncList] of Synchronizer.syncMap) {
+			Synchronizer.emitSync(user, syncList);
 		}
 		Synchronizer.syncMap.clear();
+		Synchronizer.lastSyncTime = Date.now();
 	}
 
 	/** Syncs the creation of an entity in the zone. This is useful if the entity should not be created in the database */
@@ -74,10 +93,7 @@ export default class Synchronizer {
 			Synchronizer.getDeleteList(model, entity)
 		);
 		const zone = await Zone.getByEntity(entity);
-		const subzones = zone.getSubzones();
-		const syncMap: SyncMap = new Map();
-		subzones.forEach(subzone => syncMap.set(subzone, syncList));
-		Synchronizer.mergeSyncMaps(Synchronizer.syncMap, syncMap);
+		Synchronizer.addToSyncMap(zone.getSubzones(), syncList);
 
 		if (toCreate) {
 			zone.enter(entity);
@@ -86,12 +102,10 @@ export default class Synchronizer {
 		}
 	}
 
-	/** Emits the given sync list to the given emitter(s) */
-	private static emitSync(emitters: Emitter | Set<Emitter>, syncList: Sync[]): void {
+	/** Emits the given sync list to the given user */
+	private static emitSync(user: User, syncList: Sync[]): void {
 		if (syncList.length > 0) {
-			for (const emitter of (emitters instanceof Set ? emitters : [emitters])) {
-				emitter.emit("sync", {syncList});
-			}
+			user.emit("sync", {syncList});
 		}
 	}
 
@@ -160,13 +174,13 @@ export default class Synchronizer {
 			return syncMap;
 		}
 
-		const collectedData: Map<Emitter | AreaType, UserData> = new Map();
+		const collectedData = new Map<Emitter | AreaType, UserData>();
+		const zoneFromFields = new Map<Zone, SyncForCustom>();
 		for (const property of syncedProperties) {
 			for (const toSyncProperty of toSyncModel[property]) {
 				const emitter = await Synchronizer.getEmitter(toSyncProperty, entity);
-				if (emitter instanceof Zone && !collectedData.has(emitter)) {
-					const syncMapToAdd = await Synchronizer.handleZones(toSyncProperty.for, changeSet, emitter, type);
-					Synchronizer.mergeSyncMaps(syncMap, syncMapToAdd);
+				if (emitter instanceof Zone) {
+					zoneFromFields.set(emitter, toSyncProperty.for);
 				}
 
 				const data = collectedData.get(emitter) || {id: entity.id};
@@ -189,16 +203,20 @@ export default class Synchronizer {
 
 			const sync: Sync = {model: _.snakeCase(model), type, entity: WS.prepare(convertedEntity)};
 			if (emitter instanceof Zone) {
-				const subzones = emitter.getSubzones();
-				for (const subzone of subzones) {
-					const syncList = syncMap.get(subzone) || [];
-					syncList.push(sync);
-					syncMap.set(subzone, syncList);
+				const syncFor = zoneFromFields.get(emitter);
+				assert(syncFor);
+				const syncMapToAdd = await Synchronizer.handleZones(syncFor, changeSet, emitter, type, [sync]);
+				if (syncMapToAdd.size > 0) {
+					Synchronizer.mergeSyncMaps(syncMap, syncMapToAdd);
+				} else {
+					Synchronizer.addToSyncMap(emitter.getSubzones(), sync, syncMap);
 				}
-			} else {
+			} else if (emitter instanceof User) {
 				const syncList = syncMap.get(emitter) || [];
 				syncList.push(sync);
 				syncMap.set(emitter, syncList);
+			} else {
+				Synchronizer.addToSyncMap(emitter as any as UserContainer, sync, syncMap);
 			}
 		}
 
@@ -261,7 +279,7 @@ export default class Synchronizer {
 	 * For the updation of an entity it prepares arguments for {@link changeZone}, calls it and returns its sync map
 	 */
 	private static async handleZones(syncFor: SyncForCustom, changeSet: ChangeSet<AnyEntity>,
-		currZone: Zone, type: SyncType): Promise<SyncMap> {
+		currZone: Zone, type: SyncType, updateList: Sync[]): Promise<SyncMap> {
 		const entity = changeSet.entity;
 		const model = changeSet.name;
 		if (!ZoneEntities.getModels().includes(model)) {
@@ -284,16 +302,16 @@ export default class Synchronizer {
 			const oldPosition = Vec2(original[xField], original[yField]);
 			const oldLocation = await Location.getOrFail(original[locationField]);
 			const oldZone = await Zone.getByPosition(oldLocation, oldPosition);
-			return Synchronizer.changeZone(oldZone, currZone, entity, model);
+			return Synchronizer.changeZone(oldZone, currZone, entity, model, updateList);
 		}
 		return new Map();
 	}
 
 	/**
 	 * Changes the zone of an entity, if the new zone is not equal to the old one.
-	 * It updates the zones entities and returns a sync map for the creation/deletion of all necessary objects
+	 * It updates the zone entities and returns a sync map for the creation/deletion of all necessary objects
 	 */
-	private static changeZone(oldZone: Zone, newZone: Zone, entity: AnyEntity, model: string): SyncMap {
+	private static changeZone(oldZone: Zone, newZone: Zone, entity: AnyEntity, model: string, updateList: Sync[]): SyncMap {
 		const syncMap: SyncMap = new Map();
 		if (oldZone == newZone) {
 			return syncMap;
@@ -303,6 +321,7 @@ export default class Synchronizer {
 
 		const newSubzones = newZone.getNewSubzones(oldZone);
 		const leftSubzones = newZone.getLeftSubzones(oldZone);
+		const remainingSubzones = newZone.getRemainingSubzones(oldZone);
 		const newEntities = Zone.getEntitiesFromSubzones(newSubzones);
 		const leftEntities = Zone.getEntitiesFromSubzones(leftSubzones);
 
@@ -314,12 +333,9 @@ export default class Synchronizer {
 		}
 		const createList = Synchronizer.getCreateList(model, entity, SyncFor.Zone);
 		const deleteList = Synchronizer.getDeleteList(model, entity);
-		for (const subzone of newSubzones) {
-			syncMap.set(subzone, createList);
-		}
-		for (const subzone of leftSubzones) {
-			syncMap.set(subzone, deleteList);
-		}
+		Synchronizer.addToSyncMap(newSubzones, createList, syncMap);
+		Synchronizer.addToSyncMap(leftSubzones, deleteList, syncMap);
+		Synchronizer.addToSyncMap(remainingSubzones, updateList, syncMap);
 		return syncMap;
 	}
 
@@ -358,10 +374,27 @@ export default class Synchronizer {
 
 	/** Merges sync map B into sync map A */
 	private static mergeSyncMaps(A: SyncMap, B: SyncMap): void {
-		for (const [emitter, syncListB] of B) {
-			const syncListA = A.get(emitter) || [];
+		for (const [user, syncListB] of B) {
+			const syncListA = A.get(user) || [];
 			syncListA.push(...syncListB);
-			A.set(emitter, syncListA);
+			A.set(user, syncListA);
+		}
+	}
+
+	/** Adds sync list to sync map for the given subzone(s) or something with method getUsers */
+	private static addToSyncMap(emitters: UserContainer | Set<UserContainer>,
+		syncList: Sync | Sync[], syncMap = Synchronizer.syncMap): void {
+		for (const emitter of (emitters instanceof Set ? emitters : [emitters])) {
+			const users = emitter.getUsers();
+			for (const user of users) {
+				const userSyncList = syncMap.get(user) || [];
+				if (syncList instanceof Array) {
+					userSyncList.push(...syncList);
+				} else {
+					userSyncList.push(syncList);
+				}
+				syncMap.set(user, userSyncList);
+			}
 		}
 	}
 }
@@ -374,5 +407,3 @@ class SyncSubscriber implements EventSubscriber {
 		await Synchronizer.addChangeSets(uow.getChangeSets());
 	}
 }
-
-Synchronizer.init();

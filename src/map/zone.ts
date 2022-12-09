@@ -150,6 +150,27 @@ export default class Zone extends CachedObject implements Emitter {
 		return oldZone.getNewSubzones(this);
 	}
 
+	/** Returns a list of subzones that are both in the old zone and in this */
+	getRemainingSubzones(oldZone: Zone): Set<Subzone> {
+		const result: Set<Subzone> = new Set();
+		for (const subzone of this.subzones) {
+			if (oldZone.subzones.has(subzone)) {
+				result.add(subzone);
+			}
+		}
+		return result;
+	}
+
+	/** Returns `true` if no user, (big) item etc. takes the tile at the given position */
+	isTileFree(position: Vector2): boolean {
+		for (const subzone of this.subzones) {
+			if (subzone.isInside(position)) {
+				return subzone.isTileFree(position);
+			}
+		}
+		throw new Error("Zone.isTileFree: the given position is not in this zone");
+	}
+
 	/** Throws an exception if this zone is not loaded */
 	private checkIfLoaded(): void {
 		if (!this.loaded) {

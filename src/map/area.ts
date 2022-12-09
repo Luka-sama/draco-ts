@@ -1,5 +1,6 @@
 import assert from "assert/strict";
 import User from "../auth/user.entity";
+import {UserContainer} from "../core/sync.typings";
 import {Emitter, UserData} from "../core/ws.typings";
 import {Vec2, Vector2} from "../math/vector.embeddable";
 import Location from "./location.entity";
@@ -11,16 +12,13 @@ import Subzone from "./subzone";
  * It calculates which zones are included in the area. Then you can emit any event to the users in this area.
  * It checks for every user in the included subzones whether the user is in this area.
  */
-export abstract class Area implements Emitter {
+export abstract class Area implements Emitter, UserContainer {
 	private loaded = false;
 	protected readonly location: Location;
-	/** Position of the central tile */
-	protected readonly position: Vector2;
 	private subzones: Set<Subzone> = new Set();
 
-	protected constructor(location: Location, position: Vector2) {
+	protected constructor(location: Location) {
 		this.location = location;
-		this.position = position;
 	}
 
 	/** Loads the subzones between `start` and `end` */
@@ -42,14 +40,24 @@ export abstract class Area implements Emitter {
 		this.loaded = true;
 	}
 
-	emit(event: string, data?: UserData): void {
+	/** Returns all users from this area */
+	getUsers(): Set<User> {
 		this.checkIfLoaded();
+		const users = new Set<User>();
 		for (const subzone of this.subzones) {
 			for (const user of subzone.getUsers()) {
 				if (this.isInside(user)) {
-					user.emit(event, data);
+					users.add(user);
 				}
 			}
+		}
+		return users;
+	}
+
+	emit(event: string, data?: UserData): void {
+		const users = this.getUsers();
+		for (const user of users) {
+			user.emit(event, data);
 		}
 	}
 
@@ -73,10 +81,13 @@ export abstract class Area implements Emitter {
 
 /** Area of a round form */
 export class RoundArea extends Area {
+	/** Position of the central tile */
+	private readonly position: Vector2;
 	private readonly radius: number;
 
 	constructor(location: Location, position: Vector2, radius: number) {
-		super(location, position);
+		super(location);
+		this.position = position;
 		this.radius = radius;
 	}
 

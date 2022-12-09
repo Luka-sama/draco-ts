@@ -1,5 +1,6 @@
+import User from "../auth/user.entity";
 import {Area} from "../map/area";
-import {Emitter, JSONDataExtended, UserData} from "./ws.typings";
+import {JSONDataExtended, UserData} from "./ws.typings";
 
 /** Synchronization options for a single property (how this property should be synced) */
 export interface SyncProperty {
@@ -48,5 +49,11 @@ export interface Sync extends UserData {
 	entity: UserData;
 }
 
-/** A map containing information about which {@link Sync | syncs} should be sent to which emitters */
-export type SyncMap = Map<Emitter, Sync[]>;
+/** A map containing information about which {@link Sync | syncs} should be sent to which users */
+export type SyncMap = Map<User, Sync[]>;
+
+/** User container is e.g. zone or area */
+export interface UserContainer {
+	/** Returns all users from this container */
+	getUsers(): Set<User>;
+}

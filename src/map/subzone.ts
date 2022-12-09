@@ -1,7 +1,9 @@
 import {AnyEntity, QueryOrder} from "@mikro-orm/core";
+import assert from "assert/strict";
 import User from "../auth/user.entity";
 import CachedObject from "../cache/cached-object";
 import {EM} from "../core/orm";
+import {UserContainer} from "../core/sync.typings";
 import {Emitter, UserData} from "../core/ws.typings";
 import {Vec2, Vector2} from "../math/vector.embeddable";
 import Location from "./location.entity";
@@ -12,7 +14,7 @@ import ZoneEntities from "./zone-entities";
  *
  * See {@link Zone} for details.
  */
-export default class Subzone extends CachedObject implements Emitter {
+export default class Subzone extends CachedObject implements Emitter, UserContainer {
 	static readonly SIZE = Vec2(16, 16);
 	private loaded = false;
 	private readonly location: Location;
@@ -64,12 +66,13 @@ export default class Subzone extends CachedObject implements Emitter {
 		this.emit("info", {text});
 	}
 
-	/** Returns all entities of this subzone */
+	/** Returns all entities from this subzone */
 	getEntities(): ZoneEntities {
 		this.checkIfLoaded();
 		return this.entities;
 	}
 
+	/** Returns all users from this subzone */
 	getUsers(): Set<User> {
 		this.checkIfLoaded();
 		return this.entities.get("User") as Set<User>;
@@ -89,6 +92,19 @@ export default class Subzone extends CachedObject implements Emitter {
 	isInside(position: Vector2): boolean {
 		this.checkIfLoaded();
 		return Subzone.getZonePosition(position).equals(this.zonePosition);
+	}
+
+	/** Returns `true` if no user, (big) item etc. takes the tile at the given position */
+	isTileFree(position: Vector2): boolean {
+		assert(this.isInside(position));
+		for (const model of ZoneEntities.getModels()) {
+			for (const entity of this.entities.get(model)) {
+				if (entity.position.equals(position)) {
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 
 	/** Returns the name of a subzone with the given location and zone position */
