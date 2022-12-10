@@ -3,6 +3,7 @@ import Account from "./auth/account.entity";
 import User from "./auth/user.entity";
 import Cache from "./cache/cache";
 import ORM, {EM} from "./core/orm";
+import Tr from "./core/tr";
 import {GuestArgs, LoggedArgs, Socket} from "./core/ws.typings";
 import Zone from "./map/zone";
 
@@ -19,8 +20,10 @@ declare global {
 global.sck = mock<Socket>();
 global.guestArgs = {sck, raw: {}};
 
+Cache.init();
+Tr.init(true);
+
 beforeAll(async () => {
-	Cache.init();
 	await ORM.init({allowGlobalContext: true});
 	sck.account = global.account = await Account.getOrFail(1);
 	sck.user = global.user = await User.getOrFail(1);

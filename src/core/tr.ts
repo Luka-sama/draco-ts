@@ -6,8 +6,13 @@ import path from "path";
 
 export default class Tr {
 	private static gt: Gettext;
+	private static testEnvironment = false;
 
-	static init(): void {
+	static init(testEnvironment = false): void {
+		if (testEnvironment) {
+			Tr.testEnvironment = true;
+			return;
+		}
 		Tr.gt = new Gettext();
 		const localeDir = "./locales";
 		const files = glob.sync("./*.po", {cwd: localeDir, root: __dirname});
@@ -25,7 +30,7 @@ export default class Tr {
 	}
 
 	static get(msgid: string): string {
-		return Tr.gt.gettext(msgid);
+		return Tr.testEnvironment ? msgid : Tr.gt.gettext(msgid);
 	}
 
 	static onError(error: Error): void {

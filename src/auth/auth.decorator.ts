@@ -13,9 +13,10 @@ function OnlyCond(func: (sck: Socket) => string, loggedArgs = false): MethodDeco
 		const originalMethod: EventHandler = descriptor.value;
 
 		descriptor.value = async function(args: LoggedArgs): Promise<void> {
-			const text = (typeof jest == "object" ? "" : func(args.sck));
+			const isJest = (typeof jest == "object");
+			const text = (isJest ? "" : func(args.sck));
 			if (!text) {
-				if (loggedArgs) {
+				if (loggedArgs && !isJest) {
 					args.user = args.sck.user!;
 					args.zone = await Zone.getByEntity(args.user);
 				}

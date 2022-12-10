@@ -3,7 +3,7 @@ import {Vec2} from "../math/vector.embeddable";
 import Movement from "./movement";
 
 describe("move", () => {
-	test("with cheating", async() => {
+	test("with cheating", async () => {
 		await expect(() => Movement.move({...loggedArgs, raw: {x: 1, y: 2}}) ).rejects.toThrow(assert.AssertionError);
 	});
 

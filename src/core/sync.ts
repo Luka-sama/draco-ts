@@ -46,11 +46,13 @@ export default class Synchronizer {
 			Synchronizer.mergeSyncMaps(Synchronizer.syncMap, syncMap);
 		}
 
-		const msLeft = Synchronizer.SYNC_FREQUENCY_MS - (Date.now() - Synchronizer.lastSyncTime);
-		if (msLeft > 0) {
-			Synchronizer.syncTimeout = setTimeout(Synchronizer.synchronize, msLeft);
-		} else {
-			Synchronizer.synchronize();
+		if (Synchronizer.syncMap.size > 0) {
+			const msLeft = Synchronizer.SYNC_FREQUENCY_MS - (Date.now() - Synchronizer.lastSyncTime);
+			if (msLeft > 0) {
+				Synchronizer.syncTimeout = setTimeout(Synchronizer.synchronize, msLeft);
+			} else {
+				Synchronizer.synchronize();
+			}
 		}
 	}
 
