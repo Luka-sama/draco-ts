@@ -3,10 +3,10 @@ import {OnlyLogged} from "../auth/auth.decorator";
 import User from "../auth/user.entity";
 import {ensure, Is} from "../core/validation";
 import {LoggedArgs} from "../core/ws.typings";
+import Const from "../math/const";
 
 /** This class handles movement of players */
 export default class Movement {
-	private static MOVEMENT_SPEED = 10; // Tiles per second
 	/** Saved time of last movement */
 	private static lastTime = new WeakMap<User, number>();
 	/**
@@ -24,7 +24,7 @@ export default class Movement {
 
 		const last = Movement.lastTime.get(user) || 0;
 		const passed = Date.now() - last;
-		const frequency = 1000 / Movement.MOVEMENT_SPEED;
+		const frequency = 1000 / Const.MOVEMENT_WALK_SPEED;
 		if (passed >= frequency) {
 			const newPosition = user.position.add(direction);
 			if (zone.isTileFree(newPosition)) {

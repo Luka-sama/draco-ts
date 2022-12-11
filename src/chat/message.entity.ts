@@ -3,11 +3,11 @@ import User from "../auth/user.entity";
 import {Sync} from "../core/sync.decorator";
 import {RoundArea} from "../map/area";
 import Location from "../map/location.entity";
+import Const from "../math/const";
 import {Vector2} from "../math/vector.embeddable";
-import Chat from "./chat";
 
 function getDeleteIn(date: Date): number {
-	return Math.max(0, Chat.DELETE_AFTER_MS - (Date.now() - date.getTime()));
+	return Math.max(0, Const.CHAT_DELETE_MESSAGE_AFTER_MS - (Date.now() - date.getTime()));
 }
 
 /** Chat message class */
@@ -43,6 +43,6 @@ export default class Message {
 	}
 
 	getAreaParams(): ConstructorParameters<typeof RoundArea> {
-		return [this.location, this.position, Chat.HEARING_RADIUS];
+		return [this.location, this.position, Const.CHAT_HEARING_RADIUS];
 	}
 }

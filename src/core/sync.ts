@@ -14,6 +14,7 @@ import User from "../auth/user.entity";
 import Location from "../map/location.entity";
 import Zone from "../map/zone";
 import ZoneEntities from "../map/zone-entities";
+import Const from "../math/const";
 import {Vec2, Vector2} from "../math/vector.embeddable";
 import {EM} from "./orm";
 import {toSync} from "./sync.decorator";
@@ -76,8 +77,6 @@ function trackProperty(entity: AnyEntity, property: string): void {
  * Every few milliseconds all accumulated syncs are emitted and the sync map is cleared.
  */
 export default class Synchronizer {
-	static SYNC_FREQUENCY_MS = 10;
-
 	/** The accumulated changes to sync */
 	private static syncMap: SyncMap = new Map();
 	private static lastSyncTime = 0;
@@ -99,7 +98,7 @@ export default class Synchronizer {
 		}
 
 		if (Synchronizer.syncMap.size > 0) {
-			const msLeft = Synchronizer.SYNC_FREQUENCY_MS - (Date.now() - Synchronizer.lastSyncTime);
+			const msLeft = Const.SYNC_FREQUENCY_MS - (Date.now() - Synchronizer.lastSyncTime);
 			if (msLeft > 0) {
 				Synchronizer.syncTimeout = setTimeout(Synchronizer.synchronize, msLeft);
 			} else {

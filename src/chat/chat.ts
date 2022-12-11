@@ -6,9 +6,6 @@ import {LoggedArgs} from "../core/ws.typings";
 import Message from "./message.entity";
 
 export default class Chat {
-	static DELETE_AFTER_MS = 300 * 1000;
-	static HEARING_RADIUS = 30;
-
 	@OnlyLogged()
 	static sendMessage({user, raw}: LoggedArgs): void {
 		const {text} = ensure(raw, {text: Is.string});
