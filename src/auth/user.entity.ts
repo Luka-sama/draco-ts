@@ -18,7 +18,7 @@ import Account from "./account.entity";
 export default class User extends WeakCachedEntity implements Emitter {
 	@Unique()
 	@Property()
-	@Sync({for: SyncFor.Zone})
+	@Sync(SyncFor.Zone)
 	name: string;
 
 	@ManyToOne()
@@ -31,10 +31,10 @@ export default class User extends WeakCachedEntity implements Emitter {
 	location: Location;
 
 	@Embedded({prefix: false})
-	@Sync({for: SyncFor.Zone})
+	@Sync(SyncFor.Zone)
 	position: Vector2;
 
-	@Sync({for: SyncFor.Zone})
+	@Sync(SyncFor.Zone)
 	speed = Const.MOVEMENT_WALK_SPEED;
 
 	socket?: Socket;

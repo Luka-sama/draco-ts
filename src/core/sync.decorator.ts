@@ -13,16 +13,14 @@ export const toSync: {
  *
  * Be sure to call {@link syncTrack} if you have properties that should not be stored in the database.
  */
-export function Sync(options?: SyncProperty | SyncProperty[]): PropertyDecorator {
+export function Sync(options: SyncProperty | SyncProperty[] | SyncFor): PropertyDecorator {
 	return function(target: unknown, propertyKey: string | symbol): void {
 		assert(target && typeof target == "object" && typeof target.constructor == "function");
 		assert(typeof propertyKey == "string");
 		const model = target.constructor.name;
 
-		options = options || {for: SyncFor.This};
-		if (!(options instanceof Array)) {
-			options = [options];
-		}
+		options = (typeof options == "number" ? {for: options} : options);
+		options = (options instanceof Array ? options : [options]);
 		for (const a of options) {
 			if (options.some(b => a != b && _.isEqual(a.for, b.for))) {
 				throw new Error('If a synchronized property has multiple synchronization options, they must all have different "for".');
