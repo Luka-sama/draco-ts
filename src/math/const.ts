@@ -10,4 +10,4 @@ export default class Const {
 	static readonly CHAT_DELETE_MESSAGE_AFTER_MS = 300 * 1000;
 	/** Hearing radius (in tiles) */
 	static readonly CHAT_HEARING_RADIUS = 30;
-};
+}

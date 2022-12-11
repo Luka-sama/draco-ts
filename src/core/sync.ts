@@ -110,7 +110,7 @@ export default class Synchronizer {
 	/**
 	 * Adds track data if some tracked property was changed.
 	 */
-	static addTrackData(entity: AnyEntity, property: string) {
+	static addTrackData(entity: AnyEntity, property: string): void {
 		const changedProperties = Synchronizer.syncTracked.get(entity) || new Set();
 		changedProperties.add(property);
 		Synchronizer.syncTracked.set(entity, changedProperties);
