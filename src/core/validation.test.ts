@@ -1,4 +1,4 @@
-import {Vector2} from "../math/vector.embeddable";
+import {Vec2, Vector2} from "../math/vector.embeddable";
 import {ensure, Is, Of, WrongDataError} from "./validation";
 import {UserData, UserDataExtended} from "./ws.typings";
 
@@ -88,6 +88,15 @@ describe("ensure", () => {
 	test("data is vector", () => {
 		const shouldBe = Is.vec2i;
 		const raw = {x: 2, y: 3};
+		const val = ensure(raw, shouldBe);
+		expect(val).toBeInstanceOf(Vector2);
+		expect(val.x).toBe(2);
+		expect(val.y).toEqual(3);
+	});
+
+	test("raw data is already vector", () => {
+		const shouldBe = Is.vec2i;
+		const raw = Vec2(2, 3);
 		const val = ensure(raw, shouldBe);
 		expect(val).toBeInstanceOf(Vector2);
 		expect(val.x).toBe(2);

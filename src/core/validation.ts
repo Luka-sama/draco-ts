@@ -1,5 +1,5 @@
 import {Vec2, Vector2} from "../math/vector.embeddable";
-import {UserData, UserDataExtended} from "./ws.typings";
+import {UserDataExtended} from "./ws.typings";
 
 /** Function {@link ensure} throws this error if user sent wrong data */
 export class WrongDataError extends Error {
@@ -42,7 +42,7 @@ export const Of = {
  * @param shouldBe Template to which the data should correspond
  * @param allowUnknownKeys Are unknown keys allowed?
  */
-export function ensure<T extends UserDataExtended>(raw: UserData, shouldBe: T, allowUnknownKeys = false): T {
+export function ensure<T extends UserDataExtended>(raw: UserDataExtended, shouldBe: T, allowUnknownKeys = false): T {
 	if (!allowUnknownKeys) {
 		for (const key in raw) {
 			if (!(key in shouldBe)) {
@@ -52,12 +52,16 @@ export function ensure<T extends UserDataExtended>(raw: UserData, shouldBe: T, a
 	}
 
 	const result = raw as UserDataExtended;
-	if (shouldBe instanceof Vector2) {
+	if (shouldBe instanceof Vector2 && raw instanceof Vector2) {
+		return raw as T;
+	} else if (shouldBe instanceof Vector2) {
 		if (typeof raw == "object" && raw && !(raw instanceof Array)) {
 			return Vec2(ensure(raw, {x: shouldBe.x, y: shouldBe.y}, allowUnknownKeys)) as T;
 		} else {
 			throw new WrongDataError(`Wrong type of data (type ${typeof raw}, should be Vector2)`);
 		}
+	} else if (raw instanceof Vector2) {
+		throw new WrongDataError(`Wrong type of data (type ${typeof raw}, should not be Vector2)`);
 	}
 	for (const key in shouldBe) {
 		const val = raw[key];
