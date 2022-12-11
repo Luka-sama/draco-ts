@@ -17,7 +17,7 @@ export default class App {
 		App.started = true;
 
 		Tr.init();
-		App.autoimport();
+		await App.autoimport();
 		App.catchExceptions();
 		await ORM.init();
 		WS.init();
@@ -25,14 +25,14 @@ export default class App {
 	}
 
 	/** Auto-import to make @OnlyLogged() and other decorators to work without explicit import */
-	private static autoimport(): void {
+	private static async autoimport(): Promise<void> {
 		const ignore = [
 			"./**/*.entity.js", "./**/*.test.js", "./**/*.typings.js",
 			"./seeder.js", "./jest-setup.js",
 		];
 		const files = glob.sync("./**/*.js", {ignore, cwd: "./dist"});
 		for (const file of files) {
-			import(path.join("..", file));
+			await import(path.join("..", file));
 		}
 	}
 
