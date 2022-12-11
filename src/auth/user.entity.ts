@@ -1,9 +1,11 @@
 import {Embedded, Entity, ManyToOne, Property, Unique} from "@mikro-orm/core";
 import {WeakCachedEntity} from "../cache/cached-entity";
+import {syncTrack} from "../core/sync";
 import {Sync} from "../core/sync.decorator";
 import {SyncFor} from "../core/sync.typings";
 import {Emitter, Socket, UserData} from "../core/ws.typings";
 import Location from "../map/location.entity";
+import Const from "../math/const";
 import {Vector2} from "../math/vector.embeddable";
 import Account from "./account.entity";
 
@@ -32,6 +34,9 @@ export default class User extends WeakCachedEntity implements Emitter {
 	@Sync({for: SyncFor.Zone})
 	position: Vector2;
 
+	@Sync({for: SyncFor.Zone})
+	speed = Const.MOVEMENT_WALK_SPEED;
+
 	socket?: Socket;
 
 	connected = false;
@@ -42,7 +47,7 @@ export default class User extends WeakCachedEntity implements Emitter {
 		this.account = account;
 		this.location = location;
 		this.position = position;
-		return this.getInstance();
+		return syncTrack(this.getInstance());
 	}
 
 	emit(event: string, data?: UserData): void {

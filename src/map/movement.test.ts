@@ -4,12 +4,14 @@ import Movement from "./movement";
 
 describe("move", () => {
 	test("with cheating", async () => {
-		await expect(() => Movement.move({...loggedArgs, raw: {x: 1, y: 2}}) ).rejects.toThrow(assert.AssertionError);
+		const raw = {direction: {x: 1, y: 2}, run: false};
+		await expect(() => Movement.move({...loggedArgs, raw}) ).rejects.toThrow(assert.AssertionError);
 	});
 
 	test("normal", () => {
 		const oldPosition = user.position;
-		Movement.move({...loggedArgs, raw: {x: 1, y: 0}});
+		const raw = {direction: {x: 1, y: 0}, run: false};
+		Movement.move({...loggedArgs, raw});
 		const newPosition = user.position;
 		expect(oldPosition.add(Vec2(1, 0)).equals(newPosition)).toBeTruthy();
 	});

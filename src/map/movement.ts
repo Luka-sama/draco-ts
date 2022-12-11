@@ -19,16 +19,18 @@ export default class Movement {
 	@OnlyLogged()
 	static move(args: LoggedArgs): void {
 		const {user, zone} = args;
-		const direction = ensure(args.raw, Is.vec2i);
+		const {direction, run} = ensure(args.raw, {direction: Is.vec2i, run: Is.bool});
 		assert(Math.abs(direction.x) <= 1 && Math.abs(direction.y) <= 1 && (direction.x != 0 || direction.y != 0));
 
+		const speed = (run ? Const.MOVEMENT_RUN_SPEED : Const.MOVEMENT_WALK_SPEED);
 		const last = Movement.lastTime.get(user) || 0;
 		const passed = Date.now() - last;
-		const frequency = 1000 / Const.MOVEMENT_WALK_SPEED;
+		const frequency = 1000 / speed;
 		if (passed >= frequency) {
 			const newPosition = user.position.add(direction);
 			if (zone.isTileFree(newPosition)) {
 				user.position = newPosition;
+				user.speed = speed;
 				Movement.lastTime.set(user, Date.now());
 			}
 		} else {

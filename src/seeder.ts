@@ -4,6 +4,7 @@ import Account from "./auth/account.entity";
 import User from "./auth/user.entity";
 import ORM, {EM} from "./core/orm";
 import Location from "./map/location.entity";
+import Const from "./math/const";
 import {Vec2} from "./math/vector.embeddable";
 
 export default class Seeder {
@@ -71,6 +72,7 @@ export default class Seeder {
 				regDate: faker.date.soon(10, account.regDate.toString()),
 				location: locations[0],
 				position: Vec2(faker.datatype.number({min: 0, max: 30}), faker.datatype.number({min: 0, max: 30})),
+				speed: Const.MOVEMENT_WALK_SPEED,
 				connected: false,
 			}) );
 		}
