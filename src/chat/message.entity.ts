@@ -1,6 +1,6 @@
 import {Embedded, Entity, Index, ManyToOne, PrimaryKey, Property} from "@mikro-orm/core";
 import User from "../auth/user.entity";
-import Sync from "../core/sync.decorator";
+import {Sync} from "../core/sync.decorator";
 import {RoundArea} from "../map/area";
 import Location from "../map/location.entity";
 import {Vector2} from "../math/vector.embeddable";

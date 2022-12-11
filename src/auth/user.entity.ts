@@ -1,6 +1,6 @@
 import {Embedded, Entity, ManyToOne, Property, Unique} from "@mikro-orm/core";
 import {WeakCachedEntity} from "../cache/cached-entity";
-import Sync from "../core/sync.decorator";
+import {Sync} from "../core/sync.decorator";
 import {SyncFor} from "../core/sync.typings";
 import {Emitter, Socket, UserData} from "../core/ws.typings";
 import Location from "../map/location.entity";

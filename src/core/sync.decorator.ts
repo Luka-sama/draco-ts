@@ -7,8 +7,13 @@ export const toSync: {
 	[key: string]: SyncModel;
 } = {};
 
-/** Synchronization decorator. Adds an information about which property in which model and how should be synced */
-export default function Sync(options?: SyncProperty | SyncProperty[]): PropertyDecorator {
+/**
+ * Synchronization decorator. Adds an information about which property in which model and how should be synced.
+ * See {@link SyncProperty} for details.
+ *
+ * Be sure to call {@link syncTrack} if you have properties that should not be stored in the database.
+ */
+export function Sync(options?: SyncProperty | SyncProperty[]): PropertyDecorator {
 	return function(target: unknown, propertyKey: string | symbol): void {
 		assert(target && typeof target == "object" && typeof target.constructor == "function");
 		assert(typeof propertyKey == "string");

@@ -1,4 +1,13 @@
-import {AnyEntity, ChangeSet, ChangeSetType, EventSubscriber, FlushEventArgs, Subscriber} from "@mikro-orm/core";
+import {
+	AnyEntity,
+	ChangeSet,
+	ChangeSetType,
+	EntityData,
+	EntityDictionary,
+	EventSubscriber,
+	FlushEventArgs,
+	Subscriber
+} from "@mikro-orm/core";
 import assert from "assert/strict";
 import _ from "lodash";
 import User from "../auth/user.entity";
@@ -23,6 +32,43 @@ import WS from "./ws";
 import {Emitter, UserData} from "./ws.typings";
 
 /**
+ * This function adds tracking for properties that should not be stored in the database.
+ * It should be called immediately after the constructor, preferably in the last line of the constructor.
+ * It returns the entity itself to simplify use with the CachedEntity.
+ *
+ * Call `syncTrack(this);` for simple entities and `return syncTrack(this.getInstance());` for cached entities.
+ *
+ * A limitation is that the position and location should be always stored in the database, otherwise the zone handling will not work.
+ */
+export function syncTrack<T extends AnyEntity>(entity: T): T {
+	const model = entity.constructor.name;
+	const syncProperties = Object.keys(toSync[model]);
+	const metadata = EM.getMetadata().get(model).properties;
+	const syncedProperties = syncProperties.filter(property => !metadata[property]);
+	for (const property of syncedProperties) {
+		const isAlreadyTracked = !!Object.getOwnPropertyDescriptor(entity, property)?.get;
+		if (!isAlreadyTracked) {
+			trackProperty(entity, property);
+		}
+	}
+	return entity;
+}
+
+// This code is separated into a separate function to avoid memory leaks (by minimizing the number of variables in the scope).
+function trackProperty(entity: AnyEntity, property: string): void {
+	let value = entity[property];
+	Object.defineProperty(entity, property, {
+		get: () => value,
+		set: (newValue) => {
+			if (value !== newValue) {
+				Synchronizer.addTrackData(entity, property);
+				value = newValue;
+			}
+		}
+	});
+}
+
+/**
  * Synchronizer class. See {@link Sync} decorator for details how to use it.
  *
  * Synchronizer accepts change sets from MikroORM (alternatively, methods can be called for changes that should not affect the database).
@@ -36,13 +82,19 @@ export default class Synchronizer {
 	private static syncMap: SyncMap = new Map();
 	private static lastSyncTime = 0;
 	private static syncTimeout: NodeJS.Timeout;
+	private static syncTracked = new Map<AnyEntity, Set<string>>();
 
 	/** Calculates a sync map for the given change sets */
 	static async addChangeSets(changeSets: ChangeSet<AnyEntity>[]): Promise<void> {
 		clearTimeout(Synchronizer.syncTimeout);
 
 		for (const changeSet of changeSets) {
-			const syncMap = await Synchronizer.getSyncMap(changeSet);
+			const syncMap = await Synchronizer.getSyncMapFromChangeSet(changeSet);
+			Synchronizer.mergeSyncMaps(Synchronizer.syncMap, syncMap);
+		}
+		for (const [entity] of Synchronizer.syncTracked) {
+			const model = entity.constructor.name;
+			const syncMap = await Synchronizer.getSyncMap(model, entity, "update", {}, entity);
 			Synchronizer.mergeSyncMaps(Synchronizer.syncMap, syncMap);
 		}
 
@@ -54,6 +106,15 @@ export default class Synchronizer {
 				Synchronizer.synchronize();
 			}
 		}
+	}
+
+	/**
+	 * Adds track data if some tracked property was changed.
+	 */
+	static addTrackData(entity: AnyEntity, property: string) {
+		const changedProperties = Synchronizer.syncTracked.get(entity) || new Set();
+		changedProperties.add(property);
+		Synchronizer.syncTracked.set(entity, changedProperties);
 	}
 
 	/** Emits the player who has just logged into the game all the necessary information */
@@ -165,20 +226,25 @@ export default class Synchronizer {
 	}
 
 	/** Calculates a sync map from the given change set */
-	private static async getSyncMap(changeSet: ChangeSet<AnyEntity>): Promise<SyncMap> {
-		const syncMap: SyncMap = new Map();
+	private static async getSyncMapFromChangeSet(changeSet: ChangeSet<AnyEntity>): Promise<SyncMap> {
 		const model = changeSet.name;
-		const entity = changeSet.entity;
 		const type = Synchronizer.getSyncType(changeSet);
+		return await Synchronizer.getSyncMap(model, changeSet.entity, type, changeSet.payload, changeSet.originalEntity);
+	}
+
+	/** Calculates a sync map from the given data */
+	private static async getSyncMap(model: string, entity: AnyEntity, type: SyncType,
+		payload: EntityDictionary<AnyEntity>, original?: EntityData<AnyEntity>): Promise<SyncMap> {
+		const syncMap: SyncMap = new Map();
 		const toSyncModel = toSync[model];
-		const syncedProperties = Synchronizer.getSyncedProperties(toSyncModel, changeSet, type);
-		if (!syncedProperties.length) {
+		const propertiesToSync = Synchronizer.getPropertiesToSync(model, entity, type, payload);
+		if (!propertiesToSync.length) {
 			return syncMap;
 		}
 
 		const collectedData = new Map<Emitter | AreaType, UserData>();
 		const zoneFromFields = new Map<Zone, SyncForCustom>();
-		for (const property of syncedProperties) {
+		for (const property of propertiesToSync) {
 			for (const toSyncProperty of toSyncModel[property]) {
 				const emitter = await Synchronizer.getEmitter(toSyncProperty, entity);
 				if (emitter instanceof Zone) {
@@ -207,7 +273,7 @@ export default class Synchronizer {
 			if (emitter instanceof Zone) {
 				const syncFor = zoneFromFields.get(emitter);
 				assert(syncFor);
-				const syncMapToAdd = await Synchronizer.handleZones(syncFor, changeSet, emitter, type, [sync]);
+				const syncMapToAdd = await Synchronizer.handleZones(syncFor, model, entity, emitter, type, [sync], original);
 				if (syncMapToAdd.size > 0) {
 					Synchronizer.mergeSyncMaps(syncMap, syncMapToAdd);
 				} else {
@@ -258,7 +324,8 @@ export default class Synchronizer {
 	 * For the creation and the deletion it returns all properties that are in the given sync model.
 	 * For the updation it returns a list with names of those changed properties that are in sync model.
 	 * */
-	private static getSyncedProperties(toSyncModel: SyncModel, changeSet: ChangeSet<AnyEntity>, type: SyncType): string[] {
+	private static getPropertiesToSync(model: string, entity: AnyEntity, type: SyncType, payload: EntityDictionary<AnyEntity>): string[] {
+		const toSyncModel = toSync[model];
 		if (!toSyncModel) {
 			return [];
 		}
@@ -266,12 +333,15 @@ export default class Synchronizer {
 		if (type != "update") {
 			return syncProperties;
 		}
-		const metadata = EM.getMetadata().get(changeSet.name).properties;
-		const changedProperties = Object.keys(changeSet.payload)
+		const metadata = EM.getMetadata().get(model).properties;
+		const trackedProperties = Array.from(Synchronizer.syncTracked.get(entity) || []);
+		Synchronizer.syncTracked.delete(entity);
+		const changedProperties = Object.keys(payload)
 			// Gets original property if this is embeddable property (e.g. replaces x with position)
 			.map(property => _.get(metadata[property], "embedded[0]", property))
 			// Filters properties that should not be synced
-			.filter(property => syncProperties.includes(property));
+			.filter(property => syncProperties.includes(property))
+			.concat(trackedProperties);
 		return _.uniq(changedProperties);
 	}
 
@@ -280,10 +350,8 @@ export default class Synchronizer {
 	 * For the creation or the deletion of an entity it updates the zone entities and returns an empty sync map.
 	 * For the updation of an entity it prepares arguments for {@link changeZone}, calls it and returns its sync map
 	 */
-	private static async handleZones(syncFor: SyncForCustom, changeSet: ChangeSet<AnyEntity>,
-		currZone: Zone, type: SyncType, updateList: Sync[]): Promise<SyncMap> {
-		const entity = changeSet.entity;
-		const model = changeSet.name;
+	private static async handleZones(syncFor: SyncForCustom, model: string, entity: AnyEntity,
+		currZone: Zone, type: SyncType, updateList: Sync[], original?: EntityData<AnyEntity>): Promise<SyncMap> {
 		if (!ZoneEntities.getModels().includes(model)) {
 			return new Map();
 		}
@@ -299,7 +367,6 @@ export default class Synchronizer {
 			const metadata = EM.getMetadata().get(model).properties;
 			const [xField, yField] = Object.keys(metadata[positionField].embeddedProps);
 
-			const original = changeSet.originalEntity;
 			assert(original);
 			const oldPosition = Vec2(original[xField], original[yField]);
 			const oldLocation = await Location.getOrFail(original[locationField]);
