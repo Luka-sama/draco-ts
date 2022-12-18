@@ -1,7 +1,7 @@
 import _ from "lodash";
 import Tr from "../core/tr";
 import WS from "../core/ws";
-import {EventHandler, GuestArgs, LoggedArgs, Socket} from "../core/ws.typings";
+import {EventHandler, LoggedArgs, Socket} from "../core/ws.typings";
 import Zone from "../map/zone";
 
 /**
@@ -56,37 +56,4 @@ export function OnlyLogged(): MethodDecorator {
 /** The decorated method is available for all */
 export function ForAll(): MethodDecorator {
 	return OnlyCond(() => "");
-}
-
-/**
- * The decorated method can be called at most `times` times per `ms` ms,
- * otherwise the user will get an info-event with text `errorText`.
- */
-export function Limit(ms: number, errorText = Tr.get("LIMIT_REACHED"), times = 1): MethodDecorator {
-	return function(target: unknown, propertyKey: string | symbol, descriptor: PropertyDescriptor): PropertyDescriptor {
-		const originalMethod: EventHandler = descriptor.value;
-		const targetName = (typeof target == "function" ? `${target.name}.` : "");
-		const methodName = `${targetName}${propertyKey.toString()}`;
-
-		descriptor.value = async function(args: GuestArgs): Promise<void> {
-			const sck = args.sck;
-			if (!sck.limits[methodName]) {
-				sck.limits[methodName] = [];
-			}
-			const now = Date.now();
-			const limits = sck.limits[methodName] = sck.limits[methodName].filter(time => time >= now - ms);
-
-			if (typeof jest == "object" || limits.length < times) {
-				limits.push(now);
-				const value = await originalMethod.call(this, args);
-				if (value === false) {
-					limits.splice(limits.indexOf(now), 1);
-				}
-			} else if (errorText) {
-				return sck.info(errorText);
-			}
-		};
-
-		return descriptor;
-	};
 }

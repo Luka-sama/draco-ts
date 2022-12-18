@@ -8,10 +8,10 @@ describe("move", () => {
 		await expect(() => Movement.move({...loggedArgs, raw}) ).rejects.toThrow(assert.AssertionError);
 	});
 
-	test("normal", () => {
+	test("normal", async () => {
 		const oldPosition = user.position;
 		const raw = {direction: {x: 1, y: 0}, run: false};
-		Movement.move({...loggedArgs, raw});
+		await Movement.move({...loggedArgs, raw});
 		const newPosition = user.position;
 		expect(oldPosition.add(Vec2(1, 0)).equals(newPosition)).toBeTruthy();
 	});

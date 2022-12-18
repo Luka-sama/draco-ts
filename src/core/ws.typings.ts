@@ -32,9 +32,6 @@ export interface Emitter {
 export interface Socket extends uWS.WebSocket, Emitter {
 	account?: Account;
 	user?: User;
-	limits: {
-		[key: string]: number[]
-	};
 }
 
 /** Type for an event handler */

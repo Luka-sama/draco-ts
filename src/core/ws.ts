@@ -4,6 +4,7 @@ import {Buffer} from "buffer";
 import _ from "lodash";
 import uWS from "uWebSockets.js";
 import User from "../auth/user.entity";
+import {EndOfRequest} from "./helper";
 import {EM} from "./orm";
 import Tr from "./tr";
 import {ensure, Is, WrongDataError} from "./validation";
@@ -247,9 +248,11 @@ export default class WS {
 				await handleEvent({sck, raw} as GuestArgs);
 				await EM.flush();
 			} catch(e) {
-				const isWrongData = (e instanceof WrongDataError || e instanceof assert.AssertionError);
-				sck.info(isWrongData ? Tr.get("WRONG_DATA") : Tr.get("UNKNOWN_ERROR"));
-				console.error(e);
+				if (!(e instanceof EndOfRequest) && (e as any)?.code != "ABORT_ERR") {
+					const isWrongData = (e instanceof WrongDataError || e instanceof assert.AssertionError);
+					sck.info(isWrongData ? Tr.get("WRONG_DATA") : Tr.get("UNKNOWN_ERROR"));
+					console.error(e);
+				}
 			}
 		});
 	}
