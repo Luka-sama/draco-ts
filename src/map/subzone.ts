@@ -1,13 +1,13 @@
 import {AnyEntity, QueryOrder} from "@mikro-orm/core";
 import assert from "assert/strict";
-import User from "../auth/user.entity";
-import CachedObject from "../cache/cached-object";
-import {EM} from "../core/orm";
-import {UserContainer} from "../core/sync.typings";
-import {Emitter, UserData} from "../core/ws.typings";
-import {Vec2, Vector2} from "../math/vector.embeddable";
-import Location from "./location.entity";
-import ZoneEntities from "./zone-entities";
+import User from "../auth/user.entity.js";
+import CachedObject from "../cache/cached-object.js";
+import {EM} from "../core/orm.js";
+import {UserContainer} from "../core/sync.typings.js";
+import {Emitter, UserData} from "../core/ws.typings.js";
+import {Vec2, Vector2} from "../math/vector.embeddable.js";
+import Location from "./location.entity.js";
+import ZoneEntities from "./zone-entities.js";
 
 /**
  * Subzone class

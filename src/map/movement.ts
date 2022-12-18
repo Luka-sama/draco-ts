@@ -1,9 +1,9 @@
 import assert from "assert/strict";
-import {OnlyLogged} from "../auth/auth.decorator";
-import Helper from "../core/helper";
-import {ensure, Is} from "../core/validation";
-import {LoggedArgs} from "../core/ws.typings";
-import Const from "../math/const";
+import {OnlyLogged} from "../auth/auth.decorator.js";
+import Helper from "../core/helper.js";
+import {ensure, Is} from "../core/validation.js";
+import {LoggedArgs} from "../core/ws.typings.js";
+import Const from "../math/const.js";
 
 /** This class handles movement of players */
 export default class Movement {

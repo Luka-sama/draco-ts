@@ -1,6 +1,6 @@
 import assert from "assert/strict";
 import _ from "lodash";
-import {SyncFor, SyncModel, SyncProperty} from "./sync.typings";
+import {SyncFor, SyncModel, SyncProperty} from "./sync.typings.js";
 
 /** The information about which properties in which models and how should be synced (see {@link SyncModel}) */
 export const toSync: {

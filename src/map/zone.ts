@@ -1,10 +1,10 @@
 import {AnyEntity} from "@mikro-orm/core";
-import CachedObject from "../cache/cached-object";
-import {Emitter, UserData} from "../core/ws.typings";
-import {Vec2, Vector2} from "../math/vector.embeddable";
-import Location from "./location.entity";
-import Subzone from "./subzone";
-import ZoneEntities from "./zone-entities";
+import CachedObject from "../cache/cached-object.js";
+import {Emitter, UserData} from "../core/ws.typings.js";
+import {Vec2, Vector2} from "../math/vector.embeddable.js";
+import Location from "./location.entity.js";
+import Subzone from "./subzone.js";
+import ZoneEntities from "./zone-entities.js";
 
 /**
  * The map is divided into subzones of equal size.

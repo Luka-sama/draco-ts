@@ -1,5 +1,5 @@
-import Cache from "./cache";
-import {CacheOptions} from "./cache.typings";
+import Cache from "./cache.js";
+import {CacheOptions} from "./cache.typings.js";
 
 /**
  * If a class derives CachedObject, it will be ensured that there is only one instance of this class for each name,

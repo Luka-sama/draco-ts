@@ -1,6 +1,6 @@
-import {Vec2, Vector2} from "../math/vector.embeddable";
-import {ensure, Is, Of, WrongDataError} from "./validation";
-import {UserData, UserDataExtended} from "./ws.typings";
+import {Vec2, Vector2} from "../math/vector.embeddable.js";
+import {ensure, Is, Of, WrongDataError} from "./validation.js";
+import {UserData, UserDataExtended} from "./ws.typings.js";
 
 describe("ensure", () => {
 	function check(raw: UserData, result: boolean, shouldBe: UserDataExtended): void {

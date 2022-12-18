@@ -1,6 +1,6 @@
-import {Vec2} from "../math/vector.embeddable";
-import Location from "./location.entity";
-import Subzone from "./subzone";
+import {Vec2} from "../math/vector.embeddable.js";
+import Location from "./location.entity.js";
+import Subzone from "./subzone.js";
 
 test.each([
 	[Subzone.SIZE.add(Vec2(-1, 0)), false],

@@ -1,6 +1,6 @@
 import {Embedded, Entity, PrimaryKey, Property, Unique} from "@mikro-orm/core";
-import {Vector2} from "../math/vector.embeddable";
-import TileSet from "./tile-set.entity";
+import {Vector2} from "../math/vector.embeddable.js";
+import TileSet from "./tile-set.entity.js";
 
 /**
  * Tile entity

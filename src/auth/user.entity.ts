@@ -1,13 +1,13 @@
 import {Embedded, Entity, ManyToOne, Property, Unique} from "@mikro-orm/core";
-import {WeakCachedEntity} from "../cache/cached-entity";
-import {syncTrack} from "../core/sync";
-import {Sync} from "../core/sync.decorator";
-import {SyncFor} from "../core/sync.typings";
-import {Emitter, Socket, UserData} from "../core/ws.typings";
-import Location from "../map/location.entity";
-import Const from "../math/const";
-import {Vector2} from "../math/vector.embeddable";
-import Account from "./account.entity";
+import {WeakCachedEntity} from "../cache/cached-entity.js";
+import {syncTrack} from "../core/sync.js";
+import {Sync} from "../core/sync.decorator.js";
+import {SyncFor} from "../core/sync.typings.js";
+import {Emitter, Socket, UserData} from "../core/ws.typings.js";
+import Location from "../map/location.entity.js";
+import Const from "../math/const.js";
+import {Vector2} from "../math/vector.embeddable.js";
+import Account from "./account.entity.js";
 
 /**
  * User entity

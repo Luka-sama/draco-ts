@@ -1,4 +1,4 @@
-import {CacheOptions} from "./cache.typings";
+import {CacheOptions} from "./cache.typings.js";
 
 /**
  * Class for the cache management

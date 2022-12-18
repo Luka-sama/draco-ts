@@ -1,11 +1,11 @@
 import {faker} from "@faker-js/faker";
 import assert from "assert/strict";
-import Account from "./auth/account.entity";
-import User from "./auth/user.entity";
-import ORM, {EM} from "./core/orm";
-import Location from "./map/location.entity";
-import Const from "./math/const";
-import {Vec2} from "./math/vector.embeddable";
+import Account from "./auth/account.entity.js";
+import User from "./auth/user.entity.js";
+import ORM, {EM} from "./core/orm.js";
+import Location from "./map/location.entity.js";
+import Const from "./math/const.js";
+import {Vec2} from "./math/vector.embeddable.js";
 
 export default class Seeder {
 	static started = false;

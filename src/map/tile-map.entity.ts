@@ -1,7 +1,7 @@
 import {Embedded, Entity, ManyToOne, PrimaryKey} from "@mikro-orm/core";
-import {Vector2} from "../math/vector.embeddable";
-import Location from "./location.entity";
-import Tile from "./tile.entity";
+import {Vector2} from "../math/vector.embeddable.js";
+import Location from "./location.entity.js";
+import Tile from "./tile.entity.js";
 
 /**
  * Tilemap entity

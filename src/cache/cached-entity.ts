@@ -1,8 +1,8 @@
 import {EventArgs, EventSubscriber, PrimaryKey, Subscriber, wrap, WrappedEntity} from "@mikro-orm/core";
 import _ from "lodash";
-import ORM, {EM} from "../core/orm";
-import Cache from "./cache";
-import {CacheOptions} from "./cache.typings";
+import ORM, {EM} from "../core/orm.js";
+import Cache from "./cache.js";
+import {CacheOptions} from "./cache.typings.js";
 
 /**
  * It is used in the return type: T extends ICachedEntity.

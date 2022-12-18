@@ -1,7 +1,7 @@
-import Account from "../auth/account.entity";
-import User from "../auth/user.entity";
-import {EM} from "../core/orm";
-import Location from "../map/location.entity";
+import Account from "../auth/account.entity.js";
+import User from "../auth/user.entity.js";
+import {EM} from "../core/orm.js";
+import Location from "../map/location.entity.js";
 
 test("it should work", async () => {
 	const user = await User.getOrFail(1);

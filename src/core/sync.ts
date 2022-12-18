@@ -11,14 +11,14 @@ import {
 } from "@mikro-orm/core";
 import assert from "assert/strict";
 import _ from "lodash";
-import User from "../auth/user.entity";
-import Location from "../map/location.entity";
-import Zone from "../map/zone";
-import ZoneEntities from "../map/zone-entities";
-import Const from "../math/const";
-import {Vec2, Vector2} from "../math/vector.embeddable";
-import {EM} from "./orm";
-import {toSync} from "./sync.decorator";
+import User from "../auth/user.entity.js";
+import Location from "../map/location.entity.js";
+import ZoneEntities from "../map/zone-entities.js";
+import Zone from "../map/zone.js";
+import Const from "../math/const.js";
+import {Vec2, Vector2} from "../math/vector.embeddable.js";
+import {EM} from "./orm.js";
+import {toSync} from "./sync.decorator.js";
 import {
 	AreaType,
 	Sync,
@@ -29,9 +29,9 @@ import {
 	SyncProperty,
 	SyncType,
 	UserContainer
-} from "./sync.typings";
-import WS from "./ws";
-import {Emitter, UserData} from "./ws.typings";
+} from "./sync.typings.js";
+import WS from "./ws.js";
+import {Emitter, UserData} from "./ws.typings.js";
 
 /**
  * This function adds tracking for properties that should not be stored in the database.

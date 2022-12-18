@@ -1,11 +1,11 @@
 import {mock, mockReset} from "jest-mock-extended";
-import Account from "./auth/account.entity";
-import User from "./auth/user.entity";
-import Cache from "./cache/cache";
-import ORM, {EM} from "./core/orm";
-import Tr from "./core/tr";
-import {GuestArgs, LoggedArgs, Socket} from "./core/ws.typings";
-import Zone from "./map/zone";
+import Account from "./auth/account.entity.js";
+import User from "./auth/user.entity.js";
+import Cache from "./cache/cache.js";
+import ORM, {EM} from "./core/orm.js";
+import Tr from "./core/tr.js";
+import {GuestArgs, LoggedArgs, Socket} from "./core/ws.typings.js";
+import Zone from "./map/zone.js";
 
 /* eslint-disable no-var */
 declare global {

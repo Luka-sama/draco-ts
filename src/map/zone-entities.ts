@@ -1,6 +1,6 @@
 import {AnyEntity} from "@mikro-orm/core";
 import assert from "assert/strict";
-import User from "../auth/user.entity";
+import User from "../auth/user.entity.js";
 
 /** Data storage class that stores all entities in a zone or a subzone (user, items etc) */
 export default class ZoneEntities {

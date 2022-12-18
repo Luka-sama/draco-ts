@@ -1,9 +1,8 @@
 import glob from "glob";
-import path from "path";
-import Cache from "../cache/cache";
-import ORM from "./orm";
-import Tr from "./tr";
-import WS from "./ws";
+import Cache from "../cache/cache.js";
+import ORM from "./orm.js";
+import Tr from "./tr.js";
+import WS from "./ws.js";
 
 /** App class */
 export default class App {
@@ -32,7 +31,7 @@ export default class App {
 		];
 		const files = glob.sync("./**/*.js", {ignore, cwd: "./dist"});
 		for (const file of files) {
-			await import(path.join("..", file));
+			await import(`.${file}`);
 		}
 	}
 

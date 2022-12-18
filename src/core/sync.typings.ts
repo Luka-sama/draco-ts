@@ -1,6 +1,6 @@
-import User from "../auth/user.entity";
-import {Area} from "../map/area";
-import {JSONDataExtended, UserData} from "./ws.typings";
+import User from "../auth/user.entity.js";
+import {Area} from "../map/area.js";
+import {JSONDataExtended, UserData} from "./ws.typings.js";
 
 /** Synchronization options for a single property (how this property should be synced) */
 export interface SyncProperty {

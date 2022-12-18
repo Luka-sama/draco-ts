@@ -1,8 +1,8 @@
 import * as uWS from "uWebSockets.js";
-import Account from "../auth/account.entity";
-import User from "../auth/user.entity";
-import Zone from "../map/zone";
-import {Vector2} from "../math/vector.embeddable";
+import Account from "../auth/account.entity.js";
+import User from "../auth/user.entity.js";
+import Zone from "../map/zone.js";
+import {Vector2} from "../math/vector.embeddable.js";
 
 /** This is the return type of JSON.parse() */
 export type JSONData = string | number | boolean | null | JSONData[] | UserData;

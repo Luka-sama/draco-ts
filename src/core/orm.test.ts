@@ -1,5 +1,5 @@
-import User from "../auth/user.entity";
-import ORM, {EM} from "./orm";
+import User from "../auth/user.entity.js";
+import ORM, {EM} from "./orm.js";
 
 /*
 Each flush in MikroORM (including auto-flush) clears the persist stack (in postCommitCleanup).

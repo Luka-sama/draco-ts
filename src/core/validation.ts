@@ -1,5 +1,5 @@
-import {Vec2, Vector2} from "../math/vector.embeddable";
-import {UserDataExtended} from "./ws.typings";
+import {Vec2, Vector2} from "../math/vector.embeddable.js";
+import {UserDataExtended} from "./ws.typings.js";
 
 /** Function {@link ensure} throws this error if user sent wrong data */
 export class WrongDataError extends Error {

@@ -1,5 +1,5 @@
 import {Entity, Property, Unique} from "@mikro-orm/core";
-import {WeakCachedEntity} from "../cache/cached-entity";
+import {WeakCachedEntity} from "../cache/cached-entity.js";
 
 /** Account entity */
 @Entity()

@@ -1,4 +1,4 @@
-import {Vec2, Vector2} from "./vector.embeddable";
+import {Vec2, Vector2} from "./vector.embeddable.js";
 
 describe("Vector2", () => {
 	const a = new Vector2(1, 2);

@@ -1,8 +1,8 @@
 import _ from "lodash";
-import Tr from "../core/tr";
-import WS from "../core/ws";
-import {EventHandler, LoggedArgs, Socket} from "../core/ws.typings";
-import Zone from "../map/zone";
+import Tr from "../core/tr.js";
+import WS from "../core/ws.js";
+import {EventHandler, LoggedArgs, Socket} from "../core/ws.typings.js";
+import Zone from "../map/zone.js";
 
 /**
  * The decorated method is available only if func returns an empty string, otherwise the returned string will be sent as info-event.

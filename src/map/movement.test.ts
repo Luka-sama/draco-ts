@@ -1,6 +1,6 @@
 import assert from "assert/strict";
-import {Vec2} from "../math/vector.embeddable";
-import Movement from "./movement";
+import {Vec2} from "../math/vector.embeddable.js";
+import Movement from "./movement.js";
 
 describe("move", () => {
 	test("with cheating", async () => {

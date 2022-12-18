@@ -1,7 +1,7 @@
 import {AnyEntity, MikroORM, Options} from "@mikro-orm/core";
 import {EntityManager, PostgreSqlDriver} from "@mikro-orm/postgresql";
-import config from "../../mikro-orm.config";
-import {CachedEntity} from "../cache/cached-entity";
+import config from "../../mikro-orm.config.js";
+import {CachedEntity} from "../cache/cached-entity.js";
 
 /**
  * EntityManager instance

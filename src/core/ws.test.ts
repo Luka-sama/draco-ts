@@ -1,4 +1,4 @@
-import WS from "./ws";
+import WS from "./ws.js";
 
 test("bufferToStr", () => {
 	const testString = "test string";

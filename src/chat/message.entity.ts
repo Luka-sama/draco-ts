@@ -1,10 +1,10 @@
 import {Embedded, Entity, Index, ManyToOne, PrimaryKey, Property} from "@mikro-orm/core";
-import User from "../auth/user.entity";
-import {Sync} from "../core/sync.decorator";
-import {RoundArea} from "../map/area";
-import Location from "../map/location.entity";
-import Const from "../math/const";
-import {Vector2} from "../math/vector.embeddable";
+import User from "../auth/user.entity.js";
+import {Sync} from "../core/sync.decorator.js";
+import {RoundArea} from "../map/area.js";
+import Location from "../map/location.entity.js";
+import Const from "../math/const.js";
+import {Vector2} from "../math/vector.embeddable.js";
 
 function getDeleteIn(date: Date): number {
 	return Math.max(0, Const.CHAT_DELETE_MESSAGE_AFTER_MS - (Date.now() - date.getTime()));
