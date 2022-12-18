@@ -40,14 +40,10 @@ export type SyncForCustom = SyncFor | string | {
 } | AreaType;
 
 /** Type that shows whether the entity should be created, updated or deleted on the client-side */
-export type SyncType = "create" | "update" | "delete";
+export enum SyncType {Create, Update, Delete}
 
 /** Objects with this info will be sent to the user during sync */
-export interface Sync extends UserData {
-	model: string;
-	type: SyncType;
-	entity: UserData;
-}
+export type Sync = [type: SyncType, model: string, entity: UserData];
 
 /** A map containing information about which {@link Sync | syncs} should be sent to which users */
 export type SyncMap = Map<User, Sync[]>;

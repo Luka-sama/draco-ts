@@ -99,7 +99,7 @@ export default class Synchronizer {
 				continue;
 			}
 			const model = entity.constructor.name;
-			const syncMap = await Synchronizer.getSyncMap(model, entity, "update", {});
+			const syncMap = await Synchronizer.getSyncMap(model, entity, SyncType.Update, {});
 			Synchronizer.mergeSyncMaps(Synchronizer.syncMap, syncMap);
 		}
 
@@ -191,7 +191,7 @@ export default class Synchronizer {
 			const convertedEntity = Synchronizer.convertEntityToUserData(toSyncModel, entity, syncFor);
 			// If converted entity has any properties besides id
 			if (Object.keys(convertedEntity).length > 1) {
-				syncList.push({model, type: "create", entity: convertedEntity});
+				syncList.push([SyncType.Create, model, convertedEntity]);
 			}
 		}
 		return syncList;
@@ -207,7 +207,7 @@ export default class Synchronizer {
 
 		const syncList: Sync[] = [];
 		for (const entity of (entities instanceof Set ? entities : [entities])) {
-			syncList.push({model, type: "delete", entity: {id: entity.id}});
+			syncList.push([SyncType.Delete, model, {id: entity.id}]);
 		}
 		return syncList;
 	}
@@ -255,7 +255,7 @@ export default class Synchronizer {
 				}
 
 				const data = collectedData.get(emitter) || {id: entity.id};
-				if (type != "delete") {
+				if (type != SyncType.Delete) {
 					Synchronizer.writePropertyToData(toSyncProperty, entity, data, property);
 				}
 				collectedData.set(emitter, data);
@@ -272,7 +272,7 @@ export default class Synchronizer {
 				emitter = rawEmitter;
 			}
 
-			const sync: Sync = {model: _.snakeCase(model), type, entity: WS.prepare(convertedEntity)};
+			const sync: Sync = [type, _.snakeCase(model), WS.prepare(convertedEntity)];
 			if (emitter instanceof Zone) {
 				const syncFor = zoneFromFields.get(emitter);
 				assert(syncFor);
@@ -280,14 +280,14 @@ export default class Synchronizer {
 				if (syncMapToAdd.size > 0) {
 					Synchronizer.mergeSyncMaps(syncMap, syncMapToAdd);
 				} else {
-					Synchronizer.addToSyncMap(emitter.getSubzones(), sync, syncMap);
+					Synchronizer.addToSyncMap(emitter.getSubzones(), [sync], syncMap);
 				}
 			} else if (emitter instanceof User) {
 				const syncList = syncMap.get(emitter) || [];
 				syncList.push(sync);
 				syncMap.set(emitter, syncList);
 			} else {
-				Synchronizer.addToSyncMap(emitter as any as UserContainer, sync, syncMap);
+				Synchronizer.addToSyncMap(emitter as any as UserContainer, [sync], syncMap);
 			}
 		}
 
@@ -313,11 +313,11 @@ export default class Synchronizer {
 	/** Converts ChangeSetType of MikroORM to {@link SyncType} */
 	private static getSyncType(changeSet: ChangeSet<AnyEntity>): SyncType {
 		if (changeSet.type == ChangeSetType.CREATE) {
-			return "create";
-		} else if (changeSet.type == ChangeSetType.UPDATE) {
-			return "update";
+			return SyncType.Create;
+		} else if (changeSet.type == ChangeSetType.UPDATE || changeSet.type == ChangeSetType.UPDATE_EARLY) {
+			return SyncType.Update;
 		} else if (changeSet.type == ChangeSetType.DELETE || changeSet.type == ChangeSetType.DELETE_EARLY) {
-			return "delete";
+			return SyncType.Delete;
 		}
 		throw new Error(`Unknown ChangeSetType ${changeSet.type}.`);
 	}
@@ -333,7 +333,7 @@ export default class Synchronizer {
 			return [];
 		}
 		const syncProperties = Object.keys(toSyncModel);
-		if (type != "update") {
+		if (type != SyncType.Update) {
 			return syncProperties;
 		}
 		const metadata = EM.getMetadata().get(model).properties;
@@ -360,11 +360,11 @@ export default class Synchronizer {
 		}
 		assert(syncFor == SyncFor.Zone || typeof syncFor == "object" && syncFor.location && syncFor.position);
 
-		if (type == "create") {
+		if (type == SyncType.Create) {
 			currZone.enter(entity);
-		} else if (type == "delete") {
+		} else if (type == SyncType.Delete) {
 			currZone.leave(entity);
-		} else if (type == "update" && original) {
+		} else if (type == SyncType.Update && original) {
 			const locationField = (syncFor == SyncFor.Zone ? "location" : syncFor.location);
 			const positionField = (syncFor == SyncFor.Zone ? "position" : syncFor.position);
 			const metadata = EM.getMetadata().get(model).properties;
@@ -454,16 +454,12 @@ export default class Synchronizer {
 
 	/** Adds sync list to sync map for the given subzone(s) or something with method getUsers */
 	private static addToSyncMap(emitters: UserContainer | Set<UserContainer>,
-		syncList: Sync | Sync[], syncMap = Synchronizer.syncMap): void {
+		syncList: Sync[], syncMap = Synchronizer.syncMap): void {
 		for (const emitter of (emitters instanceof Set ? emitters : [emitters])) {
 			const users = emitter.getUsers();
 			for (const user of users) {
 				const userSyncList = syncMap.get(user) || [];
-				if (syncList instanceof Array) {
-					userSyncList.push(...syncList);
-				} else {
-					userSyncList.push(syncList);
-				}
+				userSyncList.push(...syncList);
 				syncMap.set(user, userSyncList);
 			}
 		}
