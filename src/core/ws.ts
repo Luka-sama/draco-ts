@@ -5,7 +5,7 @@ import _ from "lodash";
 import uWS from "uWebSockets.js";
 import User from "../auth/user.entity";
 import {EndOfRequest} from "./helper";
-import {EM} from "./orm";
+import ORM, {EM} from "./orm";
 import Tr from "./tr";
 import {ensure, Is, WrongDataError} from "./validation";
 import {EventHandler, GuestArgs, JSONData, Socket, UserData, WSData} from "./ws.typings";
@@ -239,10 +239,10 @@ export default class WS {
 
 		await RequestContext.createAsync(EM, async function() {
 			if (sck.account) {
-				EM.persist(sck.account);
+				ORM.register(sck.account);
 			}
 			if (sck.user) {
-				EM.persist(sck.user);
+				ORM.register(sck.user);
 			}
 			try {
 				await handleEvent({sck, raw} as GuestArgs);

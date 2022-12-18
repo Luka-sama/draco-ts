@@ -16,12 +16,12 @@ export default class App {
 		}
 		App.started = true;
 
-		Tr.init();
-		await App.autoimport();
 		App.catchExceptions();
+		Tr.init();
+		Cache.init();
+		await App.autoimport();
 		await ORM.init();
 		WS.init();
-		Cache.init();
 	}
 
 	/** Auto-import to make @OnlyLogged() and other decorators to work without explicit import */

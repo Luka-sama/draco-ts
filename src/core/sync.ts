@@ -6,7 +6,8 @@ import {
 	EntityDictionary,
 	EventSubscriber,
 	FlushEventArgs,
-	Subscriber
+	Subscriber,
+	wrap
 } from "@mikro-orm/core";
 import assert from "assert/strict";
 import _ from "lodash";
@@ -55,7 +56,7 @@ export function syncTrack<T extends AnyEntity>(entity: T): T {
 	return entity;
 }
 
-// This code is separated into a separate function to avoid memory leaks (by minimizing the number of variables in the scope).
+// This code is separated into a separate function to avoid memory leaks (by minimizing the number of variables in the scope)
 function trackProperty(entity: AnyEntity, property: string): void {
 	let value = entity[property];
 	Object.defineProperty(entity, property, {
@@ -92,8 +93,13 @@ export default class Synchronizer {
 			Synchronizer.mergeSyncMaps(Synchronizer.syncMap, syncMap);
 		}
 		for (const [entity] of Synchronizer.syncTracked) {
+			if (wrap(entity, true).__processing) {
+				// The entity is currently processed by another commit (in other EM instance).
+				// As tracked properties will be handled by another commit, in this commit we can skip them.
+				continue;
+			}
 			const model = entity.constructor.name;
-			const syncMap = await Synchronizer.getSyncMap(model, entity, "update", {}, entity);
+			const syncMap = await Synchronizer.getSyncMap(model, entity, "update", {});
 			Synchronizer.mergeSyncMaps(Synchronizer.syncMap, syncMap);
 		}
 
@@ -107,9 +113,7 @@ export default class Synchronizer {
 		}
 	}
 
-	/**
-	 * Adds track data if some tracked property was changed.
-	 */
+	/** Adds track data if some tracked property was changed */
 	static addTrackData(entity: AnyEntity, property: string): void {
 		const changedProperties = Synchronizer.syncTracked.get(entity) || new Set();
 		changedProperties.add(property);
@@ -360,13 +364,12 @@ export default class Synchronizer {
 			currZone.enter(entity);
 		} else if (type == "delete") {
 			currZone.leave(entity);
-		} else if (type == "update") {
+		} else if (type == "update" && original) {
 			const locationField = (syncFor == SyncFor.Zone ? "location" : syncFor.location);
 			const positionField = (syncFor == SyncFor.Zone ? "position" : syncFor.position);
 			const metadata = EM.getMetadata().get(model).properties;
 			const [xField, yField] = Object.keys(metadata[positionField].embeddedProps);
 
-			assert(original);
 			const oldPosition = Vec2(original[xField], original[yField]);
 			const oldLocation = await Location.getOrFail(original[locationField]);
 			const oldZone = await Zone.getByPosition(oldLocation, oldPosition);

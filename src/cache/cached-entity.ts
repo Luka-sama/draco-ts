@@ -1,15 +1,13 @@
 import {EventArgs, EventSubscriber, PrimaryKey, Subscriber, wrap, WrappedEntity} from "@mikro-orm/core";
 import _ from "lodash";
-import {EM} from "../core/orm";
+import ORM, {EM} from "../core/orm";
 import Cache from "./cache";
 import {CacheOptions} from "./cache.typings";
 
 /**
- * Internal interface
- *
- * It is exported to avoid TypeDoc warning (referenced, but not included in the documentation).
  * It is used in the return type: T extends ICachedEntity.
  * This means that the function returns class instance of some class that is child of CachedEntity.
+ * @internal
  */
 export interface ICachedEntity {
 	new(...args: any): CachedEntity
@@ -55,10 +53,10 @@ export abstract class CachedEntity {
 	id!: number;
 
 	protected static readonly cacheOptions: CacheOptions = {};
-	private cached?: any;
-	private removed?: boolean;
-	private initialized?: boolean;
-	private touched?: boolean;
+	private __cached?: any;
+	private __removed?: boolean;
+	private __initialized?: boolean;
+	private __touched?: boolean;
 
 	/** Gets the entity by ID either from the cache or from the DB */
 	static async get<T extends ICachedEntity>(this: T, id: number): Promise<InstanceType<T> | null> {
@@ -84,7 +82,7 @@ export abstract class CachedEntity {
 
 		const cached = Cache.get(name);
 		if (cached && cached.isInitialized()) {
-			EM.persist(cached);
+			ORM.register(cached);
 			return cached;
 		}
 
@@ -113,7 +111,7 @@ export abstract class CachedEntity {
 
 	/** Returns `true` if entity was removed from DB **/
 	isRemoved(): boolean {
-		return !!this.removed;
+		return !!this.__removed;
 	}
 
 	/** Returns `true` if entity is saved in DB and initialized (was fully loaded from DB) **/
@@ -147,7 +145,7 @@ export abstract class CachedEntity {
 
 	/** Removes the entity from the DB and the cache */
 	async remove(): Promise<void> {
-		this.removed = true;
+		this.__removed = true;
 		await EM.removeAndFlush(this);
 		this.uncache();
 	}
@@ -165,11 +163,11 @@ export abstract class CachedEntity {
 	 * Should be public and not protected because TypeScript behaves strange if it is protected (e.g. in `sck.user = user;`).
 	 */
 	getInstance(): this {
-		const cached = this.cached;
+		const cached = this.__cached;
 		if (!cached) {
 			return this;
 		}
-		delete this.cached;
+		delete this.__cached;
 
 		for (const property in this) {
 			const wrapped: any = wrap(this[property]);
@@ -181,20 +179,20 @@ export abstract class CachedEntity {
 		}
 
 		const wrapped = wrap(cached);
-		cached.initialized = wrapped.isInitialized();
-		cached.touched = wrapped.isTouched();
+		cached.__initialized = wrapped.isInitialized();
+		cached.__touched = wrapped.isTouched();
 		return cached;
 	}
 
 	/** Restores the flags (initialized and touched) after MikroORM resets them */
 	setInternalProps(): void {
-		if (this.initialized !== undefined) {
-			(this as any).__helper.__initialized = this.initialized;
-			delete this.initialized;
+		if (this.__initialized !== undefined) {
+			wrap(this, true).__initialized = this.__initialized;
+			delete this.__initialized;
 		}
-		if (this.touched !== undefined) {
-			(this as any).__helper.__touched = this.touched;
-			delete this.touched;
+		if (this.__touched !== undefined) {
+			wrap(this, true).__touched = this.__touched;
+			delete this.__touched;
 		}
 	}
 
@@ -205,7 +203,7 @@ export abstract class CachedEntity {
 	 * - The entity is not cached. In this case it will be cached.
 	 * - The entity is cached, but not loaded. In this case the cached entity
 	 * is returned and updated by the constructor of the derived class.
-	 * - The entity is cached and loaded. In this case the cached entity is saved in this.cached
+	 * - The entity is cached and loaded. In this case the cached entity is saved in this.__cached
 	 * and must be returned in the constructor of the derived class with {@link getInstance}.
 	 * This approach is necessary to avoid the resetting properties to their default values.
 	 */
@@ -219,10 +217,18 @@ export abstract class CachedEntity {
 		const name = derived.getNameFor(id);
 		const cached = Cache.get(name);
 		if (cached && !cached.isInitialized()) {
+			// We should remove original data so that populating of not loaded cached entities will not cause changes in DB.
+			// See also test for this.
+			delete wrap(cached, true).__originalEntityData;
 			return cached;
 		} else if (cached) {
-			this.cached = cached;
+			this.__cached = cached;
 		} else {
+			Object.defineProperty(wrap(this, true), "__em", {
+				get() {
+					return EM.getContext();
+				}
+			});
 			this.cache();
 		}
 	}

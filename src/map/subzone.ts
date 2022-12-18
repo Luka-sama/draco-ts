@@ -17,6 +17,8 @@ import ZoneEntities from "./zone-entities";
 export default class Subzone extends CachedObject implements Emitter, UserContainer {
 	static readonly SIZE = Vec2(16, 16);
 	private loaded = false;
+	private loading = false;
+	private waiting: (() => void)[] = [];
 	private readonly location: Location;
 	private readonly zonePosition: Vector2;
 	private entities: ZoneEntities = new ZoneEntities();
@@ -41,6 +43,10 @@ export default class Subzone extends CachedObject implements Emitter, UserContai
 		if (this.loaded) {
 			return;
 		}
+		if (this.loading) {
+			return new Promise<void>(resolve => this.waiting.push(resolve));
+		}
+		this.loading = true;
 		const where = {location: this.location, position: {
 			x: {$gte: this.start.x, $lt: this.end.x},
 			y: {$gte: this.start.y, $lt: this.end.y}
@@ -49,6 +55,13 @@ export default class Subzone extends CachedObject implements Emitter, UserContai
 		this.entities.User = new Set( await EM.find(User, where, {orderBy}) );
 
 		this.loaded = true;
+		this.loading = false;
+		process.nextTick(() => {
+			for (const waiting of this.waiting) {
+				waiting();
+			}
+			this.waiting.length = 0;
+		});
 	}
 
 	/** Returns the name of this subzone */

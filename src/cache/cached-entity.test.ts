@@ -1,6 +1,7 @@
 import Account from "../auth/account.entity";
 import User from "../auth/user.entity";
 import {EM} from "../core/orm";
+import Location from "../map/location.entity";
 
 test("it should work", async () => {
 	const user = await User.getOrFail(1);
@@ -19,4 +20,15 @@ test("referred entity should remain initialized when cached", async () => {
 	expect(user1.account).toBe(account);
 	expect(user2.account).toBe(account);
 	expect(user1).toBe(user2);
+});
+
+test("populating of not loaded cached entities should not cause changes in DB", async () => {
+	await User.getOrFail(2);
+	EM.clear();
+	const location = await Location.getOrFail(1);
+	const uow = EM.getUnitOfWork();
+	uow.computeChangeSets();
+	const changeSets = uow.getChangeSets();
+	expect(changeSets).toEqual([]);
+	expect(location.name).toBe("world");
 });

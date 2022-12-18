@@ -81,9 +81,13 @@ export function Vec2(x: number, y: number): Vector2;
  */
 export function Vec2(x?: number | IVector2, y?: number): Vector2 {
 	if (typeof x == "object") {
-		return new Vector2(x.x, x.y);
-	} else if (x !== undefined && y === undefined) {
+		return Vec2(x.x, x.y);
+	} else if (typeof x == "number" && y === undefined) {
 		return new Vector2(x, x);
+	} else if (x === undefined && y === undefined) {
+		return new Vector2(0, 0);
+	} else if (typeof x == "number" && typeof y == "number") {
+		return new Vector2(x, y);
 	}
-	return new Vector2(x || 0, y || 0);
+	throw new Error(`Incorrect arguments for Vec2: x=${x} (typeof x=${typeof x}), y=${y} (typeof y=${typeof y}).`);
 }

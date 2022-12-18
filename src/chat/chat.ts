@@ -1,6 +1,6 @@
 import assert from "assert/strict";
 import {OnlyLogged} from "../auth/auth.decorator";
-import {EM} from "../core/orm";
+import ORM from "../core/orm";
 import {ensure, Is} from "../core/validation";
 import {LoggedArgs} from "../core/ws.typings";
 import Message from "./message.entity";
@@ -11,6 +11,6 @@ export default class Chat {
 		const {text} = ensure(raw, {text: Is.string});
 		assert(text.length <= 255);
 		const message = new Message(text, user);
-		EM.persist(message);
+		ORM.register(message);
 	}
 }

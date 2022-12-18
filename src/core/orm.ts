@@ -1,6 +1,7 @@
-import {MikroORM, Options} from "@mikro-orm/core";
+import {AnyEntity, MikroORM, Options} from "@mikro-orm/core";
 import {EntityManager, PostgreSqlDriver} from "@mikro-orm/postgresql";
 import config from "../../mikro-orm.config";
+import {CachedEntity} from "../cache/cached-entity";
 
 /**
  * EntityManager instance
@@ -29,6 +30,22 @@ export default class ORM {
 	/** Returns the ORM instance */
 	static getInstance(): MikroORM<PostgreSqlDriver> {
 		return ORM.instance;
+	}
+
+	/**
+	 * Registers the entity in the identity map if it is a loaded cached entity, otherwise persists the entity.
+	 * Should always be used instead of EM.persist.
+	 *
+	 * See test for details (the test explains why this method is needed).
+	 */
+	static register(entities: AnyEntity | AnyEntity[] | Set<AnyEntity>): void {
+		for (const entity of (entities instanceof Array || entities instanceof Set ? entities : [entities])) {
+			if (entity instanceof CachedEntity && entity.isActive()) {
+				EM.getUnitOfWork().registerManaged(entity, undefined, {loaded: true});
+			} else {
+				EM.persist(entity);
+			}
+		}
 	}
 }
 
