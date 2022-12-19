@@ -4,6 +4,7 @@ import Helper from "../core/helper.js";
 import {ensure, Is} from "../core/validation.js";
 import {LoggedArgs} from "../core/ws.typings.js";
 import Const from "../math/const.js";
+import {Vec2} from "../math/vector.embeddable.js";
 
 /** This class handles movement of players */
 export default class Movement {
@@ -16,11 +17,18 @@ export default class Movement {
 		const speed = (run ? Const.MOVEMENT_RUN_SPEED : Const.MOVEMENT_WALK_SPEED);
 		await Helper.softLimitBySpeed("Movement.move", user, speed);
 
-		const newPosition = user.position.add(direction);
-		if (zone.isTileFree(newPosition)) {
-			Helper.updateLastTime("Movement.move", user);
-			user.position = newPosition;
-			user.speed = speed;
+		const possibleNewPositions = [
+			user.position.add(direction),
+			user.position.add(Vec2(direction.x, 0)),
+			user.position.add(Vec2(0, direction.y))
+		];
+		for (const newPosition of possibleNewPositions) {
+			if (zone.isTileFree(newPosition)) {
+				Helper.updateLastTime("Movement.move", user);
+				user.position = newPosition;
+				user.speed = speed;
+				return;
+			}
 		}
 	}
 }
