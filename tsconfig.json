@@ -5,7 +5,7 @@
     "rootDir": "src/",
     "outDir": "dist/",
     "module": "es2020",
-    "moduleResolution": "node",
+    "moduleResolution": "nodenext",
     "declaration": true,
     "sourceMap": true,
     "lib": ["es2021"],
