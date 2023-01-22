@@ -17,12 +17,17 @@ export default class Movement {
 		const speed = (run ? Const.MOVEMENT_RUN_SPEED : Const.MOVEMENT_WALK_SPEED);
 		await Helper.softLimitBySpeed("Movement.move", user, speed);
 
-		const possibleNewPositions = [
-			user.position.add(direction),
-			user.position.add(Vec2(direction.x, 0)),
-			user.position.add(Vec2(0, direction.y))
-		];
-		for (const newPosition of possibleNewPositions) {
+		const possibleDirections = [direction];
+		for (let i = -1; i <= 1; i++) {
+			if (direction.x != 0) {
+				possibleDirections.push(Vec2(direction.x, i));
+			}
+			if (direction.y != 0) {
+				possibleDirections.push(Vec2(i, direction.y));
+			}
+		}
+		for (const possibleDirection of possibleDirections) {
+			const newPosition = user.position.add(possibleDirection);
 			if (zone.isTileFree(newPosition)) {
 				Helper.updateLastTime("Movement.move", user);
 				user.position = newPosition;

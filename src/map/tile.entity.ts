@@ -1,6 +1,10 @@
-import {Embedded, Entity, PrimaryKey, Property, Unique} from "@mikro-orm/core";
+import {Embedded, Entity, ManyToOne} from "@mikro-orm/core";
+import {WeakCachedEntity} from "../cache/cached-entity.js";
+import {Sync} from "../core/sync.decorator.js";
+import {SyncFor} from "../core/sync.typings.js";
 import {Vector2} from "../math/vector.embeddable.js";
-import TileSet from "./tile-set.entity.js";
+import Location from "./location.entity.js";
+import Tileset from "./tileset.entity.js";
 
 /**
  * Tile entity
@@ -8,23 +12,28 @@ import TileSet from "./tile-set.entity.js";
  * Describes single tile (where do you need to take the image with this tile from).
  */
 @Entity()
-@Unique({name: "tile_properties", properties: ["tileSet", "tile", "subtile_x", "subtile_y"]})
-export default class Tile {
-	@PrimaryKey()
-	id!: number;
+export default class Tile extends WeakCachedEntity {
+	@ManyToOne()
+	location: Location;
 
-	@Property()
-	tileSet: TileSet;
+	@Embedded({prefix: false})
+	@Sync({for: SyncFor.Zone, as: "p"})
+	position: Vector2;
 
-	@Property()
-	tile: number;
+	@ManyToOne()
+	@Sync({for: SyncFor.Zone, map: "name", as: "t"})
+	tileset: Tileset;
 
 	@Embedded()
-	subtile: Vector2;
+	@Sync({for: SyncFor.Zone, as: "a"})
+	atlasCoords: Vector2;
 
-	constructor(tileSet: TileSet, tile: number, subtile: Vector2) {
-		this.tileSet = tileSet;
-		this.tile = tile;
-		this.subtile = subtile;
+	constructor(location: Location, position: Vector2, tileset: Tileset, atlasCoords: Vector2, id = 0) {
+		super(id);
+		this.location = location;
+		this.position = position;
+		this.tileset = tileset;
+		this.atlasCoords = atlasCoords;
+		return this.getInstance();
 	}
 }

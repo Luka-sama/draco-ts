@@ -7,6 +7,7 @@ import {UserContainer} from "../core/sync.typings.js";
 import {Emitter, UserData} from "../core/ws.typings.js";
 import {Vec2, Vector2} from "../math/vector.embeddable.js";
 import Location from "./location.entity.js";
+import Tile from "./tile.entity.js";
 import ZoneEntities from "./zone-entities.js";
 
 /**
@@ -52,6 +53,7 @@ export default class Subzone extends CachedObject implements Emitter, UserContai
 			y: {$gte: this.start.y, $lt: this.end.y}
 		}};
 		const orderBy = {id: QueryOrder.ASC};
+		this.entities.Tile = new Set( await EM.find(Tile, where, {orderBy, populate: ["tileset"]}) );
 		this.entities.User = new Set( await EM.find(User, where, {orderBy}) );
 
 		this.loaded = true;
@@ -111,6 +113,10 @@ export default class Subzone extends CachedObject implements Emitter, UserContai
 	isTileFree(position: Vector2): boolean {
 		assert(this.isInside(position));
 		for (const model of ZoneEntities.getModels()) {
+			if (model != "User") {
+				continue;
+			}
+
 			for (const entity of this.entities.get(model)) {
 				if (entity.position.equals(position)) {
 					return false;
