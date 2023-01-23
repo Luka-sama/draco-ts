@@ -16,7 +16,7 @@ import ZoneEntities from "./zone-entities.js";
  * See {@link Zone} for details.
  */
 export default class Subzone extends CachedObject implements Emitter, UserContainer {
-	static readonly SIZE = Vec2(16, 16);
+	static readonly SIZE = Vec2(16, 32);
 	private loaded = false;
 	private loading = false;
 	private waiting: (() => void)[] = [];

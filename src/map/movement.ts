@@ -27,7 +27,7 @@ export default class Movement {
 			}
 		}
 		for (const possibleDirection of possibleDirections) {
-			const newPosition = user.position.add(possibleDirection);
+			const newPosition = user.position.add(Vec2(possibleDirection.x, possibleDirection.y * 2));
 			if (zone.isTileFree(newPosition)) {
 				Helper.updateLastTime("Movement.move", user);
 				user.position = newPosition;
