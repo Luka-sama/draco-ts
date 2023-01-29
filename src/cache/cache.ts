@@ -1,4 +1,19 @@
+import Const from "../math/const.js";
 import {CacheOptions} from "./cache.typings.js";
+
+interface Entry {
+	value: any;
+	options: CacheOptions;
+	lastAccess: number;
+}
+interface SearchInfo {
+	parent: Map<string, Subtree>;
+	leaf: string;
+	hasEntry: boolean;
+	value: any;
+	entry?: Entry;
+}
+type Subtree = Entry | Map<string, Subtree>;
 
 /**
  * Class for the cache management
@@ -17,7 +32,7 @@ import {CacheOptions} from "./cache.typings.js";
  * This can be useful to have e.g. statistics on how many of which objects are cached.
  */
 export default class Cache {
-	private static entries = {};
+	private static entries = new Map<string, Subtree>;
 	private static started = false;
 	private static finalizationRegistry: FinalizationRegistry<any>;
 
@@ -28,71 +43,103 @@ export default class Cache {
 		}
 		Cache.started = true;
 		Cache.finalizationRegistry = new FinalizationRegistry(Cache.delete);
+		setInterval(Cache.clean, Const.CACHE_CLEAN_FREQUENCY_MS).unref();
 	}
 
 	/** Returns `true` if cache has an entry with the given name */
 	static has(name: string): boolean {
-		return Cache.getParent(name).hasEntry;
+		return Cache.searchFor(name).hasEntry;
 	}
 
 	/** Returns an entry with the given name if it is saved, otherwise returns defaultValue (by default null) */
 	static get(name: string, defaultValue: any = null): any {
-		const {hasEntry, entry} = Cache.getParent(name);
-		return (hasEntry ? entry : defaultValue);
+		const {hasEntry, value} = Cache.searchFor(name);
+		return (hasEntry ? value : defaultValue);
 	}
 
 	/** Sets a value and options for an entry with the given name */
 	static set(name: string, value: any, options: CacheOptions = {}): void {
-		const {parent, last} = Cache.getParent(name, true);
-		parent[last] = (options.weak ? new WeakRef(value) : value);
+		const {parent, leaf} = Cache.searchFor(name, true);
+		const entry = {value, options, lastAccess: Date.now()};
 		if (options.weak) {
+			entry.value = new WeakRef(value);
 			Cache.finalizationRegistry.register(value, name);
 		}
+		parent.set(leaf, entry);
 	}
 
 	/** Deletes an entry with the given name */
 	static delete(name: string): void {
-		const {parent, last} = Cache.getParent(name);
-		delete parent[last];
+		const {parent, leaf} = Cache.searchFor(name);
+		parent.delete(leaf);
 	}
 
 	/** Deletes all entries */
 	static clear(): void {
-		Cache.entries = {};
+		Cache.entries.clear();
+	}
+
+	/** Cleans all expired entries */
+	private static clean(): void {
+		Cache.cleanSubtree(Cache.entries);
+	}
+
+	/** Cleans the subtree from expired entries (recursively). Returns whether this subtree still has some children */
+	private static cleanSubtree(subtree: Map<string, Subtree>): boolean {
+		const now = Date.now();
+		let hasChildren = false;
+		for (const [name, curr] of subtree) {
+			if (curr instanceof Map) {
+				if (Cache.cleanSubtree(curr)) {
+					hasChildren = true;
+				} else {
+					subtree.delete(name);
+				}
+			} else if (!curr.options.weak && now - curr.lastAccess > Const.CACHE_DEFAULT_DURATION_MS) {
+				subtree.delete(name);
+			} else {
+				hasChildren = true;
+			}
+		}
+		return hasChildren;
 	}
 
 	/** Returns info for the given name */
-	private static getParent(name: string, shouldCreate = false): {
-		parent: {
-			[key: string]: any
-		};
-		last: string;
-		hasEntry: boolean;
-		entry: any;
-	} {
+	private static searchFor(name: string, shouldCreate = false): SearchInfo {
+		let leaf = "", hasEntry = false, value = null;
+
 		const path = name.split("/");
-		let curr: any = Cache.entries, pathPart = "";
+		let curr = Cache.entries, pathPart = "";
 		for (let i = 0; i < path.length - 1; i++) {
 			pathPart = path[i];
-			if (!(pathPart in curr)) {
+			let next = curr.get(pathPart);
+			if (!(next instanceof Map)) {
 				if (!shouldCreate) {
-					return {parent: {}, last: "", hasEntry: false, entry: null};
+					return {parent: curr, leaf, hasEntry, value};
 				}
-				curr[pathPart] = {};
+				next = new Map;
+				curr.set(pathPart, next);
 			}
-			curr = curr[pathPart];
+			curr = next;
 		}
-		pathPart = path[path.length - 1];
+		leaf = path[path.length - 1];
 
-		let hasEntry = pathPart in curr;
-		let entry = curr[pathPart];
-		if (hasEntry && curr[pathPart] instanceof WeakRef) {
-			entry = entry.deref();
-			if (!entry) {
-				delete curr[pathPart];
-				hasEntry = false;
+		let entry = curr.get(leaf);
+		if (entry && !(entry instanceof Map)) {
+			hasEntry = true;
+			value = entry.value;
+			entry.lastAccess = Date.now();
+			if (entry.options.weak) {
+				value = value.deref();
+				if (!value) {
+					curr.delete(leaf);
+					hasEntry = false;
+					entry = undefined;
+				}
 			}
+		} else {
+			entry = undefined;
 		}
-		return {parent: curr, last: pathPart, hasEntry, entry};
+		return {parent: curr, leaf, hasEntry, value, entry};
 	}
 }

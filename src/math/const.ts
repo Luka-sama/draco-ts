@@ -1,4 +1,13 @@
 export default class Const {
+	/** Cache should be cleaned every .. ms */
+	static readonly CACHE_CLEAN_FREQUENCY_MS = 500;
+	/**
+	 * Default cache duration. It makes no sense to set this value lower than CACHE_CLEAN_FREQUENCY_MS.
+	 * See also {@link CacheOptions.duration} for details
+	 */
+	static readonly CACHE_DEFAULT_DURATION_MS = 5000;
+
+	/** Sync all updates with clients every .. ms */
 	static readonly SYNC_FREQUENCY_MS = 10;
 
 	/** Walk speed (tiles per second) */
