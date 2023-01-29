@@ -59,9 +59,7 @@ export default class Subzone extends CachedObject implements Emitter, UserContai
 		this.loaded = true;
 		this.loading = false;
 		process.nextTick(() => {
-			for (const waiting of this.waiting) {
-				waiting();
-			}
+			this.waiting.forEach(waiting => waiting());
 			this.waiting.length = 0;
 		});
 	}

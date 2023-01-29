@@ -39,6 +39,10 @@ export default class WS {
 			});
 	}
 
+	static getApp(): uWS.TemplatedApp {
+		return WS.app;
+	}
+
 	/** Sends a message wrapped in the interface WSData to the given socket */
 	static emit(sck: uWS.WebSocket, event: string, data: UserData = {}): void {
 		const json = WS.prepareDataBeforeEmit(event, data);

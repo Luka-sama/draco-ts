@@ -1,5 +1,6 @@
 import glob from "glob";
 import Cache from "../cache/cache.js";
+import Deploy from "../map/deploy.js";
 import ORM from "./orm.js";
 import Tr from "./tr.js";
 import WS from "./ws.js";
@@ -21,6 +22,7 @@ export default class App {
 		await App.autoimport();
 		await ORM.init();
 		WS.init();
+		Deploy.init();
 	}
 
 	/** Auto-import to make @OnlyLogged() and other decorators to work without explicit import */
