@@ -161,6 +161,16 @@ export default class Zone extends CachedObject implements Emitter {
 		return result;
 	}
 
+	/** Returns `true` if some tile is at the given position */
+	hasTile(position: Vector2): boolean {
+		for (const subzone of this.subzones) {
+			if (subzone.isInside(position)) {
+				return subzone.hasTile(position);
+			}
+		}
+		throw new Error("Zone.hasTile: the given position is not in this zone");
+	}
+
 	/** Returns `true` if no user, (big) item etc. takes the tile at the given position */
 	isTileFree(position: Vector2): boolean {
 		for (const subzone of this.subzones) {

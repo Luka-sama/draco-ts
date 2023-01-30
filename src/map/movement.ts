@@ -18,7 +18,8 @@ export default class Movement {
 		await Helper.softLimitBySpeed("Movement.move", user, speed);
 
 		const possibleDirections = [direction];
-		for (let i = -1; i <= 1; i++) {
+		// If a not available direction is 1x1, 0x1 should be preferred over -1x1 (if possible)
+		for (const i of [0, -1, 1]) {
 			if (direction.x != 0) {
 				possibleDirections.push(Vec2(direction.x, i));
 			}
@@ -28,7 +29,8 @@ export default class Movement {
 		}
 		for (const possibleDirection of possibleDirections) {
 			const newPosition = user.position.add(Vec2(possibleDirection.x, possibleDirection.y * 2));
-			if (zone.isTileFree(newPosition)) {
+			// In the first row/column only the half of the user is visible, so it is forbidden to go there
+			if (newPosition.x > 0 && newPosition.y > 0 && zone.hasTile(newPosition) && zone.isTileFree(newPosition)) {
 				Helper.updateLastTime("Movement.move", user);
 				user.position = newPosition;
 				user.speed = speed;

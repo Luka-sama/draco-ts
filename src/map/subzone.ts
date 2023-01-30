@@ -107,6 +107,17 @@ export default class Subzone extends WeakCachedObject implements Emitter, UserCo
 		return Subzone.getZonePosition(position).equals(this.zonePosition);
 	}
 
+	/** Returns `true` if some tile is at the given position */
+	hasTile(position: Vector2): boolean {
+		assert(this.isInside(position));
+		for (const tile of this.entities.get("Tile")) {
+			if (tile.position.equals(position)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	/** Returns `true` if no user, (big) item etc. takes the tile at the given position */
 	isTileFree(position: Vector2): boolean {
 		assert(this.isInside(position));
