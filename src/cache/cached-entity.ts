@@ -27,6 +27,10 @@ export interface ICachedEntity {
  *
  * This class is intended for the entities that will be stored in the DB. If this is not the case, use {@link CachedObject}.
  *
+ * In most cases you should use WeakCachedEntity. Using CachedEntity can lead to weird bugs with multiple instances for the same name,
+ * due to the fact that normal (not weak) cache entries are removed in a few seconds after they are not read. This is only not a problem
+ * if the entity instances are nowhere stored (like users in a subzone).
+ *
  * To use this, the constructor must be modified as follows, see also example below:
  * - The last argument must be id with default value 0.
  * - `super(id);` must be the first line of the constructor.

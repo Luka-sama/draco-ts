@@ -1,7 +1,7 @@
 import {AnyEntity, QueryOrder} from "@mikro-orm/core";
 import assert from "assert/strict";
 import User from "../auth/user.entity.js";
-import CachedObject from "../cache/cached-object.js";
+import {WeakCachedObject} from "../cache/cached-object.js";
 import {EM} from "../core/orm.js";
 import {UserContainer} from "../core/sync.typings.js";
 import {Emitter, UserData} from "../core/ws.typings.js";
@@ -15,7 +15,7 @@ import ZoneEntities from "./zone-entities.js";
  *
  * See {@link Zone} for details.
  */
-export default class Subzone extends CachedObject implements Emitter, UserContainer {
+export default class Subzone extends WeakCachedObject implements Emitter, UserContainer {
 	static readonly SIZE = Vec2(16, 32);
 	private loaded = false;
 	private loading = false;

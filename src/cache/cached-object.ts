@@ -14,6 +14,10 @@ import {CacheOptions} from "./cache.typings.js";
  *
  * For entities (objects that should be stored in the DB), use {@link CachedEntity} or {@link WeakCachedEntity}.
  *
+ * In most cases you should use WeakCachedObject. Using CachedObject can lead to weird bugs with multiple instances for the same name,
+ * due to the fact that normal (not weak) cache entries are removed in a few seconds after they are not read. This is only not a problem
+ * if the entity instances are nowhere stored (like subzones in a zone).
+ *
  * To use this, the code must be modified as follows, see also example below:
  * - The static method getNameFor must be implemented. It returns a unique name that is used to identify identical objects.
  * - The non-static method getName must be implemented and use static method getNameFor.

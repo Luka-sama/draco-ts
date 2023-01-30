@@ -84,24 +84,19 @@ export default class Cache {
 		Cache.cleanSubtree(Cache.entries);
 	}
 
-	/** Cleans the subtree from expired entries (recursively). Returns whether this subtree still has some children */
-	private static cleanSubtree(subtree: Map<string, Subtree>): boolean {
+	/** Cleans the subtree from expired entries (recursively) */
+	private static cleanSubtree(subtree: Map<string, Subtree>): void {
 		const now = Date.now();
-		let hasChildren = false;
 		for (const [name, curr] of subtree) {
 			if (curr instanceof Map) {
-				if (Cache.cleanSubtree(curr)) {
-					hasChildren = true;
-				} else {
+				Cache.cleanSubtree(curr);
+				if (curr.size < 1) {
 					subtree.delete(name);
 				}
 			} else if (!curr.options.weak && now - curr.lastAccess > Const.CACHE_DEFAULT_DURATION_MS) {
 				subtree.delete(name);
-			} else {
-				hasChildren = true;
 			}
 		}
-		return hasChildren;
 	}
 
 	/** Returns info for the given name */
