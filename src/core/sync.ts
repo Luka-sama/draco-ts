@@ -16,6 +16,7 @@ import Location from "../map/location.entity.js";
 import ZoneEntities from "../map/zone-entities.js";
 import Zone from "../map/zone.js";
 import Const from "../math/const.js";
+import SetUtil from "../math/set-util.js";
 import {Vec2, Vector2} from "../math/vector.embeddable.js";
 import {EM} from "./orm.js";
 import {toSync} from "./sync.decorator.js";
@@ -24,6 +25,7 @@ import {
 	Sync,
 	SyncFor,
 	SyncForCustom,
+	SyncForKey,
 	SyncMap,
 	SyncModel,
 	SyncProperty,
@@ -245,25 +247,26 @@ export default class Synchronizer {
 			return syncMap;
 		}
 
-		const collectedData = new Map<Emitter | AreaType, UserData>();
-		const zoneFromFields = new Map<Zone, SyncForCustom>();
+		const collectedData = new Map<SyncForKey, UserData>();
 		for (const property of propertiesToSync) {
 			for (const toSyncProperty of toSyncModel[property]) {
-				const emitter = await Synchronizer.getEmitter(toSyncProperty, entity);
-				if (emitter instanceof Zone) {
-					zoneFromFields.set(emitter, toSyncProperty.for);
-				}
-
-				const data = collectedData.get(emitter) || {id: entity.id};
+				const syncFor = toSyncProperty.for;
+				const syncForKey = (typeof syncFor == "object" ? `${syncFor.location}/${syncFor.position}` : syncFor);
+				const data = collectedData.get(syncForKey) || {id: entity.id};
 				if (type != SyncType.Delete) {
 					Synchronizer.writePropertyToData(toSyncProperty, entity, data, property);
 				}
-				collectedData.set(emitter, data);
+				collectedData.set(syncForKey, data);
 			}
 		}
 
-		for (const [rawEmitter, convertedEntity] of collectedData) {
-			let emitter: Emitter;
+		for (const [syncForKey, convertedEntity] of collectedData) {
+			const syncFor = (typeof syncForKey == "string" && syncForKey.includes("/") ? {
+				location: syncForKey.split("/")[0],
+				position: syncForKey.split("/")[1]
+			} : syncForKey);
+			const rawEmitter = await Synchronizer.getEmitter(syncFor, entity);
+			let emitter: Emitter | Set<Zone>;
 			if (typeof rawEmitter == "function") {
 				const area = new rawEmitter(...entity.getAreaParams());
 				await area.load();
@@ -273,14 +276,14 @@ export default class Synchronizer {
 			}
 
 			const sync: Sync = [type, _.snakeCase(model), WS.prepare(convertedEntity)];
-			if (emitter instanceof Zone) {
-				const syncFor = zoneFromFields.get(emitter);
-				assert(syncFor);
+			if (emitter instanceof Set) {
 				const syncMapToAdd = await Synchronizer.handleZones(syncFor, model, entity, emitter, type, [sync], original);
 				if (syncMapToAdd.size > 0) {
 					Synchronizer.mergeSyncMaps(syncMap, syncMapToAdd);
 				} else {
-					Synchronizer.addToSyncMap(emitter.getSubzones(), [sync], syncMap);
+					for (const zone of emitter) {
+						Synchronizer.addToSyncMap(zone.getSubzones(), [sync], syncMap);
+					}
 				}
 			} else if (emitter instanceof User) {
 				const syncList = syncMap.get(emitter) || [];
@@ -354,26 +357,31 @@ export default class Synchronizer {
 	 * For the updation of an entity it prepares arguments for {@link changeZone}, calls it and returns its sync map
 	 */
 	private static async handleZones(syncFor: SyncForCustom, model: string, entity: AnyEntity,
-		currZone: Zone, type: SyncType, updateList: Sync[], original?: EntityData<AnyEntity>): Promise<SyncMap> {
+		currZones: Set<Zone>, type: SyncType, updateList: Sync[], original?: EntityData<AnyEntity>): Promise<SyncMap> {
 		if (!ZoneEntities.getModels().includes(model)) {
 			return new Map();
 		}
 		assert(syncFor == SyncFor.Zone || typeof syncFor == "object" && syncFor.location && syncFor.position);
 
 		if (type == SyncType.Create) {
-			currZone.enter(entity);
+			for (const currZone of currZones) {
+				currZone.enter(entity);
+			}
 		} else if (type == SyncType.Delete) {
-			currZone.leave(entity);
+			for (const currZone of currZones) {
+				currZone.leave(entity);
+			}
 		} else if (type == SyncType.Update && original) {
 			const locationField = (syncFor == SyncFor.Zone ? "location" : syncFor.location);
 			const positionField = (syncFor == SyncFor.Zone ? "position" : syncFor.position);
 			const metadata = EM.getMetadata().get(model).properties;
 			const [xField, yField] = Object.keys(metadata[positionField].embeddedProps);
 
-			const oldPosition = Vec2(original[xField], original[yField]);
 			const oldLocation = await Location.getOrFail(original[locationField]);
-			const oldZone = await Zone.getByPosition(oldLocation, oldPosition);
-			return Synchronizer.changeZone(oldZone, currZone, entity, model, updateList);
+			const oldPosition = Vec2(original[xField], original[yField]);
+			const oldPositions = (entity.getPositions ? entity.getPositions(oldPosition) : [oldPosition]);
+			const oldZones = await Zone.getByPositions(oldLocation, oldPositions);
+			return Synchronizer.changeZone(oldZones, currZones, entity, model, updateList);
 		}
 		return new Map();
 	}
@@ -382,21 +390,23 @@ export default class Synchronizer {
 	 * Changes the zone of an entity, if the new zone is not equal to the old one.
 	 * It updates the zone entities and returns a sync map for the creation/deletion of all necessary objects
 	 */
-	private static changeZone(oldZone: Zone, newZone: Zone, entity: AnyEntity, model: string, updateList: Sync[]): SyncMap {
+	private static changeZone(oldZones: Set<Zone>, currZones: Set<Zone>, entity: AnyEntity, model: string, updateList: Sync[]): SyncMap {
 		const syncMap: SyncMap = new Map();
-		if (oldZone == newZone) {
+		const leftZones = SetUtil.difference(oldZones, currZones);
+		const newZones = SetUtil.difference(currZones, oldZones);
+		if (leftZones.size + newZones.size == 0) {
 			return syncMap;
 		}
-		oldZone.leave(entity);
-		newZone.enter(entity);
+		leftZones.forEach(zone => zone.leave(entity));
+		newZones.forEach(zone => zone.enter(entity));
 
-		const newSubzones = newZone.getNewSubzones(oldZone);
-		const leftSubzones = newZone.getLeftSubzones(oldZone);
-		const remainingSubzones = newZone.getRemainingSubzones(oldZone);
-		const newEntities = Zone.getEntitiesFromSubzones(newSubzones);
-		const leftEntities = Zone.getEntitiesFromSubzones(leftSubzones);
+		const newSubzones = Zone.getNewSubzones(oldZones, currZones);
+		const leftSubzones = Zone.getLeftSubzones(oldZones, currZones);
+		const remainingSubzones = Zone.getRemainingSubzones(oldZones, currZones);
 
 		if (entity instanceof User) {
+			const newEntities = Zone.getEntitiesFromSubzones(newSubzones);
+			const leftEntities = Zone.getEntitiesFromSubzones(leftSubzones);
 			syncMap.set(entity, _.concat(
 				Synchronizer.getCreateListFromZoneEntities(newEntities),
 				Synchronizer.getDeleteListFromZoneEntities(leftEntities)
@@ -410,15 +420,15 @@ export default class Synchronizer {
 		return syncMap;
 	}
 
-	/** Returns an emitter object for the given entity and property */
-	private static async getEmitter(toSyncProperty: SyncProperty, entity: AnyEntity): Promise<Emitter | AreaType> {
-		const syncFor = toSyncProperty.for;
+	/** Returns emitter objects for the given entity and property */
+	private static async getEmitter(syncFor: SyncForCustom, entity: AnyEntity): Promise<Set<Zone> | Emitter | AreaType> {
 		if (syncFor == SyncFor.This) {
 			assert(typeof entity.emit == "function" && typeof entity.info == "function");
 			return entity as Emitter;
 		} else if (syncFor == SyncFor.Zone) {
 			assert(entity.location instanceof Location && entity.position instanceof Vector2);
-			return await Zone.getByPosition(entity.location, entity.position);
+			const positions = (entity.getPositions ? entity.getPositions() : [entity.position]);
+			return await Zone.getByPositions(entity.location, positions);
 		} else if (typeof syncFor == "string") {
 			return await User.getOrFail(entity[syncFor]);
 		} else if (typeof syncFor == "function") {
@@ -427,7 +437,8 @@ export default class Synchronizer {
 			const location = entity[syncFor.location];
 			const position = entity[syncFor.position];
 			assert(location instanceof Location && position instanceof Vector2);
-			return await Zone.getByPosition(location, position);
+			const positions = (entity.getPositions ? entity.getPositions(position) : [position]);
+			return await Zone.getByPositions(location, positions);
 		}
 		throw new Error(`The value of SyncFor is incorrect (${syncFor}).`);
 	}

@@ -1,12 +1,13 @@
 import {AnyEntity} from "@mikro-orm/core";
 import assert from "assert/strict";
 import User from "../auth/user.entity.js";
+import SetUtil from "../math/set-util.js";
 import Tile from "./tile.entity.js";
 
 /** Data storage class that stores all entities in a zone or a subzone (user, items etc) */
 export default class ZoneEntities {
-	Tile: Set<Tile> = new Set();
-	User: Set<User> = new Set();
+	Tile = new Set<Tile>();
+	User = new Set<User>();
 
 	/** Returns all models that are here stored */
 	static getModels(): string[] {
@@ -37,7 +38,7 @@ export default class ZoneEntities {
 		for (const model in this) {
 			const sourceSet = otherEntities.get(model);
 			const destSet = this.get(model);
-			sourceSet.forEach(destSet.add, destSet);
+			SetUtil.merge(destSet, sourceSet);
 		}
 	}
 }

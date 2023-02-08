@@ -1,6 +1,7 @@
 import {AnyEntity} from "@mikro-orm/core";
 import CachedObject from "../cache/cached-object.js";
 import {Emitter, UserData} from "../core/ws.typings.js";
+import SetUtil from "../math/set-util.js";
 import {Vec2, Vector2} from "../math/vector.embeddable.js";
 import Location from "./location.entity.js";
 import Subzone from "./subzone.js";
@@ -40,6 +41,16 @@ export default class Zone extends CachedObject implements Emitter {
 		return await Zone.get(location, zonePosition);
 	}
 
+	/** Returns multiple loaded zones by a given location and multiple positions */
+	static async getByPositions(location: Location, positions: Vector2[]): Promise<Set<Zone>> {
+		const zones = new Set<Zone>();
+		for (const position of positions) {
+			const zone = await Zone.getByPosition(location, position);
+			zones.add(zone);
+		}
+		return zones;
+	}
+
 	/** Returns a loaded zone by a given entity with location and position */
 	static async getByEntity(entity: AnyEntity): Promise<Zone> {
 		return await Zone.getByPosition(entity.location, entity.position);
@@ -57,6 +68,32 @@ export default class Zone extends CachedObject implements Emitter {
 		const zoneEntities = new ZoneEntities();
 		subzones.forEach(subzone => zoneEntities.merge(subzone.getEntities()));
 		return zoneEntities;
+	}
+
+	/** Returns a list of subzones that are in the given zones */
+	static getSubzonesFrom(zones: Set<Zone>) {
+		const subzones = new Set<Subzone>();
+		zones.forEach(zone => SetUtil.merge(subzones, zone.subzones));
+		return subzones;
+	}
+
+	/** Returns a list of subzones that are in this zone, but not in the old one */
+	static getNewSubzones(oldZones: Set<Zone>, currZones: Set<Zone>): Set<Subzone> {
+		const currSubzones = Zone.getSubzonesFrom(currZones);
+		const oldSubzones = Zone.getSubzonesFrom(oldZones);
+		return SetUtil.difference(currSubzones, oldSubzones);
+	}
+
+	/** Returns a list of subzones that are in the old zone, but not in this zone */
+	static getLeftSubzones(oldZones: Set<Zone>, currZones: Set<Zone>): Set<Subzone> {
+		return Zone.getNewSubzones(currZones, oldZones);
+	}
+
+	/** Returns a list of subzones that are both in the old zone and in this */
+	static getRemainingSubzones(oldZones: Set<Zone>, currZones: Set<Zone>): Set<Subzone> {
+		const currSubzones = Zone.getSubzonesFrom(currZones);
+		const oldSubzones = Zone.getSubzonesFrom(oldZones);
+		return SetUtil.intersection(currSubzones, oldSubzones);
 	}
 
 	constructor(location: Location, zonePosition: Vector2) {
@@ -132,33 +169,6 @@ export default class Zone extends CachedObject implements Emitter {
 	getEntities(): ZoneEntities {
 		this.checkIfLoaded();
 		return Zone.getEntitiesFromSubzones(this.subzones);
-	}
-
-	/** Returns a list of subzones that are in this zone, but not in the old one */
-	getNewSubzones(oldZone: Zone): Set<Subzone> {
-		const result: Set<Subzone> = new Set();
-		for (const subzone of this.subzones) {
-			if (!oldZone.subzones.has(subzone)) {
-				result.add(subzone);
-			}
-		}
-		return result;
-	}
-
-	/** Returns a list of subzones that are in the old zone, but not in this zone */
-	getLeftSubzones(oldZone: Zone): Set<Subzone> {
-		return oldZone.getNewSubzones(this);
-	}
-
-	/** Returns a list of subzones that are both in the old zone and in this */
-	getRemainingSubzones(oldZone: Zone): Set<Subzone> {
-		const result: Set<Subzone> = new Set();
-		for (const subzone of this.subzones) {
-			if (oldZone.subzones.has(subzone)) {
-				result.add(subzone);
-			}
-		}
-		return result;
 	}
 
 	/** Returns `true` if some tile is at the given position */

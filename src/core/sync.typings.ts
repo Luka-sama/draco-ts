@@ -39,6 +39,11 @@ export type SyncForCustom = SyncFor | string | {
 	position: string;
 } | AreaType;
 
+/**
+ * Internal type for using SyncForCustom as keys. Stores location and position names in a string instead of an object
+ */
+export type SyncForKey = SyncFor | string | AreaType;
+
 /** Type that shows whether the entity should be created, updated or deleted on the client-side */
 export enum SyncType {Create, Update, Delete}
 
