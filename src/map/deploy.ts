@@ -1,4 +1,5 @@
 import {RequestContext} from "@mikro-orm/core";
+import _ from "lodash";
 import {HttpResponse} from "uWebSockets.js";
 import {EM} from "../core/orm.js";
 import WS from "../core/ws.js";
@@ -60,7 +61,12 @@ export default class Deploy {
 
 		const tiles = await EM.find(Tile, {location}, {populate: ["tileset"]});
 		for (const oldTile of tiles) {
-			const newTile = map[oldTile.position.y][oldTile.position.x];
+			const newTile = _.get(map, [oldTile.position.y, oldTile.position.x]);
+			if (!newTile) {
+				EM.remove(oldTile);
+				continue;
+			}
+
 			const newAtlasCoords = Vec2(newTile.atlasCoords);
 			const newTilesetName = tilesets[newTile.tileset];
 			if (oldTile.tileset.name != newTilesetName) {
