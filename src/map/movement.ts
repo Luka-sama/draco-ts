@@ -30,7 +30,8 @@ export default class Movement {
 		for (const possibleDirection of possibleDirections) {
 			const newPosition = user.position.add(Vec2(possibleDirection.x, possibleDirection.y * 2));
 			// In the first row/column only the half of the user is visible, so it is forbidden to go there
-			if (newPosition.x > 0 && newPosition.y > 0 && zone.hasTile(newPosition) && zone.isTileFree(newPosition)) {
+			const isFirstRowOrColumn = !zone.hasTile(newPosition.sub(Vec2(1, 1)));
+			if (!isFirstRowOrColumn && zone.hasTile(newPosition) && zone.isTileFree(newPosition)) {
 				Helper.updateLastTime("Movement.move", user);
 				user.position = newPosition;
 				user.speed = speed;
