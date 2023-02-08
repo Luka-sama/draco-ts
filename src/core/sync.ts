@@ -450,6 +450,8 @@ export default class Synchronizer {
 			value = toSyncProperty.map(value);
 		} else if (typeof toSyncProperty.map == "string") {
 			value = value[toSyncProperty.map];
+		} else if (toSyncProperty.map instanceof Array) {
+			value = _.pick(value, toSyncProperty.map);
 		}
 		convertedEntity[toSyncProperty.as || property] = value;
 	}

@@ -8,8 +8,11 @@ export interface SyncProperty {
 	for: SyncForCustom;
 	/** The name of this property on the client-side */
 	as?: string;
-	/** The value of this property on the client-side. The string, e.g. "name", is shorthand for `value => value.name` */
-	map?: ((value: any) => JSONDataExtended) | string;
+	/**
+	 * The value of this property on the client-side. The string, e.g. "name", is a shorthand for `value => value.name`.
+	 * The array, e.g. ["name", "size"], is a shorthand for `value => {name: value.name, size: value.size}`.
+	 */
+	map?: ((value: any) => JSONDataExtended) | string | string[];
 }
 
 /** Sync options for a single model */
