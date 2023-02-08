@@ -5,9 +5,9 @@ import _ from "lodash";
 import uWS from "uWebSockets.js";
 import User from "../auth/user.entity.js";
 import {EndOfRequest} from "../util/helper.js";
+import {ensure, Is, WrongDataError} from "../util/validation.js";
 import ORM, {EM} from "./orm.js";
 import Tr from "./tr.js";
-import {ensure, Is, WrongDataError} from "../util/validation.js";
 import {EventHandler, GuestArgs, JSONData, Socket, UserData, WSData} from "./ws.typings.js";
 
 /** This class starts WebSocket server and handles getting/sending data */
@@ -223,7 +223,7 @@ export default class WS {
 	private static prepareDataBeforeEmit(event: string, data: UserData): string {
 		const dataToSend: WSData = {event, data: WS.convertKeysInData(data, _.snakeCase)};
 		const json = JSON.stringify(dataToSend);
-		if (process.env.WS_DEBUG == "true") {
+		if (process.env.WS_DEBUG == "true" && event != "pong") {
 			console.log(`Sends event ${event} with data ${JSON.stringify(data)}`);
 		}
 		return json;
@@ -235,7 +235,7 @@ export default class WS {
 		if (!handleEvent) {
 			return console.error(`Unknown event ${json.event} with data ${JSON.stringify(json.data)} from account=${sck.account?.id || 0}`);
 		}
-		if (process.env.WS_DEBUG == "true") {
+		if (process.env.WS_DEBUG == "true" && json.event != "ping") {
 			console.log(`Gets event ${json.event} with data ${JSON.stringify(json.data)}`);
 		}
 
