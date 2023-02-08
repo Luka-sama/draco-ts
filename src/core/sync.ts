@@ -15,9 +15,9 @@ import User from "../auth/user.entity.js";
 import Location from "../map/location.entity.js";
 import ZoneEntities from "../map/zone-entities.js";
 import Zone from "../map/zone.js";
-import Const from "../math/const.js";
-import SetUtil from "../math/set-util.js";
-import {Vec2, Vector2} from "../math/vector.embeddable.js";
+import Const from "../util/const.js";
+import SetUtil from "../util/set-util.js";
+import {Vec2, Vector2} from "../util/vector.embeddable.js";
 import {EM} from "./orm.js";
 import {toSync} from "./sync.decorator.js";
 import {

@@ -4,7 +4,7 @@ import {HttpResponse} from "uWebSockets.js";
 import {EM} from "../core/orm.js";
 import WS from "../core/ws.js";
 import {JSONData} from "../core/ws.typings.js";
-import {IVector2, Vec2} from "../math/vector.embeddable.js";
+import {IVector2, Vec2} from "../util/vector.embeddable.js";
 import Location from "./location.entity.js";
 import Tile from "./tile.entity.js";
 import Tileset from "./tileset.entity.js";

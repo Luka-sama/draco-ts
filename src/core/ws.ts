@@ -4,10 +4,10 @@ import {Buffer} from "buffer";
 import _ from "lodash";
 import uWS from "uWebSockets.js";
 import User from "../auth/user.entity.js";
-import {EndOfRequest} from "./helper.js";
+import {EndOfRequest} from "../util/helper.js";
 import ORM, {EM} from "./orm.js";
 import Tr from "./tr.js";
-import {ensure, Is, WrongDataError} from "./validation.js";
+import {ensure, Is, WrongDataError} from "../util/validation.js";
 import {EventHandler, GuestArgs, JSONData, Socket, UserData, WSData} from "./ws.typings.js";
 
 /** This class starts WebSocket server and handles getting/sending data */

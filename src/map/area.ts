@@ -2,7 +2,7 @@ import assert from "assert/strict";
 import User from "../auth/user.entity.js";
 import {UserContainer} from "../core/sync.typings.js";
 import {Emitter, UserData} from "../core/ws.typings.js";
-import {Vec2, Vector2} from "../math/vector.embeddable.js";
+import {Vec2, Vector2} from "../util/vector.embeddable.js";
 import Location from "./location.entity.js";
 import Subzone from "./subzone.js";
 

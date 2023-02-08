@@ -5,8 +5,8 @@ import {Sync} from "../core/sync.decorator.js";
 import {SyncFor} from "../core/sync.typings.js";
 import {Emitter, Socket, UserData} from "../core/ws.typings.js";
 import Location from "../map/location.entity.js";
-import Const from "../math/const.js";
-import {Vector2} from "../math/vector.embeddable.js";
+import Const from "../util/const.js";
+import {Vector2} from "../util/vector.embeddable.js";
 import Account from "./account.entity.js";
 
 /**

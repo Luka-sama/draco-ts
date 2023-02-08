@@ -4,8 +4,8 @@ import Account from "./auth/account.entity.js";
 import User from "./auth/user.entity.js";
 import ORM, {EM} from "./core/orm.js";
 import Location from "./map/location.entity.js";
-import Const from "./math/const.js";
-import {Vec2} from "./math/vector.embeddable.js";
+import Const from "./util/const.js";
+import {Vec2} from "./util/vector.embeddable.js";
 
 export default class Seeder {
 	static started = false;

@@ -1,4 +1,4 @@
-import {Vec2} from "../math/vector.embeddable.js";
+import {Vec2} from "../util/vector.embeddable.js";
 import Location from "./location.entity.js";
 import Subzone from "./subzone.js";
 

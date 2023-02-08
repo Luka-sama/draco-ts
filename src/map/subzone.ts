@@ -5,7 +5,7 @@ import {WeakCachedObject} from "../cache/cached-object.js";
 import {EM} from "../core/orm.js";
 import {UserContainer} from "../core/sync.typings.js";
 import {Emitter, UserData} from "../core/ws.typings.js";
-import {Vec2, Vector2} from "../math/vector.embeddable.js";
+import {Vec2, Vector2} from "../util/vector.embeddable.js";
 import Location from "./location.entity.js";
 import Tile from "./tile.entity.js";
 import ZoneEntities from "./zone-entities.js";

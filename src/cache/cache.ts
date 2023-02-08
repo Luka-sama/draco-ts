@@ -1,4 +1,4 @@
-import Const from "../math/const.js";
+import Const from "../util/const.js";
 import {CacheOptions} from "./cache.typings.js";
 
 interface Entry {

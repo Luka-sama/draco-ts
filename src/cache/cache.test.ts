@@ -1,4 +1,4 @@
-import Const from "../math/const.js";
+import Const from "../util/const.js";
 import Cache from "./cache.js";
 
 test("clean", () => {

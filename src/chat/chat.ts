@@ -1,7 +1,7 @@
 import assert from "assert/strict";
 import {OnlyLogged} from "../auth/auth.decorator.js";
 import ORM from "../core/orm.js";
-import {ensure, Is} from "../core/validation.js";
+import {ensure, Is} from "../util/validation.js";
 import {LoggedArgs} from "../core/ws.typings.js";
 import Message from "./message.entity.js";
 

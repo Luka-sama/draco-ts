@@ -1,7 +1,7 @@
 import {setTimeout} from "timers/promises";
 import User from "../auth/user.entity.js";
-import Tr from "./tr.js";
-import {Socket} from "./ws.typings.js";
+import Tr from "../core/tr.js";
+import {Socket} from "../core/ws.typings.js";
 
 /**
  * WeakMap that stores the time of the last execution of an action for each user

@@ -1,14 +1,14 @@
 import {QueryOrder} from "@mikro-orm/core";
 import {randomBytes} from "crypto";
 import {promisify} from "util";
-import Helper from "../core/helper.js";
 import {EM} from "../core/orm.js";
 import Synchronizer from "../core/sync.js";
 import Tr from "../core/tr.js";
-import {ensure, Is} from "../core/validation.js";
+import {ensure, Is} from "../util/validation.js";
 import {GuestArgs, LoggedArgs} from "../core/ws.typings.js";
 import Location from "../map/location.entity.js";
-import {Vec2} from "../math/vector.embeddable.js";
+import Helper from "../util/helper.js";
+import {Vec2} from "../util/vector.embeddable.js";
 import Account from "./account.entity.js";
 import {ForAll, OnlyGuest, OnlyLogged, OnlyLoggedAccount, OnlyLoggedAtLeastAccount} from "./auth.decorator.js";
 import User from "./user.entity.js";
