@@ -2,6 +2,7 @@ import {setTimeout} from "timers/promises";
 import User from "../auth/user.entity.js";
 import Tr from "../core/tr.js";
 import {Socket} from "../core/ws.typings.js";
+import MapUtil from "./map-util.js";
 
 /**
  * WeakMap that stores the time of the last execution of an action for each user
@@ -87,14 +88,13 @@ export default class Helper {
 
 	/** Updates last time of an `action` for the given `user` */
 	static updateLastTime(action: string, user: User | Socket): void {
-		const lastTimeMap = Helper.getLastTimeMap(action);
-		lastTimeMap.set(user, Date.now());
+		MapUtil.getWeakMap(Helper.lastTime, action).set(user, Date.now());
 	}
 
 	/** Waits for `shouldWait` ms for the action `action` by `user` */
 	private static async wait(action: string, user: User | Socket, shouldWait: number): Promise<void> {
 		if (shouldWait > 0) {
-			const timers = Helper.getTimers(action);
+			const timers = MapUtil.getWeakMap(Helper.timers, action);
 			const abort = new AbortController();
 			timers.set(user, abort);
 			await setTimeout(shouldWait, undefined, {ref: false, signal: abort.signal});
@@ -104,8 +104,8 @@ export default class Helper {
 
 	/** Aborts a task if it runs */
 	private static abortIfRuns(action: string, user: User | Socket): void {
-		const timers = Helper.getTimers(action);
-		const deferredTask = timers.get(user);
+		const timers = Helper.timers.get(action);
+		const deferredTask = (timers && timers.get(user));
 		if (deferredTask) {
 			deferredTask.abort();
 			timers.delete(user);
@@ -117,23 +117,9 @@ export default class Helper {
 		if (typeof jest == "object") {
 			return 0;
 		}
-		const lastTimeMap = Helper.getLastTimeMap(action);
-		const last = lastTimeMap.get(user) || 0;
+		const lastTimeMap = Helper.lastTime.get(action);
+		const last = (lastTimeMap && lastTimeMap.get(user)) || 0;
 		const passed = Date.now() - last;
 		return frequency - passed;
-	}
-
-	/** Returns map with last time for given action (and creates it if it not exists) */
-	private static getLastTimeMap(action: string): LastTimeMap {
-		const lastTimeMap = Helper.lastTime.get(action) || new WeakMap<User, number>();
-		Helper.lastTime.set(action, lastTimeMap);
-		return lastTimeMap;
-	}
-
-	/** Returns map with timers for given action (and creates it if it not exists) */
-	private static getTimers(action: string): Timers {
-		const timers = Helper.timers.get(action) || new WeakMap<User, AbortController>();
-		Helper.timers.set(action, timers);
-		return timers;
 	}
 }

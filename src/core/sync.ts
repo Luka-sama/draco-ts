@@ -2,6 +2,7 @@ import {
 	AnyEntity,
 	ChangeSet,
 	ChangeSetType,
+	EntityClass,
 	EntityData,
 	EntityDictionary,
 	EventSubscriber,
@@ -16,6 +17,7 @@ import Location from "../map/location.entity.js";
 import ZoneEntities from "../map/zone-entities.js";
 import Zone from "../map/zone.js";
 import Const from "../util/const.js";
+import MapUtil from "../util/map-util.js";
 import SetUtil from "../util/set-util.js";
 import {Vec2, Vector2} from "../util/vector.embeddable.js";
 import {EM} from "./orm.js";
@@ -45,9 +47,10 @@ import {Emitter, UserData} from "./ws.typings.js";
  * A limitation is that the position and location should be always stored in the database, otherwise the zone handling will not work.
  */
 export function syncTrack<T extends AnyEntity>(entity: T): T {
-	const model = entity.constructor.name;
-	const syncProperties = Object.keys(toSync[model]);
-	const metadata = EM.getMetadata().get(model).properties;
+	const model = entity.constructor;
+	const toSyncModel = toSync.get(model)!;
+	const syncProperties = Array.from(toSyncModel.keys());
+	const metadata = EM.getMetadata().get(model.name).properties;
 	const syncedProperties = syncProperties.filter(property => !metadata[property]);
 	for (const property of syncedProperties) {
 		const isAlreadyTracked = !!Object.getOwnPropertyDescriptor(entity, property)?.get;
@@ -100,7 +103,7 @@ export default class Synchronizer {
 				// As tracked properties will be handled by another commit, in this commit we can skip them.
 				continue;
 			}
-			const model = entity.constructor.name;
+			const model = entity.constructor;
 			const syncMap = await Synchronizer.getSyncMap(model, entity, SyncType.Update, {});
 			Synchronizer.mergeSyncMaps(Synchronizer.syncMap, syncMap);
 		}
@@ -117,16 +120,15 @@ export default class Synchronizer {
 
 	/** Adds track data if some tracked property was changed */
 	static addTrackData(entity: AnyEntity, property: string): void {
-		const changedProperties = Synchronizer.syncTracked.get(entity) || new Set();
+		const changedProperties = MapUtil.getSet(Synchronizer.syncTracked, entity);
 		changedProperties.add(property);
-		Synchronizer.syncTracked.set(entity, changedProperties);
 	}
 
 	/** Emits the player who has just logged into the game all the necessary information */
 	static async firstLoad(user: User): Promise<void> {
 		const zone = await Zone.getByEntity(user);
 		const entities = zone.getEntities();
-		const userInfo = Synchronizer.getCreateList("User", user, SyncFor.This);
+		const userInfo = Synchronizer.getCreateList(User, user, SyncFor.This);
 		const syncList = Synchronizer.getCreateListFromZoneEntities(entities).concat(userInfo);
 		Synchronizer.emitSync(user, syncList);
 	}
@@ -155,7 +157,7 @@ export default class Synchronizer {
 	 * It is internally used by {@link createEntityInZone} and {@link deleteEntityFromZone}
 	 */
 	private static async createOrDeleteEntity(entity: AnyEntity, toCreate: boolean): Promise<void> {
-		const model = entity.constructor.name;
+		const model = entity.constructor;
 		const syncList = (toCreate ?
 			Synchronizer.getCreateList(model, entity, SyncFor.Zone) :
 			Synchronizer.getDeleteList(model, entity)
@@ -181,42 +183,42 @@ export default class Synchronizer {
 	 * Returns a sync list for the creation of a given entity (entities) of the given model.
 	 * Only those properties will be used whose syncFor is equal to the given syncFor
 	 */
-	private static getCreateList(model: string, entities: Set<AnyEntity> | AnyEntity, syncFor: SyncForCustom): Sync[] {
-		const toSyncModel = toSync[model];
+	private static getCreateList<T extends AnyEntity>(model: EntityClass<T>, entities: Set<T> | T, syncFor: SyncForCustom): Sync[] {
+		const toSyncModel = toSync.get(model);
 		if (!toSyncModel) {
 			return [];
 		}
-		model = _.snakeCase(model);
+		const modelName = _.snakeCase(model.name);
 
 		const syncList: Sync[] = [];
 		for (const entity of (entities instanceof Set ? entities : [entities])) {
 			const convertedEntity = Synchronizer.convertEntityToUserData(toSyncModel, entity, syncFor);
 			// If converted entity has any properties besides id
 			if (Object.keys(convertedEntity).length > 1) {
-				syncList.push([SyncType.Create, model, convertedEntity]);
+				syncList.push([SyncType.Create, modelName, convertedEntity]);
 			}
 		}
 		return syncList;
 	}
 
 	/** Returns a sync list for the deletion of a given entity (entities) of the given model */
-	private static getDeleteList(model: string, entities: Set<AnyEntity> | AnyEntity): Sync[] {
-		const toSyncModel = toSync[model];
+	private static getDeleteList<T extends AnyEntity>(model: EntityClass<T>, entities: Set<T> | T): Sync[] {
+		const toSyncModel = toSync.get(model);
 		if (!toSyncModel) {
 			return [];
 		}
-		model = _.snakeCase(model);
+		const modelName = _.snakeCase(model.name);
 
 		const syncList: Sync[] = [];
 		for (const entity of (entities instanceof Set ? entities : [entities])) {
-			syncList.push([SyncType.Delete, model, {id: entity.id}]);
+			syncList.push([SyncType.Delete, modelName, {id: entity.id}]);
 		}
 		return syncList;
 	}
 
 	/** Returns a sync list for the creation of all given zone entities */
 	private static getCreateListFromZoneEntities(entities: ZoneEntities): Sync[] {
-		return ZoneEntities
+		return entities
 			.getModels()
 			.map(model => Synchronizer.getCreateList(model, entities.get(model), SyncFor.Zone))
 			.flat();
@@ -224,7 +226,7 @@ export default class Synchronizer {
 
 	/** Returns a sync list for the deletion of all given zone entities */
 	private static getDeleteListFromZoneEntities(entities: ZoneEntities): Sync[] {
-		return ZoneEntities
+		return entities
 			.getModels()
 			.map(model => Synchronizer.getDeleteList(model, entities.get(model)))
 			.flat();
@@ -232,16 +234,16 @@ export default class Synchronizer {
 
 	/** Calculates a sync map from the given change set */
 	private static async getSyncMapFromChangeSet(changeSet: ChangeSet<AnyEntity>): Promise<SyncMap> {
-		const model = changeSet.name;
+		const model = changeSet.entity.constructor;
 		const type = Synchronizer.getSyncType(changeSet);
 		return await Synchronizer.getSyncMap(model, changeSet.entity, type, changeSet.payload, changeSet.originalEntity);
 	}
 
 	/** Calculates a sync map from the given data */
-	private static async getSyncMap(model: string, entity: AnyEntity, type: SyncType,
+	private static async getSyncMap(model: EntityClass<any>, entity: AnyEntity, type: SyncType,
 		payload: EntityDictionary<AnyEntity>, original?: EntityData<AnyEntity>): Promise<SyncMap> {
 		const syncMap: SyncMap = new Map();
-		const toSyncModel = toSync[model];
+		const toSyncModel = toSync.get(model)!;
 		const propertiesToSync = Synchronizer.getPropertiesToSync(model, entity, type, payload);
 		if (!propertiesToSync.length) {
 			return syncMap;
@@ -249,14 +251,13 @@ export default class Synchronizer {
 
 		const collectedData = new Map<SyncForKey, UserData>();
 		for (const property of propertiesToSync) {
-			for (const toSyncProperty of toSyncModel[property]) {
+			for (const toSyncProperty of toSyncModel.get(property)!) {
 				const syncFor = toSyncProperty.for;
 				const syncForKey = (typeof syncFor == "object" ? `${syncFor.location}/${syncFor.position}` : syncFor);
-				const data = collectedData.get(syncForKey) || {id: entity.id};
+				const data = MapUtil.get(collectedData, syncForKey, {id: entity.id});
 				if (type != SyncType.Delete) {
 					Synchronizer.writePropertyToData(toSyncProperty, entity, data, property);
 				}
-				collectedData.set(syncForKey, data);
 			}
 		}
 
@@ -275,7 +276,8 @@ export default class Synchronizer {
 				emitter = rawEmitter;
 			}
 
-			const sync: Sync = [type, _.snakeCase(model), WS.prepare(convertedEntity)];
+			const modelName = _.snakeCase(model.name);
+			const sync: Sync = [type, modelName, WS.prepare(convertedEntity)];
 			if (emitter instanceof Set) {
 				const syncMapToAdd = await Synchronizer.handleZones(syncFor, model, entity, emitter, type, [sync], original);
 				if (syncMapToAdd.size > 0) {
@@ -286,9 +288,7 @@ export default class Synchronizer {
 					}
 				}
 			} else if (emitter instanceof User) {
-				const syncList = syncMap.get(emitter) || [];
-				syncList.push(sync);
-				syncMap.set(emitter, syncList);
+				MapUtil.getArray(syncMap, emitter).push(sync);
 			} else {
 				Synchronizer.addToSyncMap(emitter as any as UserContainer, [sync], syncMap);
 			}
@@ -303,8 +303,8 @@ export default class Synchronizer {
 	 */
 	private static convertEntityToUserData(toSyncModel: SyncModel, entity: AnyEntity, syncFor: SyncForCustom): UserData {
 		const convertedEntity: UserData = {id: entity.id};
-		for (const property in toSyncModel) {
-			for (const toSyncProperty of toSyncModel[property]) {
+		for (const [property, toSyncProperties] of toSyncModel) {
+			for (const toSyncProperty of toSyncProperties) {
 				if (_.isEqual(toSyncProperty.for, syncFor)) {
 					Synchronizer.writePropertyToData(toSyncProperty, entity, convertedEntity, property);
 				}
@@ -330,16 +330,16 @@ export default class Synchronizer {
 	 * For the creation and the deletion it returns all properties that are in the given sync model.
 	 * For the updation it returns a list with names of those changed properties that are in sync model.
 	 * */
-	private static getPropertiesToSync(model: string, entity: AnyEntity, type: SyncType, payload: EntityDictionary<AnyEntity>): string[] {
-		const toSyncModel = toSync[model];
+	private static getPropertiesToSync(model: EntityClass<any>, entity: AnyEntity, type: SyncType, payload: EntityDictionary<AnyEntity>): string[] {
+		const toSyncModel = toSync.get(model);
 		if (!toSyncModel) {
 			return [];
 		}
-		const syncProperties = Object.keys(toSyncModel);
+		const syncProperties = Array.from(toSyncModel.keys());
 		if (type != SyncType.Update) {
 			return syncProperties;
 		}
-		const metadata = EM.getMetadata().get(model).properties;
+		const metadata = EM.getMetadata().get(model.name).properties;
 		const trackedProperties = Array.from(Synchronizer.syncTracked.get(entity) || []);
 		Synchronizer.syncTracked.delete(entity);
 		const changedProperties = Object.keys(payload)
@@ -356,9 +356,10 @@ export default class Synchronizer {
 	 * For the creation or the deletion of an entity it updates the zone entities and returns an empty sync map.
 	 * For the updation of an entity it prepares arguments for {@link changeZone}, calls it and returns its sync map
 	 */
-	private static async handleZones(syncFor: SyncForCustom, model: string, entity: AnyEntity,
+	private static async handleZones(syncFor: SyncForCustom, model: EntityClass<any>, entity: AnyEntity,
 		currZones: Set<Zone>, type: SyncType, updateList: Sync[], original?: EntityData<AnyEntity>): Promise<SyncMap> {
-		if (!ZoneEntities.getModels().includes(model)) {
+		const [someZone] = currZones;
+		if (!someZone.getEntities().getModels().includes(model)) {
 			return new Map();
 		}
 		assert(syncFor == SyncFor.Zone || typeof syncFor == "object" && syncFor.location && syncFor.position);
@@ -374,7 +375,7 @@ export default class Synchronizer {
 		} else if (type == SyncType.Update && original) {
 			const locationField = (syncFor == SyncFor.Zone ? "location" : syncFor.location);
 			const positionField = (syncFor == SyncFor.Zone ? "position" : syncFor.position);
-			const metadata = EM.getMetadata().get(model).properties;
+			const metadata = EM.getMetadata().get(model.name).properties;
 			const [xField, yField] = Object.keys(metadata[positionField].embeddedProps);
 
 			const oldLocation = await Location.getOrFail(original[locationField]);
@@ -390,7 +391,7 @@ export default class Synchronizer {
 	 * Changes the zone of an entity, if the new zone is not equal to the old one.
 	 * It updates the zone entities and returns a sync map for the creation/deletion of all necessary objects
 	 */
-	private static changeZone(oldZones: Set<Zone>, currZones: Set<Zone>, entity: AnyEntity, model: string, updateList: Sync[]): SyncMap {
+	private static changeZone(oldZones: Set<Zone>, currZones: Set<Zone>, entity: AnyEntity, model: EntityClass<any>, updateList: Sync[]): SyncMap {
 		const syncMap: SyncMap = new Map();
 		const leftZones = SetUtil.difference(oldZones, currZones);
 		const newZones = SetUtil.difference(currZones, oldZones);
@@ -459,9 +460,7 @@ export default class Synchronizer {
 	/** Merges sync map B into sync map A */
 	private static mergeSyncMaps(A: SyncMap, B: SyncMap): void {
 		for (const [user, syncListB] of B) {
-			const syncListA = A.get(user) || [];
-			syncListA.push(...syncListB);
-			A.set(user, syncListA);
+			MapUtil.getArray(A, user).push(...syncListB);
 		}
 	}
 
@@ -471,9 +470,8 @@ export default class Synchronizer {
 		for (const emitter of (emitters instanceof Set ? emitters : [emitters])) {
 			const users = emitter.getUsers();
 			for (const user of users) {
-				const userSyncList = syncMap.get(user) || [];
+				const userSyncList = MapUtil.getArray(syncMap, user);
 				userSyncList.push(...syncList);
-				syncMap.set(user, userSyncList);
 			}
 		}
 	}

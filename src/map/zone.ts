@@ -71,7 +71,7 @@ export default class Zone extends CachedObject implements Emitter {
 	}
 
 	/** Returns a list of subzones that are in the given zones */
-	static getSubzonesFrom(zones: Set<Zone>) {
+	static getSubzonesFrom(zones: Set<Zone>): Set<Subzone> {
 		const subzones = new Set<Subzone>();
 		zones.forEach(zone => SetUtil.merge(subzones, zone.subzones));
 		return subzones;

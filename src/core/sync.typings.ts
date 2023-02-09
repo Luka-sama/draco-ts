@@ -16,9 +16,7 @@ export interface SyncProperty {
 }
 
 /** Sync options for a single model */
-export interface SyncModel {
-	[key: string]: SyncProperty[];
-}
+export type SyncModel = Map<string, SyncProperty[]>;
 
 /** Any type that extends {@link Area} */
 export type AreaType = (new (...args: any) => Area);

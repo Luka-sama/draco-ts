@@ -48,13 +48,15 @@ export default class Subzone extends WeakCachedObject implements Emitter, UserCo
 			return new Promise<void>(resolve => this.waiting.push(resolve));
 		}
 		this.loading = true;
+
 		const where = {location: this.location, position: {
 			x: {$gte: this.start.x, $lt: this.end.x},
 			y: {$gte: this.start.y, $lt: this.end.y}
 		}};
 		const orderBy = {id: QueryOrder.ASC};
-		this.entities.Tile = new Set( await EM.find(Tile, where, {orderBy, populate: ["tileset"]}) );
-		this.entities.User = new Set( await EM.find(User, where, {orderBy}) );
+
+		this.entities.set(Tile, await EM.find(Tile, where, {orderBy, populate: true}) );
+		this.entities.set(User, await EM.find(User, where, {orderBy}) );
 
 		this.loaded = true;
 		this.loading = false;
@@ -70,7 +72,7 @@ export default class Subzone extends WeakCachedObject implements Emitter, UserCo
 	}
 
 	emit(event: string, data: UserData = {}): void {
-		for (const user of this.entities.User) {
+		for (const user of this.getUsers()) {
 			user.emit(event, data);
 		}
 	}
@@ -88,7 +90,7 @@ export default class Subzone extends WeakCachedObject implements Emitter, UserCo
 	/** Returns all users from this subzone */
 	getUsers(): Set<User> {
 		this.checkIfLoaded();
-		return this.entities.get("User") as Set<User>;
+		return this.entities.get(User);
 	}
 
 	/** Removes en entity from this subzone */
@@ -110,7 +112,7 @@ export default class Subzone extends WeakCachedObject implements Emitter, UserCo
 	/** Returns `true` if some tile is at the given position */
 	hasTile(position: Vector2): boolean {
 		assert(this.isInside(position));
-		for (const tile of this.entities.get("Tile")) {
+		for (const tile of this.entities.get(Tile)) {
 			if (tile.position.equals(position)) {
 				return true;
 			}
@@ -121,8 +123,8 @@ export default class Subzone extends WeakCachedObject implements Emitter, UserCo
 	/** Returns `true` if no user, (big) item etc. takes the tile at the given position */
 	isTileFree(position: Vector2): boolean {
 		assert(this.isInside(position));
-		for (const model of ZoneEntities.getModels()) {
-			if (model != "User") {
+		for (const model of this.entities.getModels()) {
+			if (model != User) {
 				continue;
 			}
 

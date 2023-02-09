@@ -1,11 +1,11 @@
+import {EntityClass} from "@mikro-orm/core";
 import assert from "assert/strict";
 import _ from "lodash";
+import MapUtil from "../util/map-util.js";
 import {SyncFor, SyncModel, SyncProperty} from "./sync.typings.js";
 
 /** The information about which properties in which models and how should be synced (see {@link SyncModel}) */
-export const toSync: {
-	[key: string]: SyncModel;
-} = {};
+export const toSync = new Map<EntityClass<any>, SyncModel>();
 
 /**
  * Synchronization decorator. Adds an information about which property in which model and how should be synced.
@@ -17,7 +17,7 @@ export function Sync(options: SyncProperty | SyncProperty[] | SyncFor): Property
 	return function(target: unknown, propertyKey: string | symbol): void {
 		assert(target && typeof target == "object" && typeof target.constructor == "function");
 		assert(typeof propertyKey == "string");
-		const model = target.constructor.name;
+		const model = target.constructor;
 
 		options = (typeof options == "number" ? {for: options} : options);
 		options = (options instanceof Array ? options : [options]);
@@ -26,6 +26,6 @@ export function Sync(options: SyncProperty | SyncProperty[] | SyncFor): Property
 				throw new Error('If a synchronized property has multiple synchronization options, they must all have different "for".');
 			}
 		}
-		_.set(toSync, [model, propertyKey], options);
+		MapUtil.getMap(toSync, model).set(propertyKey, options);
 	};
 }
