@@ -2,6 +2,9 @@
 /coverage/
 /dist/
 /docs/
+.idea/dataSources/
+.idea/dataSources.xml
+.idea/dataSources.local.xml
 /mikroorm-cache/
 /node_modules/
 /stryker-report/
