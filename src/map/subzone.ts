@@ -5,6 +5,7 @@ import {WeakCachedObject} from "../cache/cached-object.js";
 import {EM} from "../core/orm.js";
 import {UserContainer} from "../core/sync.typings.js";
 import {Emitter, UserData} from "../core/ws.typings.js";
+import Item from "../item/item.entity.js";
 import {Vec2, Vector2} from "../util/vector.embeddable.js";
 import Location from "./location.entity.js";
 import Tile from "./tile.entity.js";
@@ -39,7 +40,7 @@ export default class Subzone extends WeakCachedObject implements Emitter, UserCo
 		return this.getInstance();
 	}
 
-	/** Loads all entities that are in this subzone */
+	/** Handles loading to execute {@link loadEntities} only once */
 	async load(): Promise<void> {
 		if (this.loaded) {
 			return;
@@ -48,15 +49,7 @@ export default class Subzone extends WeakCachedObject implements Emitter, UserCo
 			return new Promise<void>(resolve => this.waiting.push(resolve));
 		}
 		this.loading = true;
-
-		const where = {location: this.location, position: {
-			x: {$gte: this.start.x, $lt: this.end.x},
-			y: {$gte: this.start.y, $lt: this.end.y}
-		}};
-		const orderBy = {id: QueryOrder.ASC};
-
-		this.entities.set(Tile, await EM.find(Tile, where, {orderBy, populate: true}) );
-		this.entities.set(User, await EM.find(User, where, {orderBy}) );
+		await this.loadEntities();
 
 		this.loaded = true;
 		this.loading = false;
@@ -159,5 +152,26 @@ export default class Subzone extends WeakCachedObject implements Emitter, UserCo
 		if (!this.loaded) {
 			throw new Error("Subzone not loaded");
 		}
+	}
+
+	/** Loads all entities that are in this subzone */
+	private async loadEntities(): Promise<void> {
+		const where = {location: this.location, position: {
+			x: {$gte: this.start.x, $lt: this.end.x},
+			y: {$gte: this.start.y, $lt: this.end.y}
+		}};
+		const orderBy = {id: QueryOrder.ASC};
+		const entities = this.entities;
+
+		const itemQuery = `SELECT DISTINCT item.id FROM item INNER JOIN item_shape_part ON item_shape_part.type_id=item.type_id WHERE
+item.location_id = ? AND
+item_shape_part.x + item.x >= ? AND item_shape_part.x + item.x < ? AND
+item_shape_part.y + item.y >= ? AND item_shape_part.y + item.y < ?`;
+		const itemParams = [this.location.id, this.start.x, this.end.x, this.start.y, this.end.y];
+		const itemIds = (await EM.execute(itemQuery, itemParams)).map(el => el.id);
+
+		entities.set(Tile, await EM.find(Tile, where, {orderBy, populate: true}) );
+		entities.set(User, await EM.find(User, where, {orderBy}) );
+		entities.set(Item, await EM.find(Item, {id: itemIds}, {orderBy, populate: true}) );
 	}
 }
