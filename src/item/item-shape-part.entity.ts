@@ -1,10 +1,11 @@
-import {Embedded, Entity, ManyToOne} from "@mikro-orm/core";
+import {Embedded, Entity, ManyToOne, Unique} from "@mikro-orm/core";
 import {WeakCachedEntity} from "../cache/cached-entity.js";
 import {Vector2} from "../util/vector.embeddable.js";
 import ItemType from "./item-type.entity.js";
 
 /** Item shape entity */
 @Entity()
+@Unique({properties: ["type", "x", "y"]})
 export default class ItemShapePart extends WeakCachedEntity {
 	@ManyToOne()
 	type: ItemType;

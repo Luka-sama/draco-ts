@@ -14,10 +14,23 @@ export default class ItemType extends WeakCachedEntity {
 	@Property()
 	height: number;
 
-	constructor(name: string, height: number, id = 0) {
+	@Property()
+	walkable: boolean;
+
+	@Property()
+	takable: boolean;
+
+	@Property()
+	weight: number;
+
+	constructor(name: string, height: number, walkable: boolean, takable: boolean, weight: number, id = 0) {
 		super(id);
 		this.name = name;
 		this.height = height;
-		return this.getInstance();
+		this.walkable = walkable;
+		this.takable = takable;
+		this.weight = weight;
+		const instance = this.getInstance();
+		return instance;
 	}
 }

@@ -122,6 +122,10 @@ export default class Subzone extends WeakCachedObject implements Emitter, UserCo
 			}
 
 			for (const entity of this.entities.get(model)) {
+				if (model == Item && entity.type.walkable) {
+					continue;
+				}
+
 				const entityPositions = (entity.getPositions ? entity.getPositions(entity.position, true) : [entity.position]);
 				if (position.isElementOf(entityPositions)) {
 					return false;
