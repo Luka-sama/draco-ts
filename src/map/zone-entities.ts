@@ -45,4 +45,15 @@ export default class ZoneEntities {
 			SetUtil.merge(destSet, sourceSet);
 		}
 	}
+
+	difference(otherEntities: ZoneEntities): this {
+		for (const [model, minuend] of this.models) {
+			const subtrahend = otherEntities.models.get(model);
+			if (subtrahend) {
+				const newSet = SetUtil.difference(minuend, subtrahend);
+				this.set(model, newSet);
+			}
+		}
+		return this;
+	}
 }

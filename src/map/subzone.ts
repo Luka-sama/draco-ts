@@ -117,12 +117,13 @@ export default class Subzone extends WeakCachedObject implements Emitter, UserCo
 	isTileFree(position: Vector2): boolean {
 		assert(this.isInside(position));
 		for (const model of this.entities.getModels()) {
-			if (model != User) {
+			if (model != User && model != Item) {
 				continue;
 			}
 
 			for (const entity of this.entities.get(model)) {
-				if (entity.position.equals(position)) {
+				const entityPositions = (entity.getPositions ? entity.getPositions(entity.position, true) : [entity.position]);
+				if (position.isElementOf(entityPositions)) {
 					return false;
 				}
 			}

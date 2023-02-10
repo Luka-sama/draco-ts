@@ -66,6 +66,11 @@ export class Vector2 {
 	toPlain(): IVector2 {
 		return {x: this.x, y: this.y};
 	}
+
+	/** Returns `true` if the given array contains this vector */
+	isElementOf(vectors: Vector2[]): boolean {
+		return vectors.some(vector => this.equals(vector));
+	}
 }
 
 export function Vec2(x?: never, y?: never): Vector2;

@@ -408,9 +408,13 @@ export default class Synchronizer {
 		if (entity instanceof User) {
 			const newEntities = Zone.getEntitiesFromSubzones(newSubzones);
 			const leftEntities = Zone.getEntitiesFromSubzones(leftSubzones);
+			const remainingEntities = Zone.getEntitiesFromSubzones(remainingSubzones);
+			// We need do this as an entity can be in multiple subzones at the same time
+			const entitiesToCreate = newEntities.difference(remainingEntities).difference(leftEntities);
+			const entitiesToDelete = leftEntities.difference(remainingEntities).difference(newEntities);
 			syncMap.set(entity, _.concat(
-				Synchronizer.getCreateListFromZoneEntities(newEntities),
-				Synchronizer.getDeleteListFromZoneEntities(leftEntities)
+				Synchronizer.getDeleteListFromZoneEntities(entitiesToDelete),
+				Synchronizer.getCreateListFromZoneEntities(entitiesToCreate)
 			));
 		}
 		const createList = Synchronizer.getCreateList(model, entity, SyncFor.Zone);
