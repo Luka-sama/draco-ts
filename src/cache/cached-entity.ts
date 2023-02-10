@@ -1,4 +1,13 @@
-import {EventArgs, EventSubscriber, PrimaryKey, Subscriber, wrap, WrappedEntity} from "@mikro-orm/core";
+import {
+	AnyEntity,
+	Collection,
+	EventArgs,
+	EventSubscriber,
+	PrimaryKey,
+	Subscriber,
+	wrap,
+	WrappedEntity
+} from "@mikro-orm/core";
 import _ from "lodash";
 import ORM, {EM} from "../core/orm.js";
 import Cache from "./cache.js";
@@ -61,6 +70,7 @@ export abstract class CachedEntity {
 	private __removed?: boolean;
 	private __initialized?: boolean;
 	private __touched?: boolean;
+	private __collections?: Map<string, Collection<AnyEntity>>;
 
 	/** Gets the entity by ID either from the cache or from the DB */
 	static async get<T extends ICachedEntity>(this: T, id: number): Promise<InstanceType<T> | null> {
@@ -162,7 +172,7 @@ export abstract class CachedEntity {
 	 * If it is cached, returns the cached instance instead.
 	 * If a reference (e.g. user.account) is not loaded in the cached instance, but is loaded in this,
 	 * replaces the reference with the loaded one.
-	 * Also, flags "initialized" and "touched" are saved to restore them later in {@link setInternalProps}.
+	 * Also, the flags (initialized and touched) and collections are saved to restore them later in {@link setInternalProps}.
 	 *
 	 * Should be public and not protected because TypeScript behaves strange if it is protected (e.g. in `sck.user = user;`).
 	 */
@@ -173,22 +183,29 @@ export abstract class CachedEntity {
 		}
 		delete this.__cached;
 
+		const wrapped = wrap(cached);
+		cached.__initialized = wrapped.isInitialized();
+		cached.__touched = wrapped.isTouched();
+		cached.__collections = new Map;
+
 		for (const property in this) {
-			const wrapped: any = wrap(this[property]);
-			if (wrapped instanceof WrappedEntity &&
+			const wrappedThis: unknown = wrap(this[property]);
+			const wrappedCached: unknown = wrap(cached[property]);
+			if (wrappedThis instanceof WrappedEntity &&
 				(this[property] as any).id == cached[property].id &&
 				!wrap(cached[property]).isInitialized()) {
 				cached[property] = this[property];
 			}
+			if (wrappedCached instanceof Collection && wrappedCached.isInitialized()) {
+				cached.__collections.set(property, cached[property]);
+			}
 		}
 
-		const wrapped = wrap(cached);
-		cached.__initialized = wrapped.isInitialized();
-		cached.__touched = wrapped.isTouched();
+
 		return cached;
 	}
 
-	/** Restores the flags (initialized and touched) after MikroORM resets them */
+	/** Restores the flags (initialized and touched) and collections after MikroORM resets them */
 	setInternalProps(): void {
 		if (this.__initialized !== undefined) {
 			wrap(this, true).__initialized = this.__initialized;
@@ -197,6 +214,14 @@ export abstract class CachedEntity {
 		if (this.__touched !== undefined) {
 			wrap(this, true).__touched = this.__touched;
 			delete this.__touched;
+		}
+		if (this.__collections !== undefined) {
+			for (const [property, collection] of this.__collections) {
+				if (!(this as any)[property]) {
+					(this as any)[property] = collection;
+				}
+			}
+			delete this.__collections;
 		}
 	}
 
