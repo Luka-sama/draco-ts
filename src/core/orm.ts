@@ -13,6 +13,7 @@ let EM: EntityManager;
 /** Simple ORM wrapper */
 export default class ORM {
 	private static instance: MikroORM<PostgreSqlDriver>;
+	static isSeeder = false;
 
 	/** Initializes the ORM */
 	static async init(replacedOptions: Options<PostgreSqlDriver> = {}): Promise<void> {

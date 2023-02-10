@@ -20,7 +20,7 @@ import Const from "../util/const.js";
 import MapUtil from "../util/map-util.js";
 import SetUtil from "../util/set-util.js";
 import {Vec2, Vector2} from "../util/vector.embeddable.js";
-import {EM} from "./orm.js";
+import ORM, {EM} from "./orm.js";
 import {toSync} from "./sync.decorator.js";
 import {
 	AreaType,
@@ -91,6 +91,9 @@ export default class Synchronizer {
 
 	/** Calculates a sync map for the given change sets */
 	static async addChangeSets(changeSets: ChangeSet<AnyEntity>[]): Promise<void> {
+		if (ORM.isSeeder) {
+			return;
+		}
 		clearTimeout(Synchronizer.syncTimeout);
 
 		for (const changeSet of changeSets) {
@@ -120,6 +123,9 @@ export default class Synchronizer {
 
 	/** Adds track data if some tracked property was changed */
 	static addTrackData(entity: AnyEntity, property: string): void {
+		if (ORM.isSeeder) {
+			return;
+		}
 		const changedProperties = MapUtil.getSet(Synchronizer.syncTracked, entity);
 		changedProperties.add(property);
 	}
