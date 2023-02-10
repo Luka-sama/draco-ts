@@ -4,10 +4,10 @@ import {promisify} from "util";
 import {EM} from "../core/orm.js";
 import Synchronizer from "../core/sync.js";
 import Tr from "../core/tr.js";
-import {ensure, Is} from "../util/validation.js";
 import {GuestArgs, LoggedArgs} from "../core/ws.typings.js";
 import Location from "../map/location.entity.js";
-import Helper from "../util/helper.js";
+import Limit from "../util/limit.js";
+import {ensure, Is} from "../util/validation.js";
 import {Vec2} from "../util/vector.embeddable.js";
 import Account from "./account.entity.js";
 import {ForAll, OnlyGuest, OnlyLogged, OnlyLoggedAccount, OnlyLoggedAtLeastAccount} from "./auth.decorator.js";
@@ -23,7 +23,7 @@ export default class Auth {
 	@OnlyGuest()
 	static async signUpAccount({sck, raw}: GuestArgs): Promise<void> {
 		const {name, mail, pass} = ensure(raw, {name: Is.string, mail: Is.string, pass: Is.string});
-		Helper.strictLimit("Auth.signUpAccount", sck, 60000);
+		Limit.strict("Auth.signUpAccount", sck, 60000);
 
 		const errors = [
 			(!/^[a-z0-9-]+$/i.test(name) ? Tr.get("ACCOUNT_NAME_FORMAT_WRONG") : null),
@@ -32,7 +32,7 @@ export default class Auth {
 		].filter(error => error);
 
 		if (errors.length < 1) {
-			Helper.updateLastTime("Auth.signUpAccount", sck);
+			Limit.updateLastTime("Auth.signUpAccount", sck);
 			const token = await Auth.generateToken();
 			const account = new Account(name, mail, pass, token);
 			await account.create();
@@ -45,7 +45,7 @@ export default class Auth {
 	@OnlyGuest()
 	static async signInAccount({sck, raw}: GuestArgs): Promise<void> {
 		const data = ensure(raw, {nameOrMail: Is.string, pass: Is.string});
-		await Helper.softLimitUpdatingTime("Auth.signInAccount", sck, 1000);
+		await Limit.softUpdatingTime("Auth.signInAccount", sck, 1000);
 
 		const acc = await EM.findOne(Account, {
 			$or: [
@@ -65,13 +65,13 @@ export default class Auth {
 	@OnlyLoggedAccount()
 	static async signUpUser({sck, raw}: GuestArgs): Promise<void> {
 		const {name} = ensure(raw, {name: Is.string});
-		Helper.strictLimit("Auth.signUpUser", sck, 60000);
+		Limit.strict("Auth.signUpUser", sck, 60000);
 
 		const errors = [
 			(/^[A-Z][a-z]*$/.test(name) ? Tr.get("USER_NAME_FORMAT_WRONG") : null),
 		].filter(error => error);
 		if (errors.length < 1) {
-			Helper.updateLastTime("Auth.signUpUser", sck);
+			Limit.updateLastTime("Auth.signUpUser", sck);
 			const account = sck.account!;
 			const location = EM.getReference(Location, 1);
 			const position = Vec2(0, 0);
@@ -86,7 +86,7 @@ export default class Auth {
 	@OnlyLoggedAccount()
 	static async signInUser({sck, raw}: GuestArgs): Promise<void> {
 		const data = ensure(raw, {name: Is.string});
-		await Helper.softLimitUpdatingTime("Auth.signInUser", sck, 1000);
+		await Limit.softUpdatingTime("Auth.signInUser", sck, 1000);
 
 		const user = await EM.findOne(User, {name: data.name, account: sck.account});
 		if (user) {
@@ -110,7 +110,7 @@ export default class Auth {
 	@OnlyGuest()
 	static async signInByToken({sck, raw}: GuestArgs): Promise<void> {
 		const data = ensure(raw, {accountToken: Is.string, userName: Is.string});
-		await Helper.softLimitUpdatingTime("Auth.signInByToken", sck, 1000);
+		await Limit.softUpdatingTime("Auth.signInByToken", sck, 1000);
 
 		const user = await EM.findOne(User, {name: data.userName}, {populate: ["account"]});
 		if (user && user.account.token == data.accountToken) {

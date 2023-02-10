@@ -4,7 +4,7 @@ import {Buffer} from "buffer";
 import _ from "lodash";
 import uWS from "uWebSockets.js";
 import User from "../auth/user.entity.js";
-import {EndOfRequest} from "../util/helper.js";
+import {EndOfRequest} from "../util/limit.js";
 import {ensure, Is, WrongDataError} from "../util/validation.js";
 import ORM, {EM} from "./orm.js";
 import Tr from "./tr.js";

@@ -24,7 +24,7 @@ export class EndOfRequest extends Error {
 }
 
 /** This class helps to control the handling of requests, e.g. limit the possible number of requests per second */
-export default class Helper {
+export default class Limit {
 	/** Saved time of last action */
 	private static lastTime = new Map<string, LastTimeMap>();
 	/**
@@ -38,16 +38,16 @@ export default class Helper {
 	 * If the user sends a request too early, this request will be delayed (but not more than one request).
 	 * Should be used together with {@link updateLastTime}
 	 */
-	static async softLimit(action: string, user: User | Socket, frequency: number): Promise<void> {
-		Helper.abortIfRuns("move", user);
-		const shouldWait = Helper.getShouldWait(action, user, frequency);
-		await Helper.wait("move", user, shouldWait);
+	static async soft(action: string, user: User | Socket, frequency: number): Promise<void> {
+		Limit.abortIfRuns(action, user);
+		const shouldWait = Limit.getShouldWait(action, user, frequency);
+		await Limit.wait(action, user, shouldWait);
 	}
 
-	/** Combines {@link softLimit} and ${@link updateLastTime} */
-	static async softLimitUpdatingTime(action: string, user: User | Socket, frequency: number): Promise<void> {
-		await Helper.softLimit(action, user, frequency);
-		Helper.updateLastTime(action, user);
+	/** Combines {@link soft} and ${@link updateLastTime} */
+	static async softUpdatingTime(action: string, user: User | Socket, frequency: number): Promise<void> {
+		await Limit.soft(action, user, frequency);
+		Limit.updateLastTime(action, user);
 	}
 
 	/**
@@ -55,18 +55,18 @@ export default class Helper {
 	 * If the user sends a request too early, this request will be delayed (but not more than one request).
 	 * Should be used together with {@link updateLastTime}
 	 */
-	static async softLimitBySpeed(action: string, user: User | Socket, speed: number): Promise<void> {
+	static async softBySpeed(action: string, user: User | Socket, speed: number): Promise<void> {
 		const frequency = 1000 / speed;
-		return await Helper.softLimit(action, user, frequency);
+		return await Limit.soft(action, user, frequency);
 	}
 
 	/**
 	 * Limits action `action` for user `user`: not more often than every `frequency` ms.
 	 * If the user sends a request too early, this request will be rejected with error `errorText`.
-	 * Should be used together with {@link updateLastTime} (or use {@link strictLimitUpdatingTime} instead)
+	 * Should be used together with {@link updateLastTime} (or use {@link strictUpdatingTime} instead)
 	 */
-	static strictLimit(action: string, user: User | Socket, frequency: number, errorText = Tr.get("LIMIT_REACHED")): void {
-		const shouldWait = Helper.getShouldWait(action, user, frequency);
+	static strict(action: string, user: User | Socket, frequency: number, errorText = Tr.get("LIMIT_REACHED")): void {
+		const shouldWait = Limit.getShouldWait(action, user, frequency);
 		if (shouldWait > 0) {
 			if (errorText) {
 				user.info(errorText);
@@ -75,26 +75,26 @@ export default class Helper {
 		}
 	}
 
-	static strictLimitBySpeed(action: string, user: User | Socket, speed: number): void {
+	static strictBySpeed(action: string, user: User | Socket, speed: number): void {
 		const frequency = 1000 / speed;
-		return Helper.strictLimit(action, user, frequency, "");
+		return Limit.strict(action, user, frequency, "");
 	}
 
-	/** Combines {@link strictLimit} and ${@link updateLastTime} */
-	static strictLimitUpdatingTime(action: string, user: User | Socket, frequency: number, errorText?: string): void {
-		Helper.strictLimit(action, user, frequency, errorText);
-		Helper.updateLastTime(action, user);
+	/** Combines {@link strict} and ${@link updateLastTime} */
+	static strictUpdatingTime(action: string, user: User | Socket, frequency: number, errorText?: string): void {
+		Limit.strict(action, user, frequency, errorText);
+		Limit.updateLastTime(action, user);
 	}
 
 	/** Updates last time of an `action` for the given `user` */
 	static updateLastTime(action: string, user: User | Socket): void {
-		MapUtil.getWeakMap(Helper.lastTime, action).set(user, Date.now());
+		MapUtil.getWeakMap(Limit.lastTime, action).set(user, Date.now());
 	}
 
 	/** Waits for `shouldWait` ms for the action `action` by `user` */
 	private static async wait(action: string, user: User | Socket, shouldWait: number): Promise<void> {
 		if (shouldWait > 0) {
-			const timers = MapUtil.getWeakMap(Helper.timers, action);
+			const timers = MapUtil.getWeakMap(Limit.timers, action);
 			const abort = new AbortController();
 			timers.set(user, abort);
 			await setTimeout(shouldWait, undefined, {ref: false, signal: abort.signal});
@@ -104,7 +104,7 @@ export default class Helper {
 
 	/** Aborts a task if it runs */
 	private static abortIfRuns(action: string, user: User | Socket): void {
-		const timers = Helper.timers.get(action);
+		const timers = Limit.timers.get(action);
 		const deferredTask = (timers && timers.get(user));
 		if (deferredTask) {
 			deferredTask.abort();
@@ -117,7 +117,7 @@ export default class Helper {
 		if (typeof jest == "object") {
 			return 0;
 		}
-		const lastTimeMap = Helper.lastTime.get(action);
+		const lastTimeMap = Limit.lastTime.get(action);
 		const last = (lastTimeMap && lastTimeMap.get(user)) || 0;
 		const passed = Date.now() - last;
 		return frequency - passed;
