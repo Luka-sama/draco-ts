@@ -80,7 +80,7 @@ export default class Seeder {
 				account,
 				regDate: faker.date.soon(10, account.regDate.toString()),
 				location: locations[0],
-				position: Vec2(faker.datatype.number({min: 0, max: 30}), faker.datatype.number({min: 0, max: 15}) * 2),
+				position: Vec2(faker.datatype.number({min: 1, max: 30}), faker.datatype.number({min: 1, max: 15}) * 2),
 				speed: Const.MOVEMENT_WALK_SPEED,
 				connected: false,
 			}) );
@@ -96,7 +96,7 @@ export default class Seeder {
 				name: "sofa",
 				height: 0,
 				walkable: false,
-				takable: false,
+				takable: true,
 				weight: 0
 			}) );
 		}
