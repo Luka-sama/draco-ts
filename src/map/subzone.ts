@@ -1,4 +1,4 @@
-import {AnyEntity, QueryOrder} from "@mikro-orm/core";
+import {AnyEntity, EntityClass, QueryOrder} from "@mikro-orm/core";
 import assert from "assert/strict";
 import User from "../auth/user.entity.js";
 import {WeakCachedObject} from "../cache/cached-object.js";
@@ -116,23 +116,28 @@ export default class Subzone extends WeakCachedObject implements Emitter, UserCo
 	/** Returns `true` if no user, (big) item etc. takes the tile at the given position */
 	isTileFree(position: Vector2): boolean {
 		assert(this.isInside(position));
-		for (const model of this.entities.getModels()) {
-			if (model != User && model != Item) {
-				continue;
-			}
-
-			for (const entity of this.entities.get(model)) {
-				if (model == Item && entity.type.walkable) {
-					continue;
-				}
-
-				const entityPositions = (entity.getPositions ? entity.getPositions(entity.position, true) : [entity.position]);
-				if (position.isElementOf(entityPositions)) {
+		for (const model of [User, Item] as EntityClass<AnyEntity>[]) {
+			for (const entity of this.getFrom(model, position)) {
+				if (model != Item || (!entity.type.walkable && !entity.holder)) {
 					return false;
 				}
 			}
 		}
 		return true;
+	}
+
+	getFrom<T extends AnyEntity>(model: EntityClass<T>, position: Vector2): Set<T> {
+		assert(this.isInside(position));
+		const result = new Set<T>;
+
+		for (const entity of this.entities.get(model)) {
+			const entityPositions = (entity.getPositions ? entity.getPositions(entity.position, true) : [entity.position]);
+			if (position.isElementOf(entityPositions)) {
+				result.add(entity);
+			}
+		}
+
+		return result;
 	}
 
 	/** Returns the name of a subzone with the given location and zone position */
@@ -154,9 +159,7 @@ export default class Subzone extends WeakCachedObject implements Emitter, UserCo
 
 	/** Throws an exception if this subzone is not loaded */
 	private checkIfLoaded(): void {
-		if (!this.loaded) {
-			throw new Error("Subzone not loaded");
-		}
+		assert(this.loaded, "Subzone not loaded");
 	}
 
 	/** Loads all entities that are in this subzone */
@@ -176,7 +179,7 @@ item_shape_part.y + item.y >= ? AND item_shape_part.y + item.y < ?`;
 		const itemIds = (await EM.execute(itemQuery, itemParams)).map(el => el.id);
 
 		entities.set(Tile, await EM.find(Tile, where, {orderBy, populate: true}) );
-		entities.set(User, await EM.find(User, where, {orderBy}) );
+		entities.set(User, await EM.find(User, where, {orderBy, populate: true}) );
 		entities.set(Item, await EM.find(Item, {id: itemIds}, {orderBy, populate: true}) );
 	}
 }

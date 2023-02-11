@@ -35,6 +35,9 @@ export default class Movement {
 				Limit.updateLastTime("Movement.move", user);
 				user.position = newPosition;
 				user.speed = speed;
+				for (const item of user.items) {
+					item.position = newPosition;
+				}
 				return;
 			}
 		}

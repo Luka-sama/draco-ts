@@ -1,9 +1,10 @@
-import {Embedded, Entity, ManyToOne, Property, Unique} from "@mikro-orm/core";
+import {Collection, Embedded, Entity, ManyToOne, OneToMany, Property, Unique} from "@mikro-orm/core";
 import {WeakCachedEntity} from "../cache/cached-entity.js";
-import {syncTrack} from "../core/sync.js";
 import {Sync} from "../core/sync.decorator.js";
+import {syncTrack} from "../core/sync.js";
 import {SyncFor} from "../core/sync.typings.js";
 import {Emitter, Socket, UserData} from "../core/ws.typings.js";
+import Item from "../item/item.entity.js";
 import Location from "../map/location.entity.js";
 import Const from "../util/const.js";
 import {Vector2} from "../util/vector.embeddable.js";
@@ -36,6 +37,9 @@ export default class User extends WeakCachedEntity implements Emitter {
 
 	@Sync(SyncFor.Zone)
 	speed = Const.MOVEMENT_WALK_SPEED;
+
+	@OneToMany({mappedBy: (item: Item) => item.holder})
+	items = new Collection<Item>(this);
 
 	socket?: Socket;
 

@@ -88,7 +88,7 @@ export default class Auth {
 		const data = ensure(raw, {name: Is.string});
 		await Limit.softUpdatingTime("Auth.signInUser", sck, 1000);
 
-		const user = await EM.findOne(User, {name: data.name, account: sck.account});
+		const user = await EM.findOne(User, {name: data.name, account: sck.account}, {populate: true});
 		if (user) {
 			user.connected = true;
 			sck.user = user;
@@ -112,7 +112,7 @@ export default class Auth {
 		const data = ensure(raw, {accountToken: Is.string, userName: Is.string});
 		await Limit.softUpdatingTime("Auth.signInByToken", sck, 1000);
 
-		const user = await EM.findOne(User, {name: data.userName}, {populate: ["account"]});
+		const user = await EM.findOne(User, {name: data.userName}, {populate: true});
 		if (user && user.account.token == data.accountToken) {
 			sck.account = user.account;
 			sck.user = user;

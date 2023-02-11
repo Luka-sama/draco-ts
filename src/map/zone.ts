@@ -1,4 +1,4 @@
-import {AnyEntity} from "@mikro-orm/core";
+import {AnyEntity, EntityClass} from "@mikro-orm/core";
 import CachedObject from "../cache/cached-object.js";
 import {Emitter, UserData} from "../core/ws.typings.js";
 import SetUtil from "../util/set-util.js";
@@ -96,6 +96,21 @@ export default class Zone extends CachedObject implements Emitter {
 		return SetUtil.intersection(currSubzones, oldSubzones);
 	}
 
+	static async isTileFree(location: Location, position: Vector2): Promise<boolean> {
+		const zone = await Zone.getByPosition(location, position);
+		return zone.isTileFree(position);
+	}
+
+	static async areTilesFree(location: Location, positions: Vector2[]): Promise<boolean> {
+		for (const position of positions) {
+			const isTileFree = await Zone.isTileFree(location, position);
+			if (!isTileFree) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	constructor(location: Location, zonePosition: Vector2) {
 		super(location, zonePosition);
 		this.location = location;
@@ -106,6 +121,16 @@ export default class Zone extends CachedObject implements Emitter {
 	/** Returns the name of this zone */
 	getName(): string {
 		return Zone.getNameFor(this.location, this.zonePosition);
+	}
+
+	/** Returns the location of this zone */
+	getLocation(): Location {
+		return this.location;
+	}
+
+	/** Returns the zone position of this zone */
+	getZonePosition(): Vector2 {
+		return this.zonePosition;
 	}
 
 	/** Loads all subzones */
@@ -189,6 +214,15 @@ export default class Zone extends CachedObject implements Emitter {
 			}
 		}
 		throw new Error("Zone.isTileFree: the given position is not in this zone");
+	}
+
+	getFrom<T extends AnyEntity>(model: EntityClass<T>, position: Vector2): Set<T> {
+		for (const subzone of this.subzones) {
+			if (subzone.isInside(position)) {
+				return subzone.getFrom(model, position);
+			}
+		}
+		throw new Error("Zone.getFrom: the given position is not in this zone");
 	}
 
 	/** Throws an exception if this zone is not loaded */

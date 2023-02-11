@@ -1,4 +1,9 @@
 export default class Const {
+	/** X-coordinate of neighboring tiles */
+	static readonly NEIGHBORING_X = [0, -1, 1];
+	/** Y-coordinate of neighboring tiles (for staggered maps) */
+	static readonly NEIGHBORING_Y = [0, -1, 1, -2, 2];
+
 	/** Cache should be cleaned every .. ms */
 	static readonly CACHE_CLEAN_FREQUENCY_MS = 500;
 	/**

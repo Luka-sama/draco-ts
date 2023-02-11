@@ -13,6 +13,10 @@ export interface SyncProperty {
 	 * The array, e.g. ["name", "size"], is a shorthand for `value => {name: value.name, size: value.size}`.
 	 */
 	map?: ((value: any) => JSONDataExtended) | string | string[];
+	/** Default value for the case the property was not set.
+	 * If no default value is specified, this property will not be sent (if it is not set).
+	 */
+	default?: JSONDataExtended;
 }
 
 /** Sync options for a single model */

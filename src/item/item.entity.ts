@@ -1,4 +1,6 @@
-import {Embedded, Entity, ManyToOne} from "@mikro-orm/core";
+import {Embedded, Entity, ManyToOne, Rel} from "@mikro-orm/core";
+import assert from "assert/strict";
+import User from "../auth/user.entity.js";
 import {WeakCachedEntity} from "../cache/cached-entity.js";
 import {Sync} from "../core/sync.decorator.js";
 import {SyncFor} from "../core/sync.typings.js";
@@ -20,14 +22,20 @@ export default class Item extends WeakCachedEntity {
 	@Sync(SyncFor.Zone)
 	position: Vector2;
 
+	@ManyToOne()
+	@Sync({for: SyncFor.Zone, map: "id"})
+	holder?: Rel<User>;
+
 	getPositions(position = this.position, excludeNegative = false): Vector2[] {
-		const shapeParts = this.type.shape.getItems().filter(shapePart => (
-			!excludeNegative || shapePart.position.x >= 0 && shapePart.position.y >= 0
-		));
-		return shapeParts.map(shapePart => {
+		assert(this.type.shape.isInitialized());
+		const shape = this.type.shape
+			.getItems()
+			.map(shapePart => shapePart.position)
+			.filter(shapePart => !excludeNegative || shapePart.x >= 0 && shapePart.y >= 0);
+		return shape.map(shapePart => {
 			// Correct shape for odd Y because we have staggered isometric map
-			const shouldCorrect = (position.y % 2 == 1 && shapePart.position.y % 2 == 1);
-			const offset = (shouldCorrect ? shapePart.position.add(Vec2(1, 0)) : shapePart.position);
+			const shouldCorrect = (position.y % 2 == 1 && shapePart.y % 2 == 1);
+			const offset = (shouldCorrect ? shapePart.add(Vec2(1, 0)) : shapePart);
 			return position.add(offset);
 		});
 	}

@@ -457,7 +457,13 @@ export default class Synchronizer {
 	/** Writes a property to an entity object that will be sent to the user */
 	private static writePropertyToData(toSyncProperty: SyncProperty, entity: AnyEntity, convertedEntity: UserData, property: string): void {
 		let value = entity[property];
-		if (typeof toSyncProperty.map == "function") {
+		if (value === undefined || value === null) {
+			if ("default" in toSyncProperty) {
+				value = toSyncProperty.default;
+			} else {
+				return;
+			}
+		} else if (typeof toSyncProperty.map == "function") {
 			value = toSyncProperty.map(value);
 		} else if (typeof toSyncProperty.map == "string") {
 			value = value[toSyncProperty.map];
