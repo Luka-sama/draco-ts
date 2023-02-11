@@ -23,7 +23,7 @@ export default class Item extends WeakCachedEntity {
 	position: Vector2;
 
 	@ManyToOne()
-	@Sync({for: SyncFor.Zone, map: "id"})
+	@Sync({for: SyncFor.Zone, map: "id", default: 0})
 	holder?: Rel<User>;
 
 	getPositions(position = this.position, excludeNegative = false): Vector2[] {

@@ -128,18 +128,25 @@ export default class WS {
 
 		const picked = (keys ? _.pick(object, keys) : object);
 		for (const key in picked) {
-			const value: any = picked[key];
-			const type = typeof value;
-			if (["bigint", "function", "symbol", "undefined"].includes(type)) {
-				throw new Error(`Tried to send wrong data to user (key=${key}, value=${value}, typeof=${type})`);
-			} else if (type == "object" && !_.isPlainObject(value)) {
-				if (typeof value.toPlain != "function") {
-					throw new Error(`Tried to send wrong data to user (key=${key}, object=${object.constructor?.name})`);
-				}
-				picked[key] = value.toPlain();
-			}
+			picked[key] = WS.prepareValue(picked[key], key);
 		}
 		return picked;
+	}
+
+	/** A helper method for {@link prepareOne} */
+	private static prepareValue(value: any, key: string): JSONData {
+		const type = typeof value;
+		if (["bigint", "function", "symbol", "undefined"].includes(type)) {
+			throw new Error(`Tried to send wrong data to user (key=${key}, value=${value}, typeof=${type})`);
+		} else if (value instanceof Array) {
+			return value.map(el => WS.prepareValue(el, key));
+		} else if (type == "object" && !_.isPlainObject(value) && value != null) {
+			if (typeof value.toPlain != "function") {
+				throw new Error(`Tried to send wrong data to user (key=${key}, object=${value.constructor?.name})`);
+			}
+			return value.toPlain();
+		}
+		return value;
 	}
 
 	/** Converts ArrayBuffer to string */

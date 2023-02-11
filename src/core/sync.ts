@@ -2,6 +2,7 @@ import {
 	AnyEntity,
 	ChangeSet,
 	ChangeSetType,
+	Collection,
 	EntityClass,
 	EntityData,
 	EntityDictionary,
@@ -35,7 +36,7 @@ import {
 	UserContainer
 } from "./sync.typings.js";
 import WS from "./ws.js";
-import {Emitter, UserData} from "./ws.typings.js";
+import {Emitter, JSONDataExtended, UserData} from "./ws.typings.js";
 
 /**
  * This function adds tracking for properties that should not be stored in the database.
@@ -463,14 +464,25 @@ export default class Synchronizer {
 			} else {
 				return;
 			}
-		} else if (typeof toSyncProperty.map == "function") {
-			value = toSyncProperty.map(value);
-		} else if (typeof toSyncProperty.map == "string") {
-			value = value[toSyncProperty.map];
-		} else if (toSyncProperty.map instanceof Array) {
-			value = _.pick(value, toSyncProperty.map);
+		} else if (value instanceof Collection) {
+			assert(value.isInitialized());
+			value = value.getItems().map((el: any) => Synchronizer.mapProperty(toSyncProperty, el));
+			throw new Error("Collection synchronization is not implemented.");
+		} else {
+			value = Synchronizer.mapProperty(toSyncProperty, value);
 		}
 		convertedEntity[toSyncProperty.as || property] = value;
+	}
+
+	private static mapProperty(toSyncProperty: SyncProperty, value: any): JSONDataExtended {
+		if (typeof toSyncProperty.map == "function") {
+			return toSyncProperty.map(value);
+		} else if (typeof toSyncProperty.map == "string") {
+			return _.get(value, toSyncProperty.map);
+		} else if (toSyncProperty.map instanceof Array) {
+			return _.pick(value, toSyncProperty.map);
+		}
+		return value;
 	}
 
 	/** Merges sync map B into sync map A */
