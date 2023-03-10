@@ -1,6 +1,6 @@
 import fs from "fs";
 import {po} from "gettext-parser";
-import glob from "glob";
+import {globSync} from "glob";
 import Gettext from "node-gettext";
 import path from "path";
 
@@ -15,7 +15,7 @@ export default class Tr {
 		}
 		Tr.gt = new Gettext();
 		const localeDir = "./locales";
-		const files = glob.sync("./*.po", {cwd: localeDir});
+		const files = globSync("./*.po", {cwd: localeDir});
 		for (const file of files) {
 			const content = fs.readFileSync(path.join(localeDir, file));
 			const parsed = po.parse(content);

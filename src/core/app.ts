@@ -28,12 +28,12 @@ export default class App {
 	/** Auto-import to make @OnlyLogged() and other decorators to work without explicit import */
 	private static async autoimport(): Promise<void> {
 		const ignore = [
-			"./**/*.entity.js", "./**/*.test.js", "./**/*.typings.js",
-			"./seeder.js", "./jest-setup.js",
+			"**/*.entity.js", "**/*.test.js", "**/*.typings.js",
+			"seeder.js", "jest-setup.js",
 		];
-		const files = glob.sync("./**/*.js", {ignore, cwd: "./dist"});
+		const files = await glob("./**/*.js", {ignore, cwd: "./dist"});
 		for (const file of files) {
-			await import(`.${file}`);
+			await import(`../${file}`);
 		}
 	}
 
