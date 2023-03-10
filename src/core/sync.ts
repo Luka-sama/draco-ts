@@ -474,6 +474,7 @@ export default class Synchronizer {
 		convertedEntity[toSyncProperty.as || property] = value;
 	}
 
+	/** Maps the property (i.e. prepares it for sending to client) using option `map` */
 	private static mapProperty(toSyncProperty: SyncProperty, value: any): JSONDataExtended {
 		if (typeof toSyncProperty.map == "function") {
 			return toSyncProperty.map(value);

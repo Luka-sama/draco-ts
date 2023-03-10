@@ -1,6 +1,6 @@
 import assert from "assert/strict";
 import {OnlyLogged} from "../auth/auth.decorator.js";
-import {EM} from "../core/orm.js";
+import ORM from "../core/orm.js";
 import {LoggedArgs} from "../core/ws.typings.js";
 import Zone from "../map/zone.js";
 import Const from "../util/const.js";
@@ -32,7 +32,7 @@ export default class Inventory {
 		}
 
 		if (itemToTake) {
-			EM.persist(itemToTake);
+			ORM.register(itemToTake);
 			user.items.add(itemToTake);
 			itemToTake.position = user.position;
 			Limit.updateLastTime("Inventory.takeItem", user);
@@ -47,7 +47,7 @@ export default class Inventory {
 		const item = await Item.getOrFail(itemId);
 		assert(item.holder == user);
 
-		EM.persist(item);
+		ORM.register(item);
 		let canPut = true;
 		if (!item.type.walkable) {
 			const freeTile = await Inventory.findFreeTile(item);

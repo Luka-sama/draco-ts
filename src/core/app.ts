@@ -39,6 +39,8 @@ export default class App {
 
 	/** Catches uncaught exceptions and unhandled rejections */
 	private static catchExceptions(): void {
+		Error.stackTraceLimit = 25;
+
 		process.on("uncaughtException", error => {
 			console.error(`Uncaught exception [${new Date()}]:\r\n${error.stack}`);
 		});

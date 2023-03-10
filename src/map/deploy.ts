@@ -1,7 +1,7 @@
 import {RequestContext} from "@mikro-orm/core";
 import _ from "lodash";
 import {HttpResponse} from "uWebSockets.js";
-import {EM} from "../core/orm.js";
+import ORM, {EM} from "../core/orm.js";
 import WS from "../core/ws.js";
 import {JSONData} from "../core/ws.typings.js";
 import {IVector2, Vec2} from "../util/vector.embeddable.js";
@@ -54,7 +54,7 @@ export default class Deploy {
 		for (const tilesetName of tilesets) {
 			if (!tilesetMap.has(tilesetName)) {
 				const tilesetEntity = new Tileset(tilesetName);
-				EM.persist(tilesetEntity);
+				ORM.register(tilesetEntity);
 				tilesetMap.set(tilesetName, tilesetEntity);
 			}
 		}
@@ -84,7 +84,7 @@ export default class Deploy {
 					const tilesetName = tilesets[tile.tileset];
 					const tileset = tilesetMap.get(tilesetName)!;
 					const tileEntity = new Tile(location, Vec2(+x, +y), tileset, Vec2(tile.atlasCoords));
-					EM.persist(tileEntity);
+					ORM.register(tileEntity);
 				}
 			}
 		}

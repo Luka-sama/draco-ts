@@ -6,7 +6,11 @@ interface Entry {
 	options: CacheOptions;
 	lastAccess: number;
 }
-interface SearchInfo {
+/**
+ * This is used by the private method searchFor as the return type.
+ * @internal
+ */
+export interface SearchInfo {
 	parent: Map<string, Subtree>;
 	leaf: string;
 	hasEntry: boolean;
