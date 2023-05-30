@@ -68,7 +68,7 @@ export default class Auth {
 		Limit.strict("Auth.signUpUser", sck, 60000);
 
 		const errors = [
-			(/^[A-Z][a-z]*$/.test(name) ? Tr.get("USER_NAME_FORMAT_WRONG") : null),
+			(!/^[A-Z][a-z]*$/.test(name) ? Tr.get("USER_NAME_FORMAT_WRONG") : null),
 		].filter(error => error);
 		if (errors.length < 1) {
 			Limit.updateLastTime("Auth.signUpUser", sck);
