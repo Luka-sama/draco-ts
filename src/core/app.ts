@@ -1,4 +1,4 @@
-import glob from "glob";
+import {glob} from "glob";
 import Cache from "../cache/cache.js";
 import Deploy from "../map/deploy.js";
 import ORM from "./orm.js";
