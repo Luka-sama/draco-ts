@@ -1,11 +1,13 @@
 import {AnyEntity, EntityClass, QueryOrder} from "@mikro-orm/core";
 import assert from "assert/strict";
+import _ from "lodash";
 import User from "../auth/user.entity.js";
 import {WeakCachedObject} from "../cache/cached-object.js";
 import {EM} from "../core/orm.js";
 import {UserContainer} from "../core/sync.typings.js";
 import {Emitter, UserData} from "../core/ws.typings.js";
 import Item from "../item/item.entity.js";
+import LightsGroup from "../magic/lights-group.entity.js";
 import {Vec2, Vector2} from "../util/vector.embeddable.js";
 import Location from "./location.entity.js";
 import Tile from "./tile.entity.js";
@@ -31,6 +33,23 @@ export default class Subzone extends WeakCachedObject implements Emitter, UserCo
 	/** Returns position of the last tile plus (1, 1), i.e. not included in this zone */
 	private get end(): Vector2 {
 		return this.start.add(Subzone.SIZE);
+	}
+
+	/** Returns the name of a subzone with the given location and zone position */
+	static getNameFor(location: Location, zonePosition: Vector2): string {
+		return `subzone/location${location.id}/${zonePosition.x}x${zonePosition.y}`;
+	}
+
+	/** Converts a tile position (e.g. the position of a user, a item etc) to a zone position */
+	static getZonePosition(position: Vector2): Vector2 {
+		return position.intdiv(Subzone.SIZE);
+	}
+
+	/** Returns a loaded subzone by a given location and zone position */
+	static async get(location: Location, zonePosition: Vector2): Promise<Subzone> {
+		const subzone = new Subzone(location, zonePosition);
+		await subzone.load();
+		return subzone;
 	}
 
 	constructor(location: Location, position: Vector2) {
@@ -140,26 +159,28 @@ export default class Subzone extends WeakCachedObject implements Emitter, UserCo
 		return result;
 	}
 
-	/** Returns the name of a subzone with the given location and zone position */
-	static getNameFor(location: Location, zonePosition: Vector2): string {
-		return `subzone/location${location.id}/${zonePosition.x}x${zonePosition.y}`;
-	}
-
-	/** Converts a tile position (e.g. the position of a user, a item etc) to a zone position */
-	static getZonePosition(position: Vector2): Vector2 {
-		return position.intdiv(Subzone.SIZE);
-	}
-
-	/** Returns a loaded subzone by a given location and zone position */
-	static async get(location: Location, zonePosition: Vector2): Promise<Subzone> {
-		const subzone = new Subzone(location, zonePosition);
-		await subzone.load();
-		return subzone;
+	/** Returns a random position inside of this subzone */
+	getRandomPositionInside(): Vector2 {
+		return Vec2(
+			_.random(this.start.x, this.end.x - 1),
+			_.random(this.start.y, this.end.y - 1),
+		);
 	}
 
 	/** Throws an exception if this subzone is not loaded */
 	private checkIfLoaded(): void {
 		assert(this.loaded, "Subzone not loaded");
+	}
+
+	/** Returns a list of ids for objects that have a shape (such as items), i.e. occupy several tiles */
+	private async getIdsOfShapedObjects(table: string, partTable: string, foreignKey: string, partForeignKey = foreignKey): Promise<number[]> {
+		const query = `SELECT DISTINCT ${table}.id FROM ${table}
+INNER JOIN ${partTable} ON ${partTable}.${partForeignKey}=${table}.${foreignKey} WHERE
+${table}.location_id = ? AND
+${partTable}.x + ${table}.x >= ? AND ${partTable}.x + ${table}.x < ? AND
+${partTable}.y + ${table}.y >= ? AND ${partTable}.y + ${table}.y < ?`;
+		const params = [this.location.id, this.start.x, this.end.x, this.start.y, this.end.y];
+		return (await EM.execute(query, params)).map(el => el.id);
 	}
 
 	/** Loads all entities that are in this subzone */
@@ -171,15 +192,12 @@ export default class Subzone extends WeakCachedObject implements Emitter, UserCo
 		const orderBy = {id: QueryOrder.ASC};
 		const entities = this.entities;
 
-		const itemQuery = `SELECT DISTINCT item.id FROM item INNER JOIN item_shape_part ON item_shape_part.type_id=item.type_id WHERE
-item.location_id = ? AND
-item_shape_part.x + item.x >= ? AND item_shape_part.x + item.x < ? AND
-item_shape_part.y + item.y >= ? AND item_shape_part.y + item.y < ?`;
-		const itemParams = [this.location.id, this.start.x, this.end.x, this.start.y, this.end.y];
-		const itemIds = (await EM.execute(itemQuery, itemParams)).map(el => el.id);
+		const itemIds = await this.getIdsOfShapedObjects("item", "item_shape_part", "type_id");
+		const lightsGroupIds = await this.getIdsOfShapedObjects("lights_group", "light", "id", "lights_group_id");
 
 		entities.set(Tile, await EM.find(Tile, where, {orderBy, populate: true}) );
 		entities.set(User, await EM.find(User, where, {orderBy, populate: true}) );
 		entities.set(Item, await EM.find(Item, {id: itemIds}, {orderBy, populate: true}) );
+		entities.set(LightsGroup, await EM.find(LightsGroup, {id: lightsGroupIds}, {orderBy, populate: true}) );
 	}
 }

@@ -5,6 +5,7 @@ import {EM} from "../core/orm.js";
 import Synchronizer from "../core/sync.js";
 import Tr from "../core/tr.js";
 import {GuestArgs, LoggedArgs} from "../core/ws.typings.js";
+import Magic from "../magic/magic.js";
 import Location from "../map/location.entity.js";
 import Limit from "../util/limit.js";
 import {ensure, Is} from "../util/validation.js";
@@ -77,6 +78,7 @@ export default class Auth {
 			const position = Vec2(0, 0);
 			const user = new User(name, account, location, position);
 			await user.create();
+			await Magic.createLightsForMage(user);
 			sck.emit("sign_up_user");
 		} else {
 			sck.emit("sign_up_user_errors", {errors});
@@ -142,7 +144,7 @@ export default class Auth {
 	@OnlyLogged()
 	static async startGame({user}: LoggedArgs): Promise<void> {
 		user.emit("my_id", {myId: user.id});
-		await Synchronizer.firstLoad(user);
+		await Synchronizer.firstSync(user);
 	}
 
 	private static async generateToken(): Promise<string> {

@@ -45,6 +45,8 @@ export default class User extends WeakCachedEntity implements Emitter {
 
 	connected = false;
 
+	hadFirstSync = false;
+
 	constructor(name: string, account: Account, location: Location, position: Vector2, id = 0) {
 		super(id);
 		this.name = name;

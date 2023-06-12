@@ -57,6 +57,16 @@ export class Vector2 {
 		return new Vector2(Math.floor(v.x), Math.floor(v.y));
 	}
 
+	/** Returns the negated vector */
+	negated(): Vector2 {
+		return this.mul(-1);
+	}
+
+	/** Returns the vector with Math.sign called for each coordinate */
+	sign(): Vector2 {
+		return new Vector2(Math.sign(this.x), Math.sign(this.y));
+	}
+
 	/** Returns `true` if this vector and a given vector are equal */
 	equals(v: Vector2): boolean {
 		return (this.x == v.x && this.y == v.y);

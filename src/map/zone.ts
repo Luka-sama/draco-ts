@@ -158,6 +158,11 @@ export default class Zone extends CachedObject implements Emitter {
 		return this.subzones;
 	}
 
+	/** Returns the central subzone */
+	getCentralSubzone(): Subzone {
+		return this.centralSubzone;
+	}
+
 	emit(event: string, data: UserData = {}): void {
 		this.checkIfLoaded();
 		for (const subzone of this.subzones) {

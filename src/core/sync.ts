@@ -132,18 +132,21 @@ export default class Synchronizer {
 	}
 
 	/** Emits the player who has just logged into the game all the necessary information */
-	static async firstLoad(user: User): Promise<void> {
+	static async firstSync(user: User): Promise<void> {
 		const zone = await Zone.getByEntity(user);
 		const entities = zone.getEntities();
 		const userInfo = Synchronizer.getCreateList(User, user, SyncFor.This);
 		const syncList = Synchronizer.getCreateListFromZoneEntities(entities).concat(userInfo);
 		Synchronizer.emitSync(user, syncList);
+		user.hadFirstSync = true;
 	}
 
 	/** Emits all accumulated changes */
 	static synchronize(): void {
 		for (const [user, syncList] of Synchronizer.syncMap) {
-			Synchronizer.emitSync(user, syncList);
+			if (user.hadFirstSync) {
+				Synchronizer.emitSync(user, syncList);
+			}
 		}
 		Synchronizer.syncMap.clear();
 		Synchronizer.lastSyncTime = Date.now();

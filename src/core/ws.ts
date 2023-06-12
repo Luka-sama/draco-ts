@@ -183,6 +183,7 @@ export default class WS {
 		if (sck.user) {
 			const user = sck.user as User;
 			user.connected = false;
+			user.hadFirstSync = false;
 			delete user.socket;
 		}
 	}

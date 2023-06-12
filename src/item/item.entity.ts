@@ -28,16 +28,16 @@ export default class Item extends WeakCachedEntity {
 
 	getPositions(position = this.position, excludeNegative = false): Vector2[] {
 		assert(this.type.shape.isInitialized());
-		const shape = this.type.shape
+		return this.type.shape
 			.getItems()
 			.map(shapePart => shapePart.position)
-			.filter(shapePart => !excludeNegative || shapePart.x >= 0 && shapePart.y >= 0);
-		return shape.map(shapePart => {
-			// Correct shape for odd Y because we have staggered isometric map
-			const shouldCorrect = (position.y % 2 == 1 && shapePart.y % 2 == 1);
-			const offset = (shouldCorrect ? shapePart.add(Vec2(1, 0)) : shapePart);
-			return position.add(offset);
-		});
+			.filter(shapePart => !excludeNegative || shapePart.x >= 0 && shapePart.y >= 0)
+			.map(shapePart => {
+				// Correct shape for odd Y because we have staggered isometric map
+				const shouldCorrect = (position.y % 2 == 1 && shapePart.y % 2 == 1);
+				const offset = (shouldCorrect ? shapePart.add(Vec2(1, 0)) : shapePart);
+				return position.add(offset);
+			});
 	}
 
 	constructor(type: ItemType, location: Location, position: Vector2, id = 0) {

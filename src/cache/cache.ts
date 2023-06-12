@@ -1,3 +1,4 @@
+import GameLoop from "../core/game-loop.js";
 import Const from "../util/const.js";
 import {CacheOptions} from "./cache.typings.js";
 
@@ -47,7 +48,7 @@ export default class Cache {
 		}
 		Cache.started = true;
 		Cache.finalizationRegistry = new FinalizationRegistry(Cache.delete);
-		setInterval(Cache.clean, Const.CACHE_CLEAN_FREQUENCY_MS).unref();
+		GameLoop.addTask(Cache.clean, Const.CACHE_CLEAN_FREQUENCY_MS);
 	}
 
 	/** Returns `true` if cache has an entry with the given name */

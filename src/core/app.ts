@@ -1,6 +1,7 @@
 import {glob} from "glob";
 import Cache from "../cache/cache.js";
 import Deploy from "../map/deploy.js";
+import GameLoop from "./game-loop.js";
 import ORM from "./orm.js";
 import Tr from "./tr.js";
 import WS from "./ws.js";
@@ -21,8 +22,16 @@ export default class App {
 		Cache.init();
 		await App.autoimport();
 		await ORM.init();
+		GameLoop.init();
 		WS.init();
 		Deploy.init();
+		/*await RequestContext.createAsync(EM, async function() {
+			const users = await EM.find(User, {});
+			for (const user of users) {
+				await Magic.createLightsForMage(user);
+			}
+			await EM.flush();
+		});*/
 	}
 
 	/** Auto-import to make @OnlyLogged() and other decorators to work without explicit import */
