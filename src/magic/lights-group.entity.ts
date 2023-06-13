@@ -1,16 +1,12 @@
 import {Collection, Embedded, Entity, ManyToOne, OneToMany, Property, Rel} from "@mikro-orm/core";
-import _ from "lodash";
 import User from "../auth/user.entity.js";
 import {WeakCachedEntity} from "../cache/cached-entity.js";
-import GameLoop, {Task} from "../core/game-loop.js";
-import ORM from "../core/orm.js";
+import {Task} from "../core/game-loop.js";
 import {Sync} from "../core/sync.decorator.js";
 import {SyncFor} from "../core/sync.typings.js";
 import Location from "../map/location.entity.js";
-import Const from "../util/const.js";
 import {Vector2} from "../util/vector.embeddable.js";
 import Light from "./light.entity.js";
-import Magic from "./magic.js";
 
 /** Lights group entity */
 @Entity()
@@ -67,9 +63,9 @@ export default class LightsGroup extends WeakCachedEntity {
 	@Property()
 	activated = false;
 
-	msSinceLastMovement = 0;
+	lastMovement = 0;
 
-	task: Task;
+	task!: Task;
 
 	constructor(speed: number, direction: Vector2, location: Location, position: Vector2, targetMage: Rel<User>, id = 0) {
 		super(id);
@@ -78,15 +74,6 @@ export default class LightsGroup extends WeakCachedEntity {
 		this.location = location;
 		this.position = position;
 		this.targetMage = targetMage;
-		this.task = GameLoop.addTask(() => this.move(), 1000 / this.speed);
-	}
-
-	move() {
-		ORM.register(this);
-		this.position = this.position.add(this.direction);
-		const shouldChangeDirection = _.random(1, 100) <= Const.LIGHTS_DIRECTION_CHANGE_PROBABILITY;
-		if (shouldChangeDirection) {
-			this.direction = Magic.generateLightsDirection(this.position, this.targetMage, this.toTarget);
-		}
+		return this.getInstance();
 	}
 }

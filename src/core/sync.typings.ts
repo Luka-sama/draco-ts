@@ -4,7 +4,7 @@ import {JSONDataExtended, UserData} from "./ws.typings.js";
 
 /** Synchronization options for a single property (how this property should be synced) */
 export interface SyncProperty {
-	/** The recipient emitter */
+	/** The event receiver */
 	for: SyncForCustom;
 	/** The name of this property on the client-side */
 	as?: string;
@@ -17,6 +17,8 @@ export interface SyncProperty {
 	 * If no default value is specified, this property will not be sent (if it is not set).
 	 */
 	default?: JSONDataExtended;
+	/** If this flag is set, the sync property will be only sent if something else also was changed (or the zone was changed). */
+	lazy?: boolean;
 }
 
 /** Sync options for a single model */
@@ -26,14 +28,14 @@ export type SyncModel = Map<string, SyncProperty[]>;
 export type AreaType = (new (...args: any) => Area);
 
 /**
- * Which emitter should be used?
+ * Who should be the event receiver?
  * - This: sync infos will be sent to this entity (it will be called "emit" on this entity)
  * - Zone: sync infos will be sent to all users in the zone of this entity (the fields "location" and "position" will be used)
  */
 export enum SyncFor {This, Zone}
 
 /**
- * Which emitter should be used?
+ * Who should be the event receiver?
  * - {@link SyncFor} (most commonly used)
  * - A string with the name of a field that contains ID of the recipient user
  * - An object with the names of fields that contain location and position of the recipient zone

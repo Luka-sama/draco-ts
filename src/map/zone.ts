@@ -1,6 +1,6 @@
 import {AnyEntity, EntityClass} from "@mikro-orm/core";
 import CachedObject from "../cache/cached-object.js";
-import {Emitter, UserData} from "../core/ws.typings.js";
+import {Receiver, UserData} from "../core/ws.typings.js";
 import SetUtil from "../util/set-util.js";
 import {Vec2, Vector2} from "../util/vector.embeddable.js";
 import Location from "./location.entity.js";
@@ -18,7 +18,7 @@ import ZoneEntities from "./zone-entities.js";
  * Zone position depends on zone size, but for example, if the zone size is 16x16,
  * the tile with position 12x7 will be in the zone 0x0.
  */
-export default class Zone extends CachedObject implements Emitter {
+export default class Zone extends CachedObject implements Receiver {
 	private loaded = false;
 	private readonly location: Location;
 	private readonly zonePosition: Vector2;
@@ -33,6 +33,13 @@ export default class Zone extends CachedObject implements Emitter {
 	/** Converts a tile position (e.g. the position of a user, a item etc) to a zone position */
 	static getZonePosition(position: Vector2): Vector2 {
 		return Subzone.getZonePosition(position);
+	}
+
+	/** Returns a loaded zone by a given location and zone position */
+	static async get(location: Location, zonePosition: Vector2): Promise<Zone> {
+		const zone = new Zone(location, zonePosition);
+		await zone.load();
+		return zone;
 	}
 
 	/** Returns a loaded zone by a given location and position */
@@ -56,11 +63,27 @@ export default class Zone extends CachedObject implements Emitter {
 		return await Zone.getByPosition(entity.location, entity.position);
 	}
 
-	/** Returns a loaded zone by a given location and zone position */
-	static async get(location: Location, zonePosition: Vector2): Promise<Zone> {
-		const zone = new Zone(location, zonePosition);
-		await zone.load();
-		return zone;
+	/** Returns a (probably) not loaded zone by a given location and position */
+	static getByPositionWithoutLoading(location: Location, position: Vector2): Zone {
+		const zonePosition = Zone.getZonePosition(position);
+		return new Zone(location, zonePosition);
+	}
+
+	/** Returns multiple (probably) not loaded zones by a given location and multiple positions */
+	static getByPositionsWithoutLoading(location: Location, positions: Vector2[]): Set<Zone> {
+		const zones = new Set<Zone>();
+		for (const position of positions) {
+			const zone = Zone.getByPositionWithoutLoading(location, position);
+			if (zone) {
+				zones.add(zone);
+			}
+		}
+		return zones;
+	}
+
+	/** Returns a (probably) not loaded zone by a given entity with location and position */
+	static getByEntityWithoutLoading(entity: AnyEntity): Zone {
+		return Zone.getByPositionWithoutLoading(entity.location, entity.position);
 	}
 
 	/** Collects entities from all given subzones */
@@ -73,23 +96,23 @@ export default class Zone extends CachedObject implements Emitter {
 	/** Returns a list of subzones that are in the given zones */
 	static getSubzonesFrom(zones: Set<Zone>): Set<Subzone> {
 		const subzones = new Set<Subzone>();
-		zones.forEach(zone => SetUtil.merge(subzones, zone.subzones));
+		zones.forEach(zone => SetUtil.merge(subzones, zone.getSubzonesWithoutLoading()));
 		return subzones;
 	}
 
-	/** Returns a list of subzones that are in this zone, but not in the old one */
+	/** Returns a list of subzones that are in `currZones`, but not in `oldZones` */
 	static getNewSubzones(oldZones: Set<Zone>, currZones: Set<Zone>): Set<Subzone> {
 		const currSubzones = Zone.getSubzonesFrom(currZones);
 		const oldSubzones = Zone.getSubzonesFrom(oldZones);
 		return SetUtil.difference(currSubzones, oldSubzones);
 	}
 
-	/** Returns a list of subzones that are in the old zone, but not in this zone */
+	/** Returns a list of subzones that are in `oldZones`, but not in `currZones` */
 	static getLeftSubzones(oldZones: Set<Zone>, currZones: Set<Zone>): Set<Subzone> {
 		return Zone.getNewSubzones(currZones, oldZones);
 	}
 
-	/** Returns a list of subzones that are both in the old zone and in this */
+	/** Returns a list of subzones that are both in `oldZones` and in `currZones` */
 	static getRemainingSubzones(oldZones: Set<Zone>, currZones: Set<Zone>): Set<Subzone> {
 		const currSubzones = Zone.getSubzonesFrom(currZones);
 		const oldSubzones = Zone.getSubzonesFrom(oldZones);
@@ -109,6 +132,15 @@ export default class Zone extends CachedObject implements Emitter {
 			}
 		}
 		return true;
+	}
+
+	static async loadAll(zones: Zone[] | Set<Zone>): Promise<void> {
+		await Promise.all(Array.from(zones).map(zone => zone.load()));
+	}
+
+	/** Updates last access by all cache entries for zones where somebody is online */
+	static stayInCacheIfSomebodyOnline(): void {
+
 	}
 
 	constructor(location: Location, zonePosition: Vector2) {
@@ -139,33 +171,47 @@ export default class Zone extends CachedObject implements Emitter {
 			return;
 		}
 
-		for (let y = -1; y <= 1; y++) {
-			for (let x = -1; x <= 1; x++) {
-				const zonePos = this.zonePosition.add(Vec2(x, y));
-				const subzone = await Subzone.get(this.location, zonePos);
-				this.subzones.add(subzone);
-				if (x == 0 && y == 0) {
-					this.centralSubzone = subzone;
-				}
+		this.subzones = this.getSubzonesWithoutLoading();
+		for (const subzone of this.subzones) {
+			if (subzone.getZonePosition().equals(this.zonePosition)) {
+				this.centralSubzone = subzone;
 			}
 		}
+		await Subzone.loadAll(this.subzones);
 
 		this.loaded = true;
 	}
 
 	/** Returns set with all subzones */
 	getSubzones(): Set<Subzone> {
+		this.checkIfLoaded();
 		return this.subzones;
+	}
+
+	getSubzonesWithoutLoading(): Set<Subzone> {
+		if (this.loaded) {
+			return this.subzones;
+		}
+
+		const subzones = new Set<Subzone>;
+		for (let y = -1; y <= 1; y++) {
+			for (let x = -1; x <= 1; x++) {
+				const zonePos = this.zonePosition.add(Vec2(x, y));
+				const subzone = new Subzone(this.location, zonePos);
+				subzones.add(subzone);
+			}
+		}
+		return subzones;
 	}
 
 	/** Returns the central subzone */
 	getCentralSubzone(): Subzone {
+		this.checkIfLoaded();
 		return this.centralSubzone;
 	}
 
 	emit(event: string, data: UserData = {}): void {
-		this.checkIfLoaded();
-		for (const subzone of this.subzones) {
+		for (const subzone of this.getSubzones()) {
 			subzone.emit(event, data);
 		}
 	}
@@ -176,8 +222,7 @@ export default class Zone extends CachedObject implements Emitter {
 
 	/** Returns `true` if the given position is inside of this zone */
 	isInside(position: Vector2): boolean {
-		this.checkIfLoaded();
-		for (const subzone of this.subzones) {
+		for (const subzone of this.getSubzones()) {
 			if (subzone.isInside(position)) {
 				return true;
 			}
@@ -185,25 +230,30 @@ export default class Zone extends CachedObject implements Emitter {
 		return false;
 	}
 
-	/** Removes en entity from central subzone */
+	/** Removes en entity from central subzone if it is loaded */
 	leave(entity: AnyEntity): void {
-		this.centralSubzone.leave(entity);
+		const centralSubzone = (this.centralSubzone ? this.centralSubzone : new Subzone(this.location, this.zonePosition));
+		if (centralSubzone.isLoaded()) {
+			centralSubzone.leave(entity);
+		}
 	}
 
-	/** Adds en entity to central subzone */
+	/** Adds en entity to central subzone if it is loaded */
 	enter(entity: AnyEntity): void {
-		this.centralSubzone.enter(entity);
+		const centralSubzone = (this.centralSubzone ? this.centralSubzone : new Subzone(this.location, this.zonePosition));
+		if (centralSubzone.isLoaded()) {
+			centralSubzone.enter(entity);
+		}
 	}
 
 	/** Collects entities from all subzones of this zone */
 	getEntities(): ZoneEntities {
-		this.checkIfLoaded();
-		return Zone.getEntitiesFromSubzones(this.subzones);
+		return Zone.getEntitiesFromSubzones(this.getSubzones());
 	}
 
 	/** Returns `true` if some tile is at the given position */
 	hasTile(position: Vector2): boolean {
-		for (const subzone of this.subzones) {
+		for (const subzone of this.getSubzones()) {
 			if (subzone.isInside(position)) {
 				return subzone.hasTile(position);
 			}
@@ -213,7 +263,7 @@ export default class Zone extends CachedObject implements Emitter {
 
 	/** Returns `true` if no user, (big) item etc. takes the tile at the given position */
 	isTileFree(position: Vector2): boolean {
-		for (const subzone of this.subzones) {
+		for (const subzone of this.getSubzones()) {
 			if (subzone.isInside(position)) {
 				return subzone.isTileFree(position);
 			}
@@ -222,7 +272,7 @@ export default class Zone extends CachedObject implements Emitter {
 	}
 
 	getFrom<T extends AnyEntity>(model: EntityClass<T>, position: Vector2): Set<T> {
-		for (const subzone of this.subzones) {
+		for (const subzone of this.getSubzones()) {
 			if (subzone.isInside(position)) {
 				return subzone.getFrom(model, position);
 			}

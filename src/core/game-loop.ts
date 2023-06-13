@@ -35,6 +35,7 @@ export default class GameLoop {
 		for (const task of GameLoop.tasks) {
 			task.untilNextExecutionLeft -= delta;
 			if (task.untilNextExecutionLeft <= 0) {
+				task.untilNextExecutionLeft = Infinity; // Task locking, prevents the simultaneous execution of two identical tasks
 				await RequestContext.createAsync(EM, async function() {
 					try {
 						await task.task(delta);

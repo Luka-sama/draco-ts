@@ -1,8 +1,13 @@
+import {Vec2} from "./vector.embeddable.js";
+
 export default class Const {
 	/** X-coordinate of neighboring tiles */
 	static readonly NEIGHBORING_X = [0, -1, 1];
 	/** Y-coordinate of neighboring tiles (for staggered maps) */
 	static readonly NEIGHBORING_Y = [0, -1, 1, -2, 2];
+
+	/** Subzone size (in tiles) */
+	static readonly SUBZONE_SIZE = Vec2(16, 32);
 
 	/** How often the game loop is executed */
 	static readonly GAME_LOOP_FREQUENCY_MS = 16;
@@ -15,8 +20,8 @@ export default class Const {
 	 */
 	static readonly CACHE_DEFAULT_DURATION_MS = 5000;
 
-	/** Sync all updates with clients every .. ms */
-	static readonly SYNC_FREQUENCY_MS = 10;
+	/** Sync all updates with clients every .. ms. It makes no sense to set this value lower than GAME_LOOP_FREQUENCY_MS */
+	static readonly SYNC_FREQUENCY_MS = 16;
 
 	/** Walk speed (tiles per second) */
 	static readonly MOVEMENT_WALK_SPEED = 7;
@@ -38,10 +43,16 @@ export default class Const {
 	static readonly LIGHTS_MIN_SPEED = 7;
 	/** Lights group max speed (tiles per second) */
 	static readonly LIGHTS_MAX_SPEED = 15;
-	/** The probability (from 0 to 100) that a lights group will take a random direction */
+	/** The probability (from 0 to 100) that a lights group will take a random direction (i.e. not to target or from target) */
 	static readonly LIGHTS_RANDOM_DIRECTION_PROBABILITY = 25;
 	/** The max possible distance from the target mage (the more, the greater the load on the server may be) */
 	static readonly LIGHTS_MAX_POSSIBLE_DISTANCE_FROM_TARGET = 4;
-	/** The probability (from 0 to 100) that a lights group will change their direction after the movement */
+	/** The probability (from 0 to 100) that a lights group will change their direction and speed after a movement */
 	static readonly LIGHTS_DIRECTION_CHANGE_PROBABILITY = 33;
+	/** The strict min distance (in tiles) to the target mage (if not controled by him). The lights group will definitely fly away */
+	static readonly LIGHTS_STRICT_MIN_DISTANCE_TO_TARGET = 3;
+	/** The soft min distance (in tiles) to the target mage (if not controled by him). The lights group may fly away */
+	static readonly LIGHTS_SOFT_MIN_DISTANCE_TO_TARGET = 5;
+	/** The maximum value by which the speed of a lights group can change at one time */
+	static readonly LIGHTS_MAX_SPEED_CHANGE = 2;
 }

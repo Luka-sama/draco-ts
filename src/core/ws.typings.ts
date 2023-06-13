@@ -19,8 +19,8 @@ export interface WSData {
 	data: UserData;
 }
 
-/** Anything that can emit (user, zone etc) */
-export interface Emitter {
+/** Anything you can emit events to (user, zone etc) */
+export interface Receiver {
 	/** Sends a message wrapped in the interface WSData */
 	emit(event: string, data?: UserData): void;
 
@@ -29,7 +29,7 @@ export interface Emitter {
 }
 
 /** WebSocket with additional properties */
-export interface Socket extends uWS.WebSocket, Emitter {
+export interface Socket extends uWS.WebSocket, Receiver {
 	account?: Account;
 	user?: User;
 }

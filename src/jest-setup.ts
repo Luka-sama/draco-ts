@@ -20,7 +20,6 @@ declare global {
 global.sck = mock<Socket>();
 global.guestArgs = {sck, raw: {}};
 
-Cache.init();
 Tr.init(true);
 
 beforeAll(async () => {

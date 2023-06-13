@@ -3,7 +3,7 @@ import {WeakCachedEntity} from "../cache/cached-entity.js";
 import {Sync} from "../core/sync.decorator.js";
 import {syncTrack} from "../core/sync.js";
 import {SyncFor} from "../core/sync.typings.js";
-import {Emitter, Socket, UserData} from "../core/ws.typings.js";
+import {Receiver, Socket, UserData} from "../core/ws.typings.js";
 import Item from "../item/item.entity.js";
 import Location from "../map/location.entity.js";
 import Const from "../util/const.js";
@@ -16,7 +16,7 @@ import Account from "./account.entity.js";
  * Every {@link Account | account} can have multiple users.
  */
 @Entity()
-export default class User extends WeakCachedEntity implements Emitter {
+export default class User extends WeakCachedEntity implements Receiver {
 	@Unique()
 	@Property()
 	@Sync(SyncFor.Zone)

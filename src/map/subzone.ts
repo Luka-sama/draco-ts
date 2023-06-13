@@ -5,21 +5,20 @@ import User from "../auth/user.entity.js";
 import {WeakCachedObject} from "../cache/cached-object.js";
 import {EM} from "../core/orm.js";
 import {UserContainer} from "../core/sync.typings.js";
-import {Emitter, UserData} from "../core/ws.typings.js";
+import {Receiver, UserData} from "../core/ws.typings.js";
 import Item from "../item/item.entity.js";
-import LightsGroup from "../magic/lights-group.entity.js";
+import Const from "../util/const.js";
 import {Vec2, Vector2} from "../util/vector.embeddable.js";
 import Location from "./location.entity.js";
 import Tile from "./tile.entity.js";
-import ZoneEntities from "./zone-entities.js";
+import ZoneEntities, {EntityInfo} from "./zone-entities.js";
 
 /**
  * Subzone class
  *
  * See {@link Zone} for details.
  */
-export default class Subzone extends WeakCachedObject implements Emitter, UserContainer {
-	static readonly SIZE = Vec2(16, 32);
+export default class Subzone extends WeakCachedObject implements Receiver, UserContainer {
 	private loaded = false;
 	private loading = false;
 	private waiting: (() => void)[] = [];
@@ -28,11 +27,11 @@ export default class Subzone extends WeakCachedObject implements Emitter, UserCo
 	private entities: ZoneEntities = new ZoneEntities();
 	/** Returns position of the start tile (included in this zone) */
 	private get start(): Vector2 {
-		return this.zonePosition.mul(Subzone.SIZE);
+		return this.zonePosition.mul(Const.SUBZONE_SIZE);
 	}
 	/** Returns position of the last tile plus (1, 1), i.e. not included in this zone */
 	private get end(): Vector2 {
-		return this.start.add(Subzone.SIZE);
+		return this.start.add(Const.SUBZONE_SIZE);
 	}
 
 	/** Returns the name of a subzone with the given location and zone position */
@@ -42,7 +41,7 @@ export default class Subzone extends WeakCachedObject implements Emitter, UserCo
 
 	/** Converts a tile position (e.g. the position of a user, a item etc) to a zone position */
 	static getZonePosition(position: Vector2): Vector2 {
-		return position.intdiv(Subzone.SIZE);
+		return position.intdiv(Const.SUBZONE_SIZE);
 	}
 
 	/** Returns a loaded subzone by a given location and zone position */
@@ -50,6 +49,10 @@ export default class Subzone extends WeakCachedObject implements Emitter, UserCo
 		const subzone = new Subzone(location, zonePosition);
 		await subzone.load();
 		return subzone;
+	}
+
+	static async loadAll(zones: Subzone[] | Set<Subzone>): Promise<void> {
+		await Promise.all(Array.from(zones).map(zone => zone.load()));
 	}
 
 	constructor(location: Location, position: Vector2) {
@@ -83,6 +86,15 @@ export default class Subzone extends WeakCachedObject implements Emitter, UserCo
 		return Subzone.getNameFor(this.location, this.zonePosition);
 	}
 
+	isLoaded(): boolean {
+		return this.loaded;
+	}
+
+	/** Returns the zone position of this subzone */
+	getZonePosition(): Vector2 {
+		return this.zonePosition;
+	}
+
 	emit(event: string, data: UserData = {}): void {
 		for (const user of this.getUsers()) {
 			user.emit(event, data);
@@ -107,11 +119,13 @@ export default class Subzone extends WeakCachedObject implements Emitter, UserCo
 
 	/** Removes en entity from this subzone */
 	leave(entity: AnyEntity): void {
+		this.checkIfLoaded();
 		this.entities.delete(entity);
 	}
 
 	/** Adds en entity to this subzone */
 	enter(entity: AnyEntity): void {
+		this.checkIfLoaded();
 		this.entities.enter(entity);
 	}
 
@@ -173,12 +187,12 @@ export default class Subzone extends WeakCachedObject implements Emitter, UserCo
 	}
 
 	/** Returns a list of ids for objects that have a shape (such as items), i.e. occupy several tiles */
-	private async getIdsOfShapedObjects(table: string, partTable: string, foreignKey: string, partForeignKey = foreignKey): Promise<number[]> {
-		const query = `SELECT DISTINCT ${table}.id FROM ${table}
-INNER JOIN ${partTable} ON ${partTable}.${partForeignKey}=${table}.${foreignKey} WHERE
-${table}.location_id = ? AND
-${partTable}.x + ${table}.x >= ? AND ${partTable}.x + ${table}.x < ? AND
-${partTable}.y + ${table}.y >= ? AND ${partTable}.y + ${table}.y < ?`;
+	private async getIdsOfShapedObjects(info: EntityInfo): Promise<number[]> {
+		const query = `SELECT DISTINCT ${info.table}.id FROM ${info.table}
+INNER JOIN ${info.partTable} ON ${info.partTable}.${info.partForeignKey || info.foreignKey}=${info.table}.${info.foreignKey} WHERE
+${info.table}.location_id = ? AND
+${info.partTable}.x + ${info.table}.x >= ? AND ${info.partTable}.x + ${info.table}.x < ? AND
+${info.partTable}.y + ${info.table}.y >= ? AND ${info.partTable}.y + ${info.table}.y < ?`;
 		const params = [this.location.id, this.start.x, this.end.x, this.start.y, this.end.y];
 		return (await EM.execute(query, params)).map(el => el.id);
 	}
@@ -192,12 +206,13 @@ ${partTable}.y + ${table}.y >= ? AND ${partTable}.y + ${table}.y < ?`;
 		const orderBy = {id: QueryOrder.ASC};
 		const entities = this.entities;
 
-		const itemIds = await this.getIdsOfShapedObjects("item", "item_shape_part", "type_id");
-		const lightsGroupIds = await this.getIdsOfShapedObjects("lights_group", "light", "id", "lights_group_id");
-
-		entities.set(Tile, await EM.find(Tile, where, {orderBy, populate: true}) );
-		entities.set(User, await EM.find(User, where, {orderBy, populate: true}) );
-		entities.set(Item, await EM.find(Item, {id: itemIds}, {orderBy, populate: true}) );
-		entities.set(LightsGroup, await EM.find(LightsGroup, {id: lightsGroupIds}, {orderBy, populate: true}) );
+		for (const [entity, entityInfo] of ZoneEntities.getEntitiesInfo()) {
+			if (entityInfo.table) {
+				const entityIds = await this.getIdsOfShapedObjects(entityInfo);
+				entities.set(entity, await EM.find(entity, {id: entityIds}, {orderBy, populate: true}) );
+			} else {
+				entities.set(entity, await EM.find(entity, where, {orderBy, populate: true}) );
+			}
+		}
 	}
 }

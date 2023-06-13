@@ -1,8 +1,12 @@
+import {RequestContext} from "@mikro-orm/core";
 import {glob} from "glob";
 import Cache from "../cache/cache.js";
+import Magic from "../magic/magic.js";
 import Deploy from "../map/deploy.js";
+import Const from "../util/const.js";
 import GameLoop from "./game-loop.js";
-import ORM from "./orm.js";
+import ORM, {EM} from "./orm.js";
+import Synchronizer from "./sync.js";
 import Tr from "./tr.js";
 import WS from "./ws.js";
 
@@ -19,19 +23,25 @@ export default class App {
 
 		App.catchExceptions();
 		Tr.init();
-		Cache.init();
 		await App.autoimport();
 		await ORM.init();
 		GameLoop.init();
 		WS.init();
 		Deploy.init();
+		App.addGlobalTasks();
+		await RequestContext.createAsync(EM, async function() {
+			await Magic.init();
+		});
 		/*await RequestContext.createAsync(EM, async function() {
-			const users = await EM.find(User, {});
-			for (const user of users) {
-				await Magic.createLightsForMage(user);
-			}
+			await Magic.createLightsForAll();
 			await EM.flush();
 		});*/
+	}
+
+	private static addGlobalTasks() {
+		GameLoop.addTask(Cache.clean, Const.CACHE_CLEAN_FREQUENCY_MS);
+		GameLoop.addTask(Synchronizer.synchronize, Const.SYNC_FREQUENCY_MS);
+		GameLoop.addTask(Magic.moveAllLightsGroups);
 	}
 
 	/** Auto-import to make @OnlyLogged() and other decorators to work without explicit import */
@@ -48,7 +58,7 @@ export default class App {
 
 	/** Catches uncaught exceptions and unhandled rejections */
 	private static catchExceptions(): void {
-		Error.stackTraceLimit = 25;
+		Error.stackTraceLimit = 100;
 
 		process.on("uncaughtException", error => {
 			console.error(`Uncaught exception [${new Date()}]:\r\n${error.stack}`);

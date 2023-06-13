@@ -142,9 +142,9 @@ export default class Auth {
 	}
 
 	@OnlyLogged()
-	static async startGame({user}: LoggedArgs): Promise<void> {
+	static startGame({user, zone}: LoggedArgs): void {
 		user.emit("my_id", {myId: user.id});
-		await Synchronizer.firstSync(user);
+		Synchronizer.firstSync(user, zone);
 	}
 
 	private static async generateToken(): Promise<string> {

@@ -72,6 +72,23 @@ export class Vector2 {
 		return (this.x == v.x && this.y == v.y);
 	}
 
+	/** Returns squared distance between two vectors */
+	distanceSquaredTo(v: Vector2, staggeredMap = true): number {
+		const diffX = v.x - this.x;
+		const diffY = (v.y - this.y) / (staggeredMap ? 2 : 1);
+		return Math.pow(diffX, 2) + Math.pow(diffY, 2);
+	}
+
+	/** Returns distance between two vectors */
+	distanceTo(v: Vector2, staggeredMap = true): number {
+		return Math.sqrt(this.distanceSquaredTo(v, staggeredMap));
+	}
+
+	/** Returns this vector with absolute values calculated for each coordinate */
+	abs(): Vector2 {
+		return new Vector2(Math.abs(this.x), Math.abs(this.y));
+	}
+
 	/** Converts this vector to a plain object. Used by {@link WS.prepare | WS.prepare} to prepare data before sending to the user */
 	toPlain(): IVector2 {
 		return {x: this.x, y: this.y};

@@ -201,7 +201,6 @@ export abstract class CachedEntity {
 			}
 		}
 
-
 		return cached;
 	}
 

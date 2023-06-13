@@ -1,7 +1,6 @@
 import _ from "lodash";
 import User from "../auth/user.entity.js";
-import GameLoop from "../core/game-loop.js";
-import ORM from "../core/orm.js";
+import ORM, {EM} from "../core/orm.js";
 import Location from "../map/location.entity.js";
 import Zone from "../map/zone.js";
 import Const from "../util/const.js";
@@ -11,30 +10,79 @@ import LightsGroup from "./lights-group.entity.js";
 
 /** Magic and lights controller */
 export default class Magic {
+	private static allLightsGroups: LightsGroup[] = [];
+
+	public static async init(): Promise<void> {
+		Magic.allLightsGroups = await EM.find(LightsGroup, {}, {populate: true});
+	}
+
+	public static moveAllLightsGroups(): void {
+		const now = Date.now();
+		ORM.register(Magic.allLightsGroups);
+		for (const lightsGroup of Magic.allLightsGroups) {
+			const frequency = 1000 / lightsGroup.speed;
+			if (now - lightsGroup.lastMovement < frequency) {
+				continue;
+			}
+			lightsGroup.lastMovement = now;
+			Magic.moveLightsGroup(lightsGroup);
+		}
+	}
+
 	public static async createLightsForMage(user: User): Promise<void> {
 		for (let i = 0; i < Const.LIGHTS_GROUPS_PER_USER; i++) {
 			await Magic.createLightsGroupForMage(user);
 		}
 	}
 
-	public static addMovementTask(lightsGroup: LightsGroup): void {
-		GameLoop.addTask(() => {
-			ORM.register(lightsGroup);
-			lightsGroup.position = lightsGroup.position.add(lightsGroup.direction);
-			const shouldChangeDirection = _.random(1, 100) <= Const.LIGHTS_DIRECTION_CHANGE_PROBABILITY;
-			if (shouldChangeDirection) {
-				lightsGroup.direction = Magic.generateLightsDirection(lightsGroup.position, lightsGroup.targetMage, lightsGroup.toTarget);
-			}
-		}, 1000 / lightsGroup.speed);
+	public static generateLightsDirection(from: Vector2, user: User, toTarget = true): Vector2 {
+		let dir: Vector2;
+		const shouldTakeRandomDirection = _.random(1, 100) <= Const.LIGHTS_RANDOM_DIRECTION_PROBABILITY;
+		if (shouldTakeRandomDirection) {
+			dir = Vec2(_.random(-1, 1), _.random(-1, 1));
+		} else {
+			dir = user.position.sub(from).sign();
+			dir = (toTarget ? dir : dir.negated());
+		}
+		dir = (dir.equals(Vec2(0)) ? Vec2(1) : dir); // Lights should not stop
+		return dir;
 	}
 
-	public static generateLightsDirection(from: Vector2, user: User, toTarget = true): Vector2 {
-		const randomDirection = _.random(1, 100) <= Const.LIGHTS_RANDOM_DIRECTION_PROBABILITY;
-		if (randomDirection) {
-			return Vec2(_.random(-1, 1), _.random(-1, 1));
+	public static async createLightsForAll(): Promise<void> {
+		const users = await EM.find(User, {});
+		for (const user of users) {
+			await Magic.createLightsForMage(user);
 		}
-		const dir = user.position.sub(from).sign();
-		return (toTarget ? dir : dir.negated());
+	}
+
+	private static moveLightsGroup(lightsGroup: LightsGroup): void {
+		lightsGroup.position = lightsGroup.position.add(lightsGroup.direction);
+		const distanceToMage = lightsGroup.position.distanceSquaredTo(lightsGroup.targetMage.position);
+		const strictMinDistance = Math.pow(Const.LIGHTS_STRICT_MIN_DISTANCE_TO_TARGET, 2);
+		const softMinDistance = Math.pow(Const.LIGHTS_SOFT_MIN_DISTANCE_TO_TARGET, 2);
+
+		if (distanceToMage <= strictMinDistance) {
+			lightsGroup.toTarget = false;
+		} else if (distanceToMage <= softMinDistance && _.random(0, 1)) {
+			lightsGroup.toTarget = false;
+		} else if (distanceToMage > softMinDistance && !lightsGroup.toTarget && !lightsGroup.markedForDeletion) {
+			const lightsZonePosition = Zone.getZonePosition(lightsGroup.position);
+			const userZonePosition = Zone.getZonePosition(lightsGroup.targetMage.position);
+			const diff = lightsZonePosition.sub(userZonePosition).abs();
+			if (diff.x > 1 && diff.y > 1) {
+				lightsGroup.toTarget = true;
+			}
+		}
+
+		const shouldChangeDirection = _.random(1, 100) <= Const.LIGHTS_DIRECTION_CHANGE_PROBABILITY;
+		if (shouldChangeDirection) {
+			lightsGroup.direction = Magic.generateLightsDirection(lightsGroup.position, lightsGroup.targetMage, lightsGroup.toTarget);
+			lightsGroup.speed = _.clamp(
+				lightsGroup.speed + _.random(-Const.LIGHTS_MAX_SPEED_CHANGE, Const.LIGHTS_MAX_SPEED_CHANGE),
+				Const.LIGHTS_MIN_SPEED,
+				Const.LIGHTS_MAX_SPEED
+			);
+		}
 	}
 
 	private static async createLightsGroupForMage(user: User): Promise<void> {
@@ -49,6 +97,7 @@ export default class Magic {
 			const light = new Light(lightsGroup, part);
 			ORM.register(light);
 		}
+		Magic.allLightsGroups.push(lightsGroup);
 	}
 
 	private static generateLightsShape(): Vector2[] {
@@ -61,11 +110,7 @@ export default class Magic {
 				for (const x of Const.NEIGHBORING_X) {
 					const possibleDirection = Vec2(x, y);
 					const possiblePart = lastPart.add(possibleDirection);
-					if (
-						possiblePart.x >= 0 && possiblePart.y >= 0 &&
-						(x != 0 || y != 0) &&
-						!shape.some(part => part.equals(possiblePart))
-					) {
+					if (possiblePart.x >= 0 && possiblePart.y >= 0 && (x != 0 || y != 0) && !possiblePart.isElementOf(shape)) {
 						possibleDirections.push(possibleDirection);
 					}
 				}

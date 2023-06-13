@@ -1,4 +1,3 @@
-import GameLoop from "../core/game-loop.js";
 import Const from "../util/const.js";
 import {CacheOptions} from "./cache.typings.js";
 
@@ -38,18 +37,7 @@ type Subtree = Entry | Map<string, Subtree>;
  */
 export default class Cache {
 	private static entries = new Map<string, Subtree>;
-	private static started = false;
-	private static finalizationRegistry: FinalizationRegistry<any>;
-
-	/** Initializes cache */
-	static init(): void {
-		if (Cache.started) {
-			return;
-		}
-		Cache.started = true;
-		Cache.finalizationRegistry = new FinalizationRegistry(Cache.delete);
-		GameLoop.addTask(Cache.clean, Const.CACHE_CLEAN_FREQUENCY_MS);
-	}
+	private static finalizationRegistry = new FinalizationRegistry<any>(Cache.delete);
 
 	/** Returns `true` if cache has an entry with the given name */
 	static has(name: string): boolean {
@@ -60,6 +48,34 @@ export default class Cache {
 	static get(name: string, defaultValue: any = null): any {
 		const {hasEntry, value} = Cache.searchFor(name);
 		return (hasEntry ? value : defaultValue);
+	}
+
+	/** Returns all entries that begin with the given name */
+	static getLeaves(name: string): any[] {
+		const result: any[] = [];
+		const {parent, leaf} = Cache.searchFor(name);
+		const root = parent.get(leaf);
+		if (!root) {
+			return result;
+		}
+
+		const queue = [root];
+		while (queue.length > 0) {
+			const node = queue.pop();
+			if (node instanceof Map) {
+				for (const nextNode of node.values()) {
+					queue.push(nextNode);
+				}
+			} else if (node && node.options.weak) {
+				const value = node.value.deref();
+				if (value) {
+					result.push(value);
+				}
+			} else if (node) {
+				result.push(node.value);
+			}
+		}
+		return result;
 	}
 
 	/** Sets a value and options for an entry with the given name */
@@ -85,7 +101,7 @@ export default class Cache {
 	}
 
 	/** Cleans all expired entries */
-	private static clean(): void {
+	static clean(): void {
 		Cache.cleanSubtree(Cache.entries);
 	}
 

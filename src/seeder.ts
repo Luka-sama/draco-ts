@@ -83,6 +83,7 @@ export default class Seeder {
 				position: Vec2(faker.datatype.number({min: 1, max: 30}), faker.datatype.number({min: 1, max: 15}) * 2),
 				speed: Const.MOVEMENT_WALK_SPEED,
 				connected: false,
+				hadFirstSync: false,
 			}) );
 		}
 
