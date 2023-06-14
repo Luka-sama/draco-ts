@@ -50,7 +50,7 @@ export default class Cache {
 		return (hasEntry ? value : defaultValue);
 	}
 
-	/** Returns all entries that begin with the given name */
+	/** Returns all entries that begin with the given name. Does not update last access time */
 	static getLeaves(name: string): any[] {
 		const result: any[] = [];
 		const {parent, leaf} = Cache.searchFor(name);

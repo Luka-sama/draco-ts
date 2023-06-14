@@ -86,8 +86,14 @@ export default class Subzone extends WeakCachedObject implements Receiver, UserC
 		return Subzone.getNameFor(this.location, this.zonePosition);
 	}
 
+	/** Returns if this subzone is loaded */
 	isLoaded(): boolean {
 		return this.loaded;
+	}
+
+	/** Returns the location of this subzone */
+	getLocation(): Location {
+		return this.location;
 	}
 
 	/** Returns the zone position of this subzone */
@@ -111,6 +117,11 @@ export default class Subzone extends WeakCachedObject implements Receiver, UserC
 		return this.entities;
 	}
 
+	/** Returns all entities from this subzone (probably not loaded) */
+	getEntitiesWithoutLoading(): ZoneEntities {
+		return this.entities;
+	}
+
 	/** Returns all users from this subzone */
 	getUsers(): Set<User> {
 		this.checkIfLoaded();
@@ -127,6 +138,11 @@ export default class Subzone extends WeakCachedObject implements Receiver, UserC
 	enter(entity: AnyEntity): void {
 		this.checkIfLoaded();
 		this.entities.enter(entity);
+	}
+
+	/** Checks if somebody in this subzone is online */
+	isSomebodyOnline(): boolean {
+		return (this.loaded ? [...this.getUsers()].some(user => user.connected) : false);
 	}
 
 	/** Returns `true` if the given position is inside of this subzone */

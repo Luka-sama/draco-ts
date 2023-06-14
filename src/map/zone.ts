@@ -1,4 +1,6 @@
 import {AnyEntity, EntityClass} from "@mikro-orm/core";
+import User from "../auth/user.entity.js";
+import Cache from "../cache/cache.js";
 import CachedObject from "../cache/cached-object.js";
 import {Receiver, UserData} from "../core/ws.typings.js";
 import SetUtil from "../util/set-util.js";
@@ -93,6 +95,13 @@ export default class Zone extends CachedObject implements Receiver {
 		return zoneEntities;
 	}
 
+	/** Collects entities from all given subzones */
+	static getEntitiesFromSubzonesWithoutLoading(subzones: Set<Subzone>): ZoneEntities {
+		const zoneEntities = new ZoneEntities();
+		subzones.forEach(subzone => zoneEntities.merge(subzone.getEntitiesWithoutLoading()));
+		return zoneEntities;
+	}
+
 	/** Returns a list of subzones that are in the given zones */
 	static getSubzonesFrom(zones: Set<Zone>): Set<Subzone> {
 		const subzones = new Set<Subzone>();
@@ -138,9 +147,14 @@ export default class Zone extends CachedObject implements Receiver {
 		await Promise.all(Array.from(zones).map(zone => zone.load()));
 	}
 
-	/** Updates last access by all cache entries for zones where somebody is online */
-	static stayInCacheIfSomebodyOnline(): void {
-
+	/** Updates last access time for all cache entries of subzones where somebody is online */
+	public static stayInCacheIfSomebodyIsOnline(): void {
+		const zones: Zone[] = Cache.getLeaves("zone");
+		for (const zone of zones) {
+			if (zone.isSomebodyOnline()) {
+				Cache.get(zone.getName());
+			}
+		}
 	}
 
 	constructor(location: Location, zonePosition: Vector2) {
@@ -153,6 +167,11 @@ export default class Zone extends CachedObject implements Receiver {
 	/** Returns the name of this zone */
 	getName(): string {
 		return Zone.getNameFor(this.location, this.zonePosition);
+	}
+
+	/** Returns if this zone is loaded */
+	isLoaded(): boolean {
+		return this.loaded;
 	}
 
 	/** Returns the location of this zone */
@@ -210,6 +229,11 @@ export default class Zone extends CachedObject implements Receiver {
 		return this.centralSubzone;
 	}
 
+	/** Returns the central subzone (probably not loaded) */
+	getCentralSubzoneWithoutLoading(): Subzone {
+		return (this.centralSubzone ? this.centralSubzone : new Subzone(this.location, this.zonePosition));
+	}
+
 	emit(event: string, data: UserData = {}): void {
 		for (const subzone of this.getSubzones()) {
 			subzone.emit(event, data);
@@ -232,7 +256,7 @@ export default class Zone extends CachedObject implements Receiver {
 
 	/** Removes en entity from central subzone if it is loaded */
 	leave(entity: AnyEntity): void {
-		const centralSubzone = (this.centralSubzone ? this.centralSubzone : new Subzone(this.location, this.zonePosition));
+		const centralSubzone = this.getCentralSubzoneWithoutLoading();
 		if (centralSubzone.isLoaded()) {
 			centralSubzone.leave(entity);
 		}
@@ -240,7 +264,7 @@ export default class Zone extends CachedObject implements Receiver {
 
 	/** Adds en entity to central subzone if it is loaded */
 	enter(entity: AnyEntity): void {
-		const centralSubzone = (this.centralSubzone ? this.centralSubzone : new Subzone(this.location, this.zonePosition));
+		const centralSubzone = this.getCentralSubzoneWithoutLoading();
 		if (centralSubzone.isLoaded()) {
 			centralSubzone.enter(entity);
 		}
@@ -249,6 +273,31 @@ export default class Zone extends CachedObject implements Receiver {
 	/** Collects entities from all subzones of this zone */
 	getEntities(): ZoneEntities {
 		return Zone.getEntitiesFromSubzones(this.getSubzones());
+	}
+
+	/** Collects entities from all already loaded subzones of this zone */
+	getEntitiesWithoutLoading(): ZoneEntities {
+		return Zone.getEntitiesFromSubzonesWithoutLoading(this.getSubzonesWithoutLoading());
+	}
+
+	/** Returns all users from this zone */
+	getUsers(): Set<User> {
+		return this.getEntities().get(User);
+	}
+
+	/** Returns all already loaded users from this zone */
+	getUsersWithoutLoading(): Set<User> {
+		return this.getEntitiesWithoutLoading().get(User);
+	}
+
+	/** Checks if somebody in this subzone is online. Be careful: even if someone is online, the zone may not be fully loaded yet. */
+	isSomebodyOnline(): boolean {
+		for (const subzone of this.subzones) {
+			if (subzone.isSomebodyOnline()) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/** Returns `true` if some tile is at the given position */

@@ -1,25 +1,32 @@
 import _ from "lodash";
 import User from "../auth/user.entity.js";
+import Cache from "../cache/cache.js";
 import ORM, {EM} from "../core/orm.js";
 import Location from "../map/location.entity.js";
 import Zone from "../map/zone.js";
 import Const from "../util/const.js";
+import SetUtil from "../util/set-util.js";
 import {Vec2, Vector2} from "../util/vector.embeddable.js";
 import Light from "./light.entity.js";
 import LightsGroup from "./lights-group.entity.js";
 
 /** Magic and lights controller */
 export default class Magic {
-	private static allLightsGroups: LightsGroup[] = [];
-
-	public static async init(): Promise<void> {
-		Magic.allLightsGroups = await EM.find(LightsGroup, {}, {populate: true});
-	}
-
 	public static moveAllLightsGroups(): void {
+		const zones = (Cache.getLeaves("zone") as Zone[]).filter(zone => zone.isSomebodyOnline());
+		const lightsGroups = new Set<LightsGroup>;
+		for (const zone of zones) {
+			SetUtil.merge(lightsGroups, zone.getEntitiesWithoutLoading().get(LightsGroup));
+			for (const user of zone.getUsersWithoutLoading()) {
+				for (const lightsGroup of user.lightsGroups) {
+					lightsGroups.add(lightsGroup);
+				}
+			}
+		}
+
 		const now = Date.now();
-		ORM.register(Magic.allLightsGroups);
-		for (const lightsGroup of Magic.allLightsGroups) {
+		ORM.register(lightsGroups);
+		for (const lightsGroup of lightsGroups) {
 			const frequency = 1000 / lightsGroup.speed;
 			if (now - lightsGroup.lastMovement < frequency) {
 				continue;
@@ -29,9 +36,31 @@ export default class Magic {
 		}
 	}
 
-	public static async createLightsForMage(user: User): Promise<void> {
+	public static async createLightsForAll(): Promise<void> {
+		const users = await EM.find(User, {});
+		for (const user of users) {
+			const zone = await Zone.getByEntity(user);
+			await Magic.createLightsForMage(user, zone);
+		}
+	}
+
+	public static createLightsForMage(user: User, zone: Zone): void {
 		for (let i = 0; i < Const.LIGHTS_GROUPS_PER_USER; i++) {
-			await Magic.createLightsGroupForMage(user);
+			Magic.createLightsGroupForMage(user, zone);
+		}
+	}
+
+	public static createLightsGroupForMage(user: User, zone: Zone): void {
+		const shape = Magic.generateLightsShape();
+		const speed = _.random(Const.LIGHTS_MIN_SPEED, Const.LIGHTS_MAX_SPEED);
+		const position = Magic.generateLightsPosition(user, zone);
+		const direction = Magic.generateLightsDirection(position, user);
+
+		const lightsGroup = new LightsGroup(speed, direction, user.location, position, user);
+		ORM.register(lightsGroup);
+		for (const part of shape) {
+			const light = new Light(lightsGroup, part);
+			ORM.register(light);
 		}
 	}
 
@@ -46,13 +75,6 @@ export default class Magic {
 		}
 		dir = (dir.equals(Vec2(0)) ? Vec2(1) : dir); // Lights should not stop
 		return dir;
-	}
-
-	public static async createLightsForAll(): Promise<void> {
-		const users = await EM.find(User, {});
-		for (const user of users) {
-			await Magic.createLightsForMage(user);
-		}
 	}
 
 	private static moveLightsGroup(lightsGroup: LightsGroup): void {
@@ -85,21 +107,6 @@ export default class Magic {
 		}
 	}
 
-	private static async createLightsGroupForMage(user: User): Promise<void> {
-		const shape = Magic.generateLightsShape();
-		const speed = _.random(Const.LIGHTS_MIN_SPEED, Const.LIGHTS_MAX_SPEED);
-		const position = await Magic.generateLightsPosition(user);
-		const direction = Magic.generateLightsDirection(position, user);
-
-		const lightsGroup = new LightsGroup(speed, direction, user.location, position, user);
-		ORM.register(lightsGroup);
-		for (const part of shape) {
-			const light = new Light(lightsGroup, part);
-			ORM.register(light);
-		}
-		Magic.allLightsGroups.push(lightsGroup);
-	}
-
 	private static generateLightsShape(): Vector2[] {
 		let lastPart = Vec2(0, 0);
 		const shape = [lastPart];
@@ -128,22 +135,20 @@ export default class Magic {
 		return shape;
 	}
 
-	private static async generateLightsPosition(user: User): Promise<Vector2> {
-		const userZone = await Zone.getByEntity(user);
-		const lightsZone = await Magic.getNextZoneWithoutMages(user.location, userZone);
-		return lightsZone.getCentralSubzone().getRandomPositionInside();
+	private static generateLightsPosition(user: User, userZone: Zone): Vector2 {
+		const lightsZone = Magic.getNextZoneWithoutMages(user.location, userZone);
+		return lightsZone.getCentralSubzoneWithoutLoading().getRandomPositionInside();
 	}
 
-	private static async getNextZoneWithoutMages(location: Location, centerZone: Zone): Promise<Zone> {
+	private static getNextZoneWithoutMages(location: Location, centerZone: Zone): Zone {
 		const centerZonePosition = centerZone.getZonePosition();
 		let zoneToCheck = centerZone;
 		for (let distance = 1; distance <= Const.LIGHTS_MAX_POSSIBLE_DISTANCE_FROM_TARGET; distance++) {
 			for (let x = -distance; x <= distance; x++) {
 				for (let y = -distance; y <= distance; y++) {
 					if (Math.abs(x) === distance || Math.abs(y) === distance) {
-						zoneToCheck = await Zone.get(location, centerZonePosition.add(Vec2(x, y)));
-						const zoneUsers = zoneToCheck.getEntities().get(User);
-						if ([...zoneUsers].filter(user => user.connected).length < 1) {
+						zoneToCheck = new Zone(location, centerZonePosition.add(Vec2(x, y)));
+						if (!zoneToCheck.isSomebodyOnline()) {
 							return zoneToCheck;
 						}
 					}

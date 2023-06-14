@@ -172,6 +172,7 @@ export abstract class CachedEntity {
 	 * If it is cached, returns the cached instance instead.
 	 * If a reference (e.g. user.account) is not loaded in the cached instance, but is loaded in this,
 	 * replaces the reference with the loaded one.
+	 * In addition, the redundant instance will be removed from collections of other entities.
 	 * Also, the flags (initialized and touched) and collections are saved to restore them later in {@link setInternalProps}.
 	 *
 	 * Should be public and not protected because TypeScript behaves strange if it is protected (e.g. in `sck.user = user;`).
@@ -195,6 +196,21 @@ export abstract class CachedEntity {
 				(this[property] as any).id == cached[property].id &&
 				!wrap(cached[property]).isInitialized()) {
 				cached[property] = this[property];
+			}
+
+			// TODO: this (probably) works only very limited
+			// (if both entities have collections referencing to each other and the relation is ManyToOne/OneToMany)
+			if (wrap(cached[property]) instanceof WrappedEntity) {
+				const reference: AnyEntity = cached[property];
+				const relations = EM.getMetadata().get(reference.constructor.name).relations;
+				for (const relation of relations) {
+					if (relation.type == this.constructor.name) {
+						const collection = reference[relation.name];
+						if (collection.isInitialized()) {
+							reference[relation.name].remove(this);
+						}
+					}
+				}
 			}
 			if (wrappedCached instanceof Collection && wrappedCached.isInitialized()) {
 				cached.__collections.set(property, cached[property]);

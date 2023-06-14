@@ -5,6 +5,7 @@ import {syncTrack} from "../core/sync.js";
 import {SyncFor} from "../core/sync.typings.js";
 import {Receiver, Socket, UserData} from "../core/ws.typings.js";
 import Item from "../item/item.entity.js";
+import LightsGroup from "../magic/lights-group.entity.js";
 import Location from "../map/location.entity.js";
 import Const from "../util/const.js";
 import {Vector2} from "../util/vector.embeddable.js";
@@ -40,6 +41,9 @@ export default class User extends WeakCachedEntity implements Receiver {
 
 	@OneToMany({mappedBy: (item: Item) => item.holder})
 	items = new Collection<Item>(this);
+
+	@OneToMany({mappedBy: (lightsGroup: LightsGroup) => lightsGroup.targetMage})
+	lightsGroups = new Collection<LightsGroup>(this);
 
 	socket?: Socket;
 

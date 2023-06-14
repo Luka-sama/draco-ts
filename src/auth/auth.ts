@@ -7,6 +7,7 @@ import Tr from "../core/tr.js";
 import {GuestArgs, LoggedArgs} from "../core/ws.typings.js";
 import Magic from "../magic/magic.js";
 import Location from "../map/location.entity.js";
+import Zone from "../map/zone.js";
 import Limit from "../util/limit.js";
 import {ensure, Is} from "../util/validation.js";
 import {Vec2} from "../util/vector.embeddable.js";
@@ -78,7 +79,8 @@ export default class Auth {
 			const position = Vec2(0, 0);
 			const user = new User(name, account, location, position);
 			await user.create();
-			await Magic.createLightsForMage(user);
+			const zone = await Zone.getByEntity(user);
+			await Magic.createLightsForMage(user, zone);
 			sck.emit("sign_up_user");
 		} else {
 			sck.emit("sign_up_user_errors", {errors});
