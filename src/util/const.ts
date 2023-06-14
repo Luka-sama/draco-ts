@@ -40,9 +40,9 @@ export default class Const {
 	/** Max count of lights per lights group (not less than 1) */
 	static readonly LIGHTS_MAX_COUNT_PER_GROUP = 5;
 	/** Lights group min speed (tiles per second) */
-	static readonly LIGHTS_MIN_SPEED = 7;
+	static readonly LIGHTS_MIN_SPEED = 5;
 	/** Lights group max speed (tiles per second) */
-	static readonly LIGHTS_MAX_SPEED = 15;
+	static readonly LIGHTS_MAX_SPEED = 10;
 	/** The probability (from 0 to 100) that a lights group will take a random direction (i.e. not to target or from target) */
 	static readonly LIGHTS_RANDOM_DIRECTION_PROBABILITY = 25;
 	/** The max possible distance from the target mage (the more, the greater the load on the server may be) */

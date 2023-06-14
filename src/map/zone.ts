@@ -1,4 +1,5 @@
 import {AnyEntity, EntityClass} from "@mikro-orm/core";
+import assert from "assert/strict";
 import User from "../auth/user.entity.js";
 import Cache from "../cache/cache.js";
 import CachedObject from "../cache/cached-object.js";
@@ -66,16 +67,16 @@ export default class Zone extends CachedObject implements Receiver {
 	}
 
 	/** Returns a (probably) not loaded zone by a given location and position */
-	static getByPositionWithoutLoading(location: Location, position: Vector2): Zone {
+	static getByPositionFromMemory(location: Location, position: Vector2): Zone {
 		const zonePosition = Zone.getZonePosition(position);
 		return new Zone(location, zonePosition);
 	}
 
 	/** Returns multiple (probably) not loaded zones by a given location and multiple positions */
-	static getByPositionsWithoutLoading(location: Location, positions: Vector2[]): Set<Zone> {
+	static getByPositionsFromMemory(location: Location, positions: Vector2[]): Set<Zone> {
 		const zones = new Set<Zone>();
 		for (const position of positions) {
-			const zone = Zone.getByPositionWithoutLoading(location, position);
+			const zone = Zone.getByPositionFromMemory(location, position);
 			if (zone) {
 				zones.add(zone);
 			}
@@ -84,8 +85,8 @@ export default class Zone extends CachedObject implements Receiver {
 	}
 
 	/** Returns a (probably) not loaded zone by a given entity with location and position */
-	static getByEntityWithoutLoading(entity: AnyEntity): Zone {
-		return Zone.getByPositionWithoutLoading(entity.location, entity.position);
+	static getByEntityFromMemory(entity: AnyEntity): Zone {
+		return Zone.getByPositionFromMemory(entity.location, entity.position);
 	}
 
 	/** Collects entities from all given subzones */
@@ -96,16 +97,16 @@ export default class Zone extends CachedObject implements Receiver {
 	}
 
 	/** Collects entities from all given subzones */
-	static getEntitiesFromSubzonesWithoutLoading(subzones: Set<Subzone>): ZoneEntities {
+	static getEntitiesFromSubzonesFromMemory(subzones: Set<Subzone>): ZoneEntities {
 		const zoneEntities = new ZoneEntities();
-		subzones.forEach(subzone => zoneEntities.merge(subzone.getEntitiesWithoutLoading()));
+		subzones.forEach(subzone => zoneEntities.merge(subzone.getEntitiesFromMemory()));
 		return zoneEntities;
 	}
 
 	/** Returns a list of subzones that are in the given zones */
 	static getSubzonesFrom(zones: Set<Zone>): Set<Subzone> {
 		const subzones = new Set<Subzone>();
-		zones.forEach(zone => SetUtil.merge(subzones, zone.getSubzonesWithoutLoading()));
+		zones.forEach(zone => SetUtil.merge(subzones, zone.getSubzonesFromMemory()));
 		return subzones;
 	}
 
@@ -157,6 +158,26 @@ export default class Zone extends CachedObject implements Receiver {
 		}
 	}
 
+	public static async getFrom<T extends AnyEntity>(model: EntityClass<T>, location: Location, positions: Vector2 | Vector2[]): Promise<Set<T>> {
+		positions = (positions instanceof Array ? positions : [positions]);
+		const result = new Set<T>;
+		for (const position of positions) {
+			const zone = await Zone.getByPosition(location, position);
+			SetUtil.merge(result, zone.getFrom(model, position));
+		}
+		return result;
+	}
+
+	public static getFromFromMemory<T extends AnyEntity>(model: EntityClass<T>, location: Location, positions: Vector2 | Vector2[]): Set<T> {
+		positions = (positions instanceof Array ? positions : [positions]);
+		const result = new Set<T>;
+		for (const position of positions) {
+			const zone = Zone.getByPositionFromMemory(location, position);
+			SetUtil.merge(result, zone.getFromFromMemory(model, position));
+		}
+		return result;
+	}
+
 	constructor(location: Location, zonePosition: Vector2) {
 		super(location, zonePosition);
 		this.location = location;
@@ -190,7 +211,7 @@ export default class Zone extends CachedObject implements Receiver {
 			return;
 		}
 
-		this.subzones = this.getSubzonesWithoutLoading();
+		this.subzones = this.getSubzonesFromMemory();
 		for (const subzone of this.subzones) {
 			if (subzone.getZonePosition().equals(this.zonePosition)) {
 				this.centralSubzone = subzone;
@@ -203,11 +224,11 @@ export default class Zone extends CachedObject implements Receiver {
 
 	/** Returns set with all subzones */
 	getSubzones(): Set<Subzone> {
-		this.checkIfLoaded();
+		assert(this.loaded);
 		return this.subzones;
 	}
 
-	getSubzonesWithoutLoading(): Set<Subzone> {
+	getSubzonesFromMemory(): Set<Subzone> {
 		if (this.loaded) {
 			return this.subzones;
 		}
@@ -225,12 +246,12 @@ export default class Zone extends CachedObject implements Receiver {
 
 	/** Returns the central subzone */
 	getCentralSubzone(): Subzone {
-		this.checkIfLoaded();
+		assert(this.loaded);
 		return this.centralSubzone;
 	}
 
 	/** Returns the central subzone (probably not loaded) */
-	getCentralSubzoneWithoutLoading(): Subzone {
+	getCentralSubzoneFromMemory(): Subzone {
 		return (this.centralSubzone ? this.centralSubzone : new Subzone(this.location, this.zonePosition));
 	}
 
@@ -246,7 +267,7 @@ export default class Zone extends CachedObject implements Receiver {
 
 	/** Returns `true` if the given position is inside of this zone */
 	isInside(position: Vector2): boolean {
-		for (const subzone of this.getSubzones()) {
+		for (const subzone of this.getSubzonesFromMemory()) {
 			if (subzone.isInside(position)) {
 				return true;
 			}
@@ -256,7 +277,7 @@ export default class Zone extends CachedObject implements Receiver {
 
 	/** Removes en entity from central subzone if it is loaded */
 	leave(entity: AnyEntity): void {
-		const centralSubzone = this.getCentralSubzoneWithoutLoading();
+		const centralSubzone = this.getCentralSubzoneFromMemory();
 		if (centralSubzone.isLoaded()) {
 			centralSubzone.leave(entity);
 		}
@@ -264,7 +285,7 @@ export default class Zone extends CachedObject implements Receiver {
 
 	/** Adds en entity to central subzone if it is loaded */
 	enter(entity: AnyEntity): void {
-		const centralSubzone = this.getCentralSubzoneWithoutLoading();
+		const centralSubzone = this.getCentralSubzoneFromMemory();
 		if (centralSubzone.isLoaded()) {
 			centralSubzone.enter(entity);
 		}
@@ -276,8 +297,8 @@ export default class Zone extends CachedObject implements Receiver {
 	}
 
 	/** Collects entities from all already loaded subzones of this zone */
-	getEntitiesWithoutLoading(): ZoneEntities {
-		return Zone.getEntitiesFromSubzonesWithoutLoading(this.getSubzonesWithoutLoading());
+	getEntitiesFromMemory(): ZoneEntities {
+		return Zone.getEntitiesFromSubzonesFromMemory(this.getSubzonesFromMemory());
 	}
 
 	/** Returns all users from this zone */
@@ -286,8 +307,8 @@ export default class Zone extends CachedObject implements Receiver {
 	}
 
 	/** Returns all already loaded users from this zone */
-	getUsersWithoutLoading(): Set<User> {
-		return this.getEntitiesWithoutLoading().get(User);
+	getUsersFromMemory(): Set<User> {
+		return this.getEntitiesFromMemory().getFromMemory(User);
 	}
 
 	/** Checks if somebody in this subzone is online. Be careful: even if someone is online, the zone may not be fully loaded yet. */
@@ -302,6 +323,7 @@ export default class Zone extends CachedObject implements Receiver {
 
 	/** Returns `true` if some tile is at the given position */
 	hasTile(position: Vector2): boolean {
+		assert(this.loaded);
 		for (const subzone of this.getSubzones()) {
 			if (subzone.isInside(position)) {
 				return subzone.hasTile(position);
@@ -312,6 +334,7 @@ export default class Zone extends CachedObject implements Receiver {
 
 	/** Returns `true` if no user, (big) item etc. takes the tile at the given position */
 	isTileFree(position: Vector2): boolean {
+		assert(this.loaded);
 		for (const subzone of this.getSubzones()) {
 			if (subzone.isInside(position)) {
 				return subzone.isTileFree(position);
@@ -321,6 +344,7 @@ export default class Zone extends CachedObject implements Receiver {
 	}
 
 	getFrom<T extends AnyEntity>(model: EntityClass<T>, position: Vector2): Set<T> {
+		assert(this.loaded);
 		for (const subzone of this.getSubzones()) {
 			if (subzone.isInside(position)) {
 				return subzone.getFrom(model, position);
@@ -329,10 +353,12 @@ export default class Zone extends CachedObject implements Receiver {
 		throw new Error("Zone.getFrom: the given position is not in this zone");
 	}
 
-	/** Throws an exception if this zone is not loaded */
-	private checkIfLoaded(): void {
-		if (!this.loaded) {
-			throw new Error("Zone not loaded");
+	getFromFromMemory<T extends AnyEntity>(model: EntityClass<T>, position: Vector2): Set<T> {
+		for (const subzone of this.getSubzonesFromMemory()) {
+			if (subzone.isInside(position)) {
+				return (subzone.isLoaded() ? subzone.getFrom(model, position) : new Set);
+			}
 		}
+		throw new Error("Zone.getFromFromMemory: the given position is not in this zone");
 	}
 }

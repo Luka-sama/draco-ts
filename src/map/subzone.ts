@@ -113,30 +113,35 @@ export default class Subzone extends WeakCachedObject implements Receiver, UserC
 
 	/** Returns all entities from this subzone */
 	getEntities(): ZoneEntities {
-		this.checkIfLoaded();
+		assert(this.loaded);
 		return this.entities;
 	}
 
 	/** Returns all entities from this subzone (probably not loaded) */
-	getEntitiesWithoutLoading(): ZoneEntities {
+	getEntitiesFromMemory(): ZoneEntities {
 		return this.entities;
 	}
 
 	/** Returns all users from this subzone */
 	getUsers(): Set<User> {
-		this.checkIfLoaded();
+		assert(this.loaded);
 		return this.entities.get(User);
+	}
+
+	/** Returns all already loaded users from this subzone */
+	getUsersFromMemory(): Set<User> {
+		return this.getEntitiesFromMemory().getFromMemory(User);
 	}
 
 	/** Removes en entity from this subzone */
 	leave(entity: AnyEntity): void {
-		this.checkIfLoaded();
+		assert(this.loaded);
 		this.entities.delete(entity);
 	}
 
 	/** Adds en entity to this subzone */
 	enter(entity: AnyEntity): void {
-		this.checkIfLoaded();
+		assert(this.loaded);
 		this.entities.enter(entity);
 	}
 
@@ -147,12 +152,12 @@ export default class Subzone extends WeakCachedObject implements Receiver, UserC
 
 	/** Returns `true` if the given position is inside of this subzone */
 	isInside(position: Vector2): boolean {
-		this.checkIfLoaded();
 		return Subzone.getZonePosition(position).equals(this.zonePosition);
 	}
 
 	/** Returns `true` if some tile is at the given position */
 	hasTile(position: Vector2): boolean {
+		assert(this.loaded);
 		assert(this.isInside(position));
 		for (const tile of this.entities.get(Tile)) {
 			if (tile.position.equals(position)) {
@@ -164,6 +169,7 @@ export default class Subzone extends WeakCachedObject implements Receiver, UserC
 
 	/** Returns `true` if no user, (big) item etc. takes the tile at the given position */
 	isTileFree(position: Vector2): boolean {
+		assert(this.loaded);
 		assert(this.isInside(position));
 		for (const model of [User, Item] as EntityClass<AnyEntity>[]) {
 			for (const entity of this.getFrom(model, position)) {
@@ -175,7 +181,9 @@ export default class Subzone extends WeakCachedObject implements Receiver, UserC
 		return true;
 	}
 
+	/** Returns all entities of the given model at the given position */
 	getFrom<T extends AnyEntity>(model: EntityClass<T>, position: Vector2): Set<T> {
+		assert(this.loaded);
 		assert(this.isInside(position));
 		const result = new Set<T>;
 
@@ -190,16 +198,15 @@ export default class Subzone extends WeakCachedObject implements Receiver, UserC
 	}
 
 	/** Returns a random position inside of this subzone */
-	getRandomPositionInside(): Vector2 {
-		return Vec2(
+	getRandomPositionInside(staggered = true): Vector2 {
+		const position = Vec2(
 			_.random(this.start.x, this.end.x - 1),
 			_.random(this.start.y, this.end.y - 1),
 		);
-	}
-
-	/** Throws an exception if this subzone is not loaded */
-	private checkIfLoaded(): void {
-		assert(this.loaded, "Subzone not loaded");
+		if (staggered && position.y % 2 == 1) {
+			return position.add(Vec2(0, (position.y == this.start.y ? 1 : -1)));
+		}
+		return position;
 	}
 
 	/** Returns a list of ids for objects that have a shape (such as items), i.e. occupy several tiles */

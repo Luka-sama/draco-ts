@@ -64,4 +64,6 @@ export type SyncMap = Map<User, Sync[]>;
 export interface UserContainer {
 	/** Returns all users from this container */
 	getUsers(): Set<User>;
+	/** Returns all already loaded users from this container */
+	getUsersFromMemory(): Set<User>;
 }

@@ -1,6 +1,7 @@
 import _ from "lodash";
 import User from "../auth/user.entity.js";
 import Cache from "../cache/cache.js";
+import Message from "../chat/message.entity.js";
 import ORM, {EM} from "../core/orm.js";
 import Location from "../map/location.entity.js";
 import Zone from "../map/zone.js";
@@ -16,8 +17,8 @@ export default class Magic {
 		const zones = (Cache.getLeaves("zone") as Zone[]).filter(zone => zone.isSomebodyOnline());
 		const lightsGroups = new Set<LightsGroup>;
 		for (const zone of zones) {
-			SetUtil.merge(lightsGroups, zone.getEntitiesWithoutLoading().get(LightsGroup));
-			for (const user of zone.getUsersWithoutLoading()) {
+			SetUtil.merge(lightsGroups, zone.getEntitiesFromMemory().get(LightsGroup));
+			for (const user of zone.getUsersFromMemory()) {
 				for (const lightsGroup of user.lightsGroups) {
 					lightsGroups.add(lightsGroup);
 				}
@@ -78,7 +79,11 @@ export default class Magic {
 	}
 
 	private static moveLightsGroup(lightsGroup: LightsGroup): void {
-		lightsGroup.position = lightsGroup.position.add(lightsGroup.direction);
+		lightsGroup.position = lightsGroup.position.add(lightsGroup.direction.toStaggered());
+		if (lightsGroup.activated) {
+			Magic.collide(lightsGroup);
+			return;
+		}
 		const distanceToMage = lightsGroup.position.distanceSquaredTo(lightsGroup.targetMage.position);
 		const strictMinDistance = Math.pow(Const.LIGHTS_STRICT_MIN_DISTANCE_TO_TARGET, 2);
 		const softMinDistance = Math.pow(Const.LIGHTS_SOFT_MIN_DISTANCE_TO_TARGET, 2);
@@ -87,7 +92,7 @@ export default class Magic {
 			lightsGroup.toTarget = false;
 		} else if (distanceToMage <= softMinDistance && _.random(0, 1)) {
 			lightsGroup.toTarget = false;
-		} else if (distanceToMage > softMinDistance && !lightsGroup.toTarget && !lightsGroup.markedForDeletion) {
+		} else if (distanceToMage > softMinDistance && !lightsGroup.toTarget) {
 			const lightsZonePosition = Zone.getZonePosition(lightsGroup.position);
 			const userZonePosition = Zone.getZonePosition(lightsGroup.targetMage.position);
 			const diff = lightsZonePosition.sub(userZonePosition).abs();
@@ -105,6 +110,22 @@ export default class Magic {
 				Const.LIGHTS_MAX_SPEED
 			);
 		}
+	}
+
+	private static collide(lightsGroup: LightsGroup): void {
+		const users = Zone.getFromFromMemory(User, lightsGroup.location, lightsGroup.getPositions());
+		if (users.size < 1) {
+			return;
+		}
+		for (const user of users) {
+			Magic.applyMagic(lightsGroup, user);
+			lightsGroup.activated = false;
+		}
+	}
+
+	private static applyMagic(lightsGroup: LightsGroup, user: User): void {
+		const message = new Message(`${user.id} catched`, user);
+		ORM.register(message);
 	}
 
 	private static generateLightsShape(): Vector2[] {
@@ -137,7 +158,7 @@ export default class Magic {
 
 	private static generateLightsPosition(user: User, userZone: Zone): Vector2 {
 		const lightsZone = Magic.getNextZoneWithoutMages(user.location, userZone);
-		return lightsZone.getCentralSubzoneWithoutLoading().getRandomPositionInside();
+		return lightsZone.getCentralSubzoneFromMemory().getRandomPositionInside();
 	}
 
 	private static getNextZoneWithoutMages(location: Location, centerZone: Zone): Zone {

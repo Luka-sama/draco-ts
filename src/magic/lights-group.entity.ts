@@ -1,4 +1,5 @@
 import {Collection, Embedded, Entity, ManyToOne, OneToMany, Property, Rel} from "@mikro-orm/core";
+import assert from "assert/strict";
 import User from "../auth/user.entity.js";
 import {WeakCachedEntity} from "../cache/cached-entity.js";
 import {Task} from "../core/game-loop.js";
@@ -42,19 +43,10 @@ export default class LightsGroup extends WeakCachedEntity {
 	/**
 	 * Flies the light group to the target (`true`) or from the target (`false`)? If the lights group is close enough to the target
 	 * (<= 3-5 tiles, strict lower limit, soft upper, so at the distance 4 tiles the flag can already be inverted, but does not have to be),
-	 * this flag will be inverted. As soon as a lights group is in another zone than the target mage,
-	 * the flag is inverted again (if `markedForDeletion` is `false`).
+	 * this flag will be inverted. As soon as a lights group is in another zone than the target mage, the flag is inverted again.
 	 */
 	@Property()
 	toTarget = true;
-
-	/**
-	 * Is marked for deletion? When the mage activates (uses) the lights group that was not actually created for him,
-	 * one of his groups happens to be marked for deletion. But the actual deletion takes place only when the lights group enters
-	 * a zone without the respective mage. (Hopefully) pleasant side effect: if there are many mages in an area, additional lights groups
-	 * will fly around there */
-	@Property()
-	markedForDeletion = false;
 
 	/**
 	 * Is the lights group activated? If yes, the collisions with all living beings are checked.
@@ -75,5 +67,12 @@ export default class LightsGroup extends WeakCachedEntity {
 		this.position = position;
 		this.targetMage = targetMage;
 		return this.getInstance();
+	}
+
+	getPositions(position = this.position): Vector2[] {
+		assert(this.shape.isInitialized());
+		return this.shape
+			.getItems()
+			.map(light => position.add(light.position));
 	}
 }

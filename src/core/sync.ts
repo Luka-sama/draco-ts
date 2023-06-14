@@ -160,11 +160,11 @@ export default class Synchronizer {
 			Synchronizer.getCreateList(model, entity, SyncFor.Zone) :
 			Synchronizer.getDeleteList(model, entity)
 		);
-		const zone = Zone.getByEntityWithoutLoading(entity);
+		const zone = Zone.getByEntityFromMemory(entity);
 		if (!zone) {
 			return;
 		}
-		Synchronizer.addToSyncMap(zone.getSubzonesWithoutLoading(), syncList);
+		Synchronizer.addToSyncMap(zone.getSubzonesFromMemory(), syncList);
 
 		if (toCreate) {
 			zone.enter(entity);
@@ -297,7 +297,7 @@ export default class Synchronizer {
 					Synchronizer.mergeSyncMaps(syncMap, syncMapToAdd);
 				} else if (lazyCheck) {
 					for (const zone of receiver) {
-						Synchronizer.addToSyncMap(zone.getSubzonesWithoutLoading(), [sync], syncMap);
+						Synchronizer.addToSyncMap(zone.getSubzonesFromMemory(), [sync], syncMap);
 					}
 				}
 			} else if (receiver instanceof User && lazyCheck) {
@@ -394,7 +394,7 @@ export default class Synchronizer {
 			assert(oldLocation);
 			const oldPosition = Vec2(original[xField], original[yField]);
 			const oldPositions = (entity.getPositions ? entity.getPositions(oldPosition) : [oldPosition]);
-			const oldZones = Zone.getByPositionsWithoutLoading(oldLocation, oldPositions);
+			const oldZones = Zone.getByPositionsFromMemory(oldLocation, oldPositions);
 			return Synchronizer.changeZone(oldZones, currZones, entity, model, updateList);
 		}
 		return new Map();
@@ -446,7 +446,7 @@ export default class Synchronizer {
 		} else if (syncFor == SyncFor.Zone) {
 			assert(entity.location instanceof Location && entity.position instanceof Vector2);
 			const positions = (entity.getPositions ? entity.getPositions() : [entity.position]);
-			return Zone.getByPositionsWithoutLoading(entity.location, positions);
+			return Zone.getByPositionsFromMemory(entity.location, positions);
 		} else if (typeof syncFor == "string") {
 			return User.getIfCached(entity[syncFor]);
 		} else if (typeof syncFor == "function") {
@@ -456,7 +456,7 @@ export default class Synchronizer {
 			const position = entity[syncFor.position];
 			assert(location instanceof Location && position instanceof Vector2);
 			const positions = (entity.getPositions ? entity.getPositions(position) : [position]);
-			return Zone.getByPositionsWithoutLoading(location, positions);
+			return Zone.getByPositionsFromMemory(location, positions);
 		}
 		throw new Error(`The value of SyncFor is incorrect (${syncFor}).`);
 	}
@@ -507,7 +507,7 @@ export default class Synchronizer {
 				continue;
 			}
 
-			const users = receiver.getUsers();
+			const users = receiver.getUsersFromMemory();
 			for (const user of users) {
 				if (user.hadFirstSync) {
 					const userSyncList = MapUtil.getArray(syncMap, user);

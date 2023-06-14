@@ -40,6 +40,12 @@ export default class ZoneEntities {
 		return set as Set<T>;
 	}
 
+	/** Returns entity set for the given model */
+	getFromMemory<T extends AnyEntity>(model: EntityClass<T>): Set<T> {
+		const set = this.models.get(model);
+		return (set || new Set) as Set<T>;
+	}
+
 	set(model: EntityClass<any>, data: Set<AnyEntity> | AnyEntity[]): void {
 		if (data instanceof Array) {
 			data = new Set(data);

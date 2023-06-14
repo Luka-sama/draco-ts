@@ -89,6 +89,11 @@ export class Vector2 {
 		return new Vector2(Math.abs(this.x), Math.abs(this.y));
 	}
 
+	/** Returns this vector with the Y coordinate multiplied by 2 (adapted for staggered maps) */
+	toStaggered() {
+		return new Vector2(this.x, this.y * 2);
+	}
+
 	/** Converts this vector to a plain object. Used by {@link WS.prepare | WS.prepare} to prepare data before sending to the user */
 	toPlain(): IVector2 {
 		return {x: this.x, y: this.y};

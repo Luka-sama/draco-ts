@@ -55,6 +55,19 @@ export abstract class Area implements Receiver, UserContainer {
 		return users;
 	}
 
+	/** Returns all already loaded users from this area */
+	getUsersFromMemory(): Set<User> {
+		const users = new Set<User>;
+		for (const subzone of this.subzones) {
+			for (const user of subzone.getUsersFromMemory()) {
+				if (this.isInside(user)) {
+					users.add(user);
+				}
+			}
+		}
+		return users;
+	}
+
 	emit(event: string, data?: UserData): void {
 		const users = this.getUsers();
 		for (const user of users) {

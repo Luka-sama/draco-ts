@@ -28,7 +28,7 @@ export default class Movement {
 			}
 		}
 		for (const possibleDirection of possibleDirections) {
-			const newPosition = user.position.add(Vec2(possibleDirection.x, possibleDirection.y * 2));
+			const newPosition = user.position.add(possibleDirection.toStaggered());
 			// In the first row/column only the half of the user is visible, so it is forbidden to go there
 			const isFirstRowOrColumn = !zone.hasTile(newPosition.sub(Vec2(1, 1)));
 			if (!isFirstRowOrColumn && zone.hasTile(newPosition) && zone.isTileFree(newPosition)) {
