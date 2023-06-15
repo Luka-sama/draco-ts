@@ -1,16 +1,15 @@
-import {QueryOrder} from "@mikro-orm/core";
 import {randomBytes} from "crypto";
 import {promisify} from "util";
-import {EM} from "../core/orm.js";
 import Synchronizer from "../core/sync.js";
 import Tr from "../core/tr.js";
 import {GuestArgs, LoggedArgs} from "../core/ws.typings.js";
 import Magic from "../magic/magic.js";
 import Location from "../map/location.entity.js";
 import Zone from "../map/zone.js";
+import ORM from "../orm/orm.js";
 import Limit from "../util/limit.js";
 import {ensure, Is} from "../util/validation.js";
-import {Vec2} from "../util/vector.embeddable.js";
+import {Vec2} from "../util/vector.js";
 import Account from "./account.entity.js";
 import {ForAll, OnlyGuest, OnlyLogged, OnlyLoggedAccount, OnlyLoggedAtLeastAccount} from "./auth.decorator.js";
 import User from "./user.entity.js";
@@ -36,8 +35,7 @@ export default class Auth {
 		if (errors.length < 1) {
 			Limit.updateLastTime("Auth.signUpAccount", sck);
 			const token = await Auth.generateToken();
-			const account = new Account(name, mail, pass, token);
-			account.create();
+			Account.create({name, mail, pass, token});
 			sck.emit("sign_up_account");
 		} else {
 			sck.emit("sign_up_account_errors", {errors});
@@ -49,11 +47,7 @@ export default class Auth {
 		const data = ensure(raw, {nameOrMail: Is.string, pass: Is.string});
 		await Limit.softUpdatingTime("Auth.signInAccount", sck, 1000);
 
-		const acc = await EM.findOne(Account, {
-			$or: [
-				{mail: data.nameOrMail}, {name: data.nameOrMail}
-			]
-		});
+		const acc = await ORM.findOne(Account, `mail="${data.nameOrMail}" or name="${data.nameOrMail}"`);
 		if (!acc) {
 			sck.emit("sign_in_account_error", {error: Tr.get("AUTH_ACCOUNT_NOT_FOUND")});
 		} else if (acc.pass != data.pass) {
@@ -75,10 +69,9 @@ export default class Auth {
 		if (errors.length < 1) {
 			Limit.updateLastTime("Auth.signUpUser", sck);
 			const account = sck.account!;
-			const location = EM.getReference(Location, 1);
+			const location = await Location.get(1);
 			const position = Vec2(0, 0);
-			const user = new User(name, account, location, position);
-			user.create();
+			const user = User.create({name, account, location, position});
 			const zone = await Zone.getByEntity(user);
 			await Magic.createLightsForMage(user, zone);
 			sck.emit("sign_up_user");
@@ -92,7 +85,7 @@ export default class Auth {
 		const data = ensure(raw, {name: Is.string});
 		await Limit.softUpdatingTime("Auth.signInUser", sck, 1000);
 
-		const user = await EM.findOne(User, {name: data.name, account: sck.account}, {populate: true});
+		const user = await User.get(`name="${data.name}" and account=${sck.account?.id}`);
 		if (user) {
 			user.connected = true;
 			sck.user = user;
@@ -106,7 +99,7 @@ export default class Auth {
 	/** Returns a list of usernames. The player can see this list after logging into the account */
 	@OnlyLoggedAccount()
 	static async getUserList({sck}: GuestArgs): Promise<void> {
-		const userList = (await EM.find(User, {account: sck.account}, {orderBy: {id: QueryOrder.ASC}})).map(user => user.name);
+		const userList = (await ORM.find(User, `account=${sck.account?.id} ORDER BY id ASC`)).map(user => user.name);
 		sck.emit("get_user_list", {list: userList});
 	}
 
@@ -116,7 +109,7 @@ export default class Auth {
 		const data = ensure(raw, {accountToken: Is.string, userName: Is.string});
 		await Limit.softUpdatingTime("Auth.signInByToken", sck, 1000);
 
-		const user = await EM.findOne(User, {name: data.userName}, {populate: true});
+		const user = await User.get(`name=${data.userName}`);
 		if (user && user.account.token == data.accountToken) {
 			sck.account = user.account;
 			sck.user = user;

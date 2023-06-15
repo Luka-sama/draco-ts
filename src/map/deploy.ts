@@ -4,7 +4,7 @@ import {HttpResponse} from "uWebSockets.js";
 import {EM} from "../core/orm.js";
 import WS from "../core/ws.js";
 import {JSONData} from "../core/ws.typings.js";
-import {IVector2, Vec2} from "../util/vector.embeddable.js";
+import {IVector2, Vec2} from "../util/vector.js";
 import Location from "./location.entity.js";
 import Tile from "./tile.entity.js";
 import Tileset from "./tileset.entity.js";
@@ -42,8 +42,7 @@ export default class Deploy {
 
 		let location = await EM.findOne(Location, {name: locName});
 		if (!location) {
-			location = new Location(locName);
-			location.create();
+			location = Location.create({name: locName});
 		}
 
 		const existingTilesets = await EM.find(Tileset, {name: tilesets});
@@ -53,8 +52,7 @@ export default class Deploy {
 		}
 		for (const tilesetName of tilesets) {
 			if (!tilesetMap.has(tilesetName)) {
-				const tilesetEntity = new Tileset(tilesetName);
-				tilesetEntity.create();
+				const tilesetEntity = Tileset.create({name: tilesetName});
 				tilesetMap.set(tilesetName, tilesetEntity);
 			}
 		}

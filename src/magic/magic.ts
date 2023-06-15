@@ -3,12 +3,12 @@ import _ from "lodash";
 import User from "../auth/user.entity.js";
 import Cache from "../cache/cache.js";
 import Message from "../chat/message.entity.js";
-import ORM, {EM} from "../core/orm.js";
 import Location from "../map/location.entity.js";
 import Zone from "../map/zone.js";
+import ORM from "../orm/orm.js";
 import Const from "../util/const.js";
 import SetUtil from "../util/set-util.js";
-import {Vec2, Vector2} from "../util/vector.embeddable.js";
+import {Vec2, Vector2} from "../util/vector.js";
 import Light from "./light.entity.js";
 import LightsGroup from "./lights-group.entity.js";
 
@@ -27,7 +27,7 @@ export default class Magic {
 			SetUtil.merge(lightsGroups, zoneEntities);
 			for (const user of zone.getUsersFromMemory()) {
 				userLightsGroups[user.id] = [];
-				for (const lightsGroup of user.lightsGroups) {
+				for (const lightsGroup of user.lightsGroups.getItems()) {
 					lightsGroups.add(lightsGroup);
 					userLightsGroups[user.id].push(lightsGroup.id);
 				}
@@ -35,7 +35,6 @@ export default class Magic {
 		}
 
 		const now = Date.now();
-		ORM.register(lightsGroups);
 		for (const lightsGroup of lightsGroups) {
 			const frequency = 1000 / lightsGroup.speed;
 			if (now - lightsGroup.lastMovement < frequency) {
@@ -51,7 +50,7 @@ export default class Magic {
 	}
 
 	public static async createLightsForAll(): Promise<void> {
-		const users = await EM.find(User, {});
+		const users = await ORM.find(User);
 		for (const user of users) {
 			const zone = await Zone.getByEntity(user);
 			await Magic.createLightsForMage(user, zone);
@@ -64,17 +63,17 @@ export default class Magic {
 		}
 	}
 
-	public static createLightsGroupForMage(user: User, zone: Zone): void {
+	public static createLightsGroupForMage(targetMage: User, zone: Zone): void {
 		const shape = Magic.generateLightsShape();
 		const speed = _.random(Const.LIGHTS_MIN_SPEED, Const.LIGHTS_MAX_SPEED);
+		const location = user.location;
 		const position = Magic.generateLightsPosition(user, zone);
 		const direction = Magic.generateLightsDirection(position, user);
 
-		const lightsGroup = new LightsGroup(speed, direction, user.location, position, user);
-		for (const part of shape) {
-			const light = new Light(lightsGroup, part);
+		const lightsGroup = LightsGroup.create({speed, direction, location, position, targetMage});
+		for (const position of shape) {
+			Light.create({lightsGroup, position});
 		}
-		lightsGroup.create();
 	}
 
 	public static generateLightsDirection(from: Vector2, user: User, toTarget = true): Vector2 {
@@ -145,13 +144,13 @@ export default class Magic {
 	}
 
 	private static applyMagic(lightsGroup: LightsGroup, user: User): void {
-		const message = new Message(`${user.id} catched`, user);
-		ORM.register(message);
+		Message.create({text: `${user.id} catched`, user});
 	}
 
 	private static generateLightsShape(): Vector2[] {
 		let lastPart = Vec2(0, 0);
 		const shape = [lastPart];
+		return shape;
 
 		for (let i = Const.LIGHTS_MIN_COUNT_PER_GROUP - 1; i < Const.LIGHTS_MAX_COUNT_PER_GROUP - 1; i++) {
 			const possibleDirections: Vector2[] = [];

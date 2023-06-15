@@ -1,46 +1,38 @@
-import {Embedded, Entity, Index, ManyToOne, PrimaryKey, Property} from "@mikro-orm/core";
 import User from "../auth/user.entity.js";
 import {Sync} from "../core/sync.decorator.js";
 import {RoundArea} from "../map/area.js";
 import Location from "../map/location.entity.js";
+import Entity from "../orm/entity.js";
+import {Property} from "../orm/orm.decorator.js";
 import Const from "../util/const.js";
-import {Vector2} from "../util/vector.embeddable.js";
+import {Vector2} from "../util/vector.js";
 
 function getDeleteIn(date: Date): number {
 	return Math.max(0, Const.CHAT_DELETE_MESSAGE_AFTER_MS - (Date.now() - date.getTime()));
 }
 
 /** Chat message class */
-@Entity()
-export default class Message {
-	@PrimaryKey()
+export default class Message extends Entity {
+	@Property()
 	id!: number;
 
 	@Property()
 	@Sync({for: RoundArea})
-	text: string;
+	text!: string;
 
-	@ManyToOne()
+	@Property({manyToOne: () => User})
 	@Sync({for: RoundArea, map: "name"})
-	user: User;
+	user!: User;
 
 	@Property()
-	@Index()
 	@Sync({for: RoundArea, as: "deleteIn", map: getDeleteIn})
 	date = new Date();
 
-	@ManyToOne()
-	location: Location;
+	@Property({manyToOne: () => Location})
+	location!: Location;
 
-	@Embedded({prefix: false})
-	position: Vector2;
-
-	constructor(text: string, user: User) {
-		this.text = text;
-		this.user = user;
-		this.location = user.location;
-		this.position = user.position;
-	}
+	@Property({vector: true})
+	position!: Vector2;
 
 	getAreaParams(): ConstructorParameters<typeof RoundArea> {
 		return [this.location, this.position, Const.CHAT_HEARING_RADIUS];

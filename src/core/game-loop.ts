@@ -1,8 +1,7 @@
-import {RequestContext} from "@mikro-orm/core";
 import _ from "lodash";
+import ORM from "../orm/orm.js";
 import Const from "../util/const.js";
 import {EndOfRequest} from "../util/limit.js";
-import {EM} from "./orm.js";
 
 export type TaskFunction = ((delta: number) => void);
 export type Task = {
@@ -36,16 +35,14 @@ export default class GameLoop {
 			task.untilNextExecutionLeft -= delta;
 			if (task.untilNextExecutionLeft <= 0) {
 				task.untilNextExecutionLeft = Infinity; // Task locking, prevents the simultaneous execution of two identical tasks
-				await RequestContext.createAsync(EM, async function() {
-					try {
-						await task.task(delta);
-						await EM.flush();
-					} catch(e) {
-						if (!(e instanceof EndOfRequest) && (e as any)?.code != "ABORT_ERR") {
-							console.error(e);
-						}
+				try {
+					await task.task(delta);
+					await ORM.flush();
+				} catch(e) {
+					if (!(e instanceof EndOfRequest) && (e as any)?.code != "ABORT_ERR") {
+						console.error(e);
 					}
-				});
+				}
 				task.untilNextExecutionLeft = task.frequency;
 			}
 		}

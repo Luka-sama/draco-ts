@@ -1,4 +1,4 @@
-import {Vec2} from "./vector.embeddable.js";
+import {Vec2} from "./vector.js";
 
 export default class Const {
 	/** X-coordinate of neighboring tiles */

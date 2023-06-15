@@ -1,8 +1,9 @@
-import {AnyEntity, EntityClass} from "@mikro-orm/core";
 import assert from "assert/strict";
 import User from "../auth/user.entity.js";
 import Item from "../item/item.entity.js";
 import LightsGroup from "../magic/lights-group.entity.js";
+import Entity from "../orm/entity.js";
+import {EntityClass, IEntity} from "../orm/orm.typings.js";
 import MapUtil from "../util/map-util.js";
 import SetUtil from "../util/set-util.js";
 import Tile from "./tile.entity.js";
@@ -17,10 +18,10 @@ export type EntityInfo = {
 
 /** Data storage class that stores all entities in a zone or a subzone (user, items etc) */
 export default class ZoneEntities {
-	private models = new Map<EntityClass<any>, Set<AnyEntity>>;
+	private models = new Map<EntityClass, Set<Entity>>;
 
-	public static getEntitiesInfo(): Map<EntityClass<any>, EntityInfo> {
-		return new Map<EntityClass<any>, EntityInfo>([
+	public static getEntitiesInfo(): Map<any, EntityInfo> {
+		return new Map<any, EntityInfo>([
 			[Tile, {}],
 			[User, {}],
 			[Item, {table: "item", partTable: "item_shape_part", foreignKey: "type_id"}],
@@ -29,24 +30,24 @@ export default class ZoneEntities {
 	}
 
 	/** Returns all models that are here stored */
-	public static getModels(): EntityClass<any>[] {
+	public static getModels(): EntityClass[] {
 		return Array.from(this.getEntitiesInfo().keys());
 	}
 
 	/** Returns entity set for the given model */
-	get<T extends AnyEntity>(model: EntityClass<T>): Set<T> {
-		const set = this.models.get(model);
+	get<T extends IEntity>(model: T): Set<InstanceType<T>> {
+		const set = this.models.get(model as any);
 		assert(set, `${model} does not exist in this zone entities`);
-		return set as Set<T>;
+		return set as any;
 	}
 
 	/** Returns entity set for the given model */
-	getFromMemory<T extends AnyEntity>(model: EntityClass<T>): Set<T> {
+	getFromMemory<T extends Entity>(model: EntityClass): Set<T> {
 		const set = this.models.get(model);
 		return (set || new Set) as Set<T>;
 	}
 
-	set(model: EntityClass<any>, data: Set<AnyEntity> | AnyEntity[]): void {
+	set(model: EntityClass, data: Set<Entity> | Entity[]): void {
 		if (data instanceof Array) {
 			data = new Set(data);
 		}
@@ -54,14 +55,14 @@ export default class ZoneEntities {
 	}
 
 	/** Adds an entity to the set for its model */
-	enter(entity: AnyEntity): void {
-		const set = this.get(entity.constructor);
+	enter(entity: Entity): void {
+		const set = this.get((entity as any).constructor);
 		set.add(entity);
 	}
 
 	/** Removes an entity from the set for its model */
-	delete(entity: AnyEntity): void {
-		const set = this.get(entity.constructor);
+	delete(entity: Entity): void {
+		const set = this.get((entity as any).constructor);
 		set.delete(entity);
 	}
 

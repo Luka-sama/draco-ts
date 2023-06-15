@@ -1,22 +1,17 @@
-import {Embedded, Entity, ManyToOne, Unique} from "@mikro-orm/core";
-import {WeakCachedEntity} from "../cache/cached-entity.js";
-import {Vector2} from "../util/vector.embeddable.js";
+import Entity from "../orm/entity.js";
+import {Property} from "../orm/orm.decorator.js";
+import {Rel} from "../orm/orm.typings.js";
+import {Vector2} from "../util/vector.js";
 import ItemType from "./item-type.entity.js";
 
 /** Item shape entity */
-@Entity()
-@Unique({properties: ["type", "x", "y"]})
-export default class ItemShapePart extends WeakCachedEntity {
-	@ManyToOne()
-	type: ItemType;
+export default class ItemShapePart extends Entity {
+	@Property()
+	id!: number;
 
-	@Embedded({prefix: false})
-	position: Vector2;
+	@Property({manyToOne: () => ItemType})
+	type!: Rel<ItemType>;
 
-	constructor(type: ItemType, position: Vector2, id = 0) {
-		super(id);
-		this.type = type;
-		this.position = position;
-		return this.getInstance();
-	}
+	@Property({vector: true})
+	position!: Vector2;
 }

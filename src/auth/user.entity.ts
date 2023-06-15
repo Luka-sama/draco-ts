@@ -1,14 +1,14 @@
-import {Collection, Embedded, Entity, ManyToOne, OneToMany, Property, Unique} from "@mikro-orm/core";
-import {WeakCachedEntity} from "../cache/cached-entity.js";
 import {Sync} from "../core/sync.decorator.js";
-import {syncTrack} from "../core/sync.js";
 import {SyncFor} from "../core/sync.typings.js";
 import {Receiver, Socket, UserData} from "../core/ws.typings.js";
 import Item from "../item/item.entity.js";
 import LightsGroup from "../magic/lights-group.entity.js";
 import Location from "../map/location.entity.js";
+import Collection from "../orm/collection.js";
+import Entity from "../orm/entity.js";
+import {Property} from "../orm/orm.decorator.js";
 import Const from "../util/const.js";
-import {Vector2} from "../util/vector.embeddable.js";
+import {Vector2} from "../util/vector.js";
 import Account from "./account.entity.js";
 
 /**
@@ -16,49 +16,41 @@ import Account from "./account.entity.js";
  *
  * Every {@link Account | account} can have multiple users.
  */
-@Entity()
-export default class User extends WeakCachedEntity implements Receiver {
-	@Unique()
+export default class User extends Entity implements Receiver {
+	@Property()
+	id!: number;
+
 	@Property()
 	@Sync(SyncFor.Zone)
-	name: string;
+	name!: string;
 
-	@ManyToOne()
-	account: Account;
+	@Property({manyToOne: () => Account})
+	account!: Account;
 
 	@Property()
 	regDate = new Date();
 
-	@ManyToOne()
-	location: Location;
+	@Property({manyToOne: () => Location})
+	location!: Location;
 
-	@Embedded({prefix: false})
+	@Property({vector: true})
 	@Sync(SyncFor.Zone)
-	position: Vector2;
+	position!: Vector2;
 
 	@Sync(SyncFor.Zone)
 	speed = Const.MOVEMENT_WALK_SPEED;
 
-	@OneToMany({mappedBy: (item: Item) => item.holder})
-	items = new Collection<Item>(this);
+	@Property({oneToMany: [Item, "holder"]})
+	items!: Collection<Item>;
 
-	@OneToMany({mappedBy: (lightsGroup: LightsGroup) => lightsGroup.targetMage})
-	lightsGroups = new Collection<LightsGroup>(this);
+	@Property({oneToMany: [LightsGroup, "targetMage"]})
+	lightsGroups!: Collection<LightsGroup>;
 
 	socket?: Socket;
 
 	connected = false;
 
 	hadFirstSync = false;
-
-	constructor(name: string, account: Account, location: Location, position: Vector2, id = 0) {
-		super(id);
-		this.name = name;
-		this.account = account;
-		this.location = location;
-		this.position = position;
-		return syncTrack(this.getInstance());
-	}
 
 	emit(event: string, data?: UserData): void {
 		if (this.socket) {

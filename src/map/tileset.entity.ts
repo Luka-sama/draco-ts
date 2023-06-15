@@ -1,16 +1,11 @@
-import {Entity, Property, Unique} from "@mikro-orm/core";
-import {WeakCachedEntity} from "../cache/cached-entity.js";
-
 /** Tileset entity */
-@Entity()
-export default class Tileset extends WeakCachedEntity {
-	@Unique()
-	@Property()
-	name: string;
+import Entity from "../orm/entity.js";
+import {Property} from "../orm/orm.decorator.js";
 
-	constructor(name: string, id = 0) {
-		super(id);
-		this.name = name;
-		return this.getInstance();
-	}
+export default class Tileset extends Entity {
+	@Property()
+	id!: number;
+
+	@Property()
+	name!: string;
 }

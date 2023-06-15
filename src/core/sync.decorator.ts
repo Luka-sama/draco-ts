@@ -1,11 +1,11 @@
-import {EntityClass} from "@mikro-orm/core";
 import assert from "assert/strict";
 import _ from "lodash";
+import {EntityClass} from "../orm/orm.typings.js";
 import MapUtil from "../util/map-util.js";
 import {SyncFor, SyncModel, SyncProperty} from "./sync.typings.js";
 
 /** The information about which properties in which models and how should be synced (see {@link SyncModel}) */
-export const toSync = new Map<EntityClass<any>, SyncModel>();
+export const toSync = new Map<EntityClass, SyncModel>();
 
 /**
  * Synchronization decorator. Adds an information about which property in which model and how should be synced.

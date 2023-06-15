@@ -1,4 +1,4 @@
-import {Vec2, Vector2} from "./vector.embeddable.js";
+import {Vec2, Vector2} from "./vector.js";
 import {ensure, Is, Of, WrongDataError} from "./validation.js";
 import {UserData, UserDataExtended} from "../core/ws.typings.js";
 

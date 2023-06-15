@@ -1,13 +1,12 @@
 import assert from "assert/strict";
 import {OnlyLogged} from "../auth/auth.decorator.js";
-import ORM from "../core/orm.js";
 import {LoggedArgs} from "../core/ws.typings.js";
 import Zone from "../map/zone.js";
 import Const from "../util/const.js";
 import Limit from "../util/limit.js";
 import SetUtil from "../util/set-util.js";
 import {ensure, Is} from "../util/validation.js";
-import {Vec2, Vector2} from "../util/vector.embeddable.js";
+import {Vec2, Vector2} from "../util/vector.js";
 import Item from "./item.entity.js";
 
 export default class Inventory {
@@ -32,7 +31,6 @@ export default class Inventory {
 		}
 
 		if (itemToTake) {
-			ORM.register(itemToTake);
 			user.items.add(itemToTake);
 			itemToTake.position = user.position;
 			Limit.updateLastTime("Inventory.takeItem", user);
@@ -47,7 +45,6 @@ export default class Inventory {
 		const item = await Item.getOrFail(itemId);
 		assert(item.holder == user);
 
-		ORM.register(item);
 		let canPut = true;
 		if (!item.type.walkable) {
 			const freeTile = await Inventory.findFreeTile(item);

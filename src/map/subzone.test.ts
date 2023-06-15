@@ -1,5 +1,5 @@
 import Const from "../util/const.js";
-import {Vec2} from "../util/vector.embeddable.js";
+import {Vec2} from "../util/vector.js";
 import Location from "./location.entity.js";
 import Subzone from "./subzone.js";
 

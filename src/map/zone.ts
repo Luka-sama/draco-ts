@@ -1,11 +1,12 @@
-import {AnyEntity, EntityClass} from "@mikro-orm/core";
 import assert from "assert/strict";
 import User from "../auth/user.entity.js";
 import Cache from "../cache/cache.js";
 import CachedObject from "../cache/cached-object.js";
 import {Receiver, UserData} from "../core/ws.typings.js";
+import Entity from "../orm/entity.js";
+import {IEntity} from "../orm/orm.typings.js";
 import SetUtil from "../util/set-util.js";
-import {Vec2, Vector2} from "../util/vector.embeddable.js";
+import {Vec2, Vector2} from "../util/vector.js";
 import Location from "./location.entity.js";
 import Subzone from "./subzone.js";
 import ZoneEntities from "./zone-entities.js";
@@ -62,7 +63,7 @@ export default class Zone extends CachedObject implements Receiver {
 	}
 
 	/** Returns a loaded zone by a given entity with location and position */
-	static async getByEntity(entity: AnyEntity): Promise<Zone> {
+	static async getByEntity(entity: Entity): Promise<Zone> {
 		return await Zone.getByPosition(entity.location, entity.position);
 	}
 
@@ -85,7 +86,7 @@ export default class Zone extends CachedObject implements Receiver {
 	}
 
 	/** Returns a (probably) not loaded zone by a given entity with location and position */
-	static getByEntityFromMemory(entity: AnyEntity): Zone {
+	static getByEntityFromMemory(entity: Entity): Zone {
 		return Zone.getByPositionFromMemory(entity.location, entity.position);
 	}
 
@@ -158,24 +159,24 @@ export default class Zone extends CachedObject implements Receiver {
 		}
 	}
 
-	public static async getFrom<T extends AnyEntity>(model: EntityClass<T>, location: Location, positions: Vector2 | Vector2[]): Promise<Set<T>> {
+	public static async getFrom<T extends IEntity>(model: T, location: Location, positions: Vector2 | Vector2[]): Promise<Set<InstanceType<T>>> {
 		positions = (positions instanceof Array ? positions : [positions]);
 		const result = new Set<T>;
 		for (const position of positions) {
 			const zone = await Zone.getByPosition(location, position);
-			SetUtil.merge(result, zone.getFrom(model, position));
+			SetUtil.merge(result, zone.getFrom(model, position) as any);
 		}
-		return result;
+		return result as any;
 	}
 
-	public static getFromFromMemory<T extends AnyEntity>(model: EntityClass<T>, location: Location, positions: Vector2 | Vector2[]): Set<T> {
+	public static getFromFromMemory<T extends IEntity>(model: T, location: Location, positions: Vector2 | Vector2[]): Set<InstanceType<T>> {
 		positions = (positions instanceof Array ? positions : [positions]);
 		const result = new Set<T>;
 		for (const position of positions) {
 			const zone = Zone.getByPositionFromMemory(location, position);
-			SetUtil.merge(result, zone.getFromFromMemory(model, position));
+			SetUtil.merge(result, zone.getFromFromMemory(model, position) as any);
 		}
-		return result;
+		return result as any;
 	}
 
 	public static areInDifferentZones(position1: Vector2, position2: Vector2): boolean {
@@ -272,14 +273,14 @@ export default class Zone extends CachedObject implements Receiver {
 	}
 
 	/** Removes en entity from central subzone if it is loaded */
-	leave(entity: AnyEntity): void {
+	leave(entity: Entity): void {
 		if (this.centralSubzone.isLoaded()) {
 			this.centralSubzone.leave(entity);
 		}
 	}
 
 	/** Adds en entity to central subzone if it is loaded */
-	enter(entity: AnyEntity): void {
+	enter(entity: Entity): void {
 		if (this.centralSubzone.isLoaded()) {
 			this.centralSubzone.enter(entity);
 		}
@@ -337,7 +338,7 @@ export default class Zone extends CachedObject implements Receiver {
 		throw new Error("Zone.isTileFree: the given position is not in this zone");
 	}
 
-	getFrom<T extends AnyEntity>(model: EntityClass<T>, position: Vector2): Set<T> {
+	getFrom<T extends IEntity>(model: T, position: Vector2): Set<InstanceType<T>> {
 		assert(this.loaded);
 		for (const subzone of this.getSubzones()) {
 			if (subzone.isInside(position)) {
@@ -347,7 +348,7 @@ export default class Zone extends CachedObject implements Receiver {
 		throw new Error("Zone.getFrom: the given position is not in this zone");
 	}
 
-	getFromFromMemory<T extends AnyEntity>(model: EntityClass<T>, position: Vector2): Set<T> {
+	getFromFromMemory<T extends IEntity>(model: T, position: Vector2): Set<InstanceType<T>> {
 		for (const subzone of this.subzones) {
 			if (subzone.isInside(position)) {
 				return (subzone.isLoaded() ? subzone.getFrom(model, position) : new Set);

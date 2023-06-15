@@ -1,27 +1,14 @@
-import {
-	AnyEntity,
-	ChangeSet,
-	ChangeSetType,
-	Collection,
-	EntityClass,
-	EntityData,
-	EntityDictionary,
-	EventSubscriber,
-	FlushEventArgs,
-	Subscriber,
-	wrap
-} from "@mikro-orm/core";
 import assert from "assert/strict";
 import _ from "lodash";
 import User from "../auth/user.entity.js";
+import LightsGroup from "../magic/lights-group.entity.js";
 import Location from "../map/location.entity.js";
 import Subzone from "../map/subzone.js";
 import ZoneEntities from "../map/zone-entities.js";
 import Zone from "../map/zone.js";
 import MapUtil from "../util/map-util.js";
 import SetUtil from "../util/set-util.js";
-import {Vec2, Vector2} from "../util/vector.embeddable.js";
-import ORM, {EM} from "./orm.js";
+import {Vec2, Vector2} from "../util/vector.js";
 import {toSync} from "./sync.decorator.js";
 import {
 	AreaType,
@@ -87,6 +74,7 @@ export default class Synchronizer {
 	/** The accumulated changes to sync */
 	private static syncMap: SyncMap = new Map;
 	private static syncTracked = new Map<AnyEntity, Set<string>>;
+	private static created: number[] = [];
 
 	/** Calculates a sync map for the given change sets */
 	static async addChangeSets(changeSets: ChangeSet<AnyEntity>[]): Promise<void> {
@@ -97,6 +85,11 @@ export default class Synchronizer {
 		for (const changeSet of changeSets) {
 			if (changeSet.entity instanceof User) {
 				await Zone.getByEntity(changeSet.entity); // Load the new zone if needed so that it can be used for further synchronization
+			}
+			if (changeSet.entity instanceof LightsGroup && changeSet.type == ChangeSetType.CREATE && changeSet.entity.id <= 575) {
+				console.log("bug bug bug");
+			} else if (changeSet.type == ChangeSetType.DELETE) {
+				console.log("deleting");
 			}
 			const syncMap = Synchronizer.getSyncMapFromChangeSet(changeSet);
 			//console.log(Date.now(), changeSet.payload, JSON.stringify(Array.from(syncMap.values())));
@@ -126,6 +119,7 @@ export default class Synchronizer {
 	/** Emits to the player who has just logged into the game all the necessary information */
 	static firstSync(user: User, zone: Zone): void {
 		const entities = zone.getEntities();
+		Synchronizer.created = Array.from(entities.get(LightsGroup)).map(lightsGroup => lightsGroup.id);
 		const userInfo = Synchronizer.getCreateList(User, user, SyncFor.This);
 		const syncList = Synchronizer.getCreateListFromZoneEntities(entities).concat(userInfo);
 		Synchronizer.emitSync(user, syncList);
@@ -421,6 +415,10 @@ export default class Synchronizer {
 		if (entity instanceof User) {
 			const newEntities = Zone.getEntitiesFromSubzones(newSubzones);
 			const leftEntities = Zone.getEntitiesFromSubzones(leftSubzones);
+			const newIds = Array.from(newEntities.get(LightsGroup)).map(lightsGroup => lightsGroup.id);
+			const leftIds = Array.from(leftEntities.get(LightsGroup)).map(lightsGroup => lightsGroup.id);
+			Synchronizer.created = Synchronizer.created.filter(id => !leftIds.includes(id));
+			Synchronizer.created.push(...newIds);
 			const remainingEntities = Zone.getEntitiesFromSubzones(remainingSubzones);
 			// We need to do this as an entity can be in multiple subzones at the same time
 			const entitiesToCreate = newEntities.difference(remainingEntities).difference(leftEntities);
@@ -432,8 +430,8 @@ export default class Synchronizer {
 		}
 		const createList = Synchronizer.getCreateList(model, entity, SyncFor.Zone);
 		const deleteList = Synchronizer.getDeleteList(model, entity);
-		Synchronizer.addToSyncMap(newSubzones, createList, syncMap);
-		Synchronizer.addToSyncMap(leftSubzones, deleteList, syncMap);
+		Synchronizer.addToSyncMap(newSubzones, createList, syncMap, entity instanceof LightsGroup);
+		Synchronizer.addToSyncMap(leftSubzones, deleteList, syncMap, entity instanceof LightsGroup, true);
 		Synchronizer.addToSyncMap(remainingSubzones, updateList, syncMap);
 		return syncMap;
 	}
@@ -501,7 +499,7 @@ export default class Synchronizer {
 
 	/** Adds sync list to sync map for the given subzone(s) or something with method getUsers */
 	private static addToSyncMap(receivers: UserContainer | Set<UserContainer>,
-		syncList: Sync[], syncMap = Synchronizer.syncMap): void {
+		syncList: Sync[], syncMap = Synchronizer.syncMap, lights = false, isDeleting = false): void {
 		for (const receiver of (receivers instanceof Set ? receivers : [receivers])) {
 			if (receiver instanceof Subzone && !receiver.isLoaded()) {
 				continue;
@@ -510,6 +508,17 @@ export default class Synchronizer {
 			const users = receiver.getUsersFromMemory();
 			for (const user of users) {
 				if (user.hadFirstSync) {
+					if (lights) {
+						const ids = syncList.map(sync => (sync as any)[2].id);
+						if (!isDeleting && ids.some(id => Synchronizer.created.includes(id))) {
+							console.log("check plz");
+						}
+						if (isDeleting) {
+							Synchronizer.created = Synchronizer.created.filter(id => !ids.includes(id));
+						} else {
+							Synchronizer.created.push(...ids);
+						}
+					}
 					const userSyncList = MapUtil.getArray(syncMap, user);
 					userSyncList.push(...syncList);
 				}

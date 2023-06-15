@@ -1,14 +1,15 @@
-import {AnyEntity, EntityClass, QueryOrder} from "@mikro-orm/core";
 import assert from "assert/strict";
 import _ from "lodash";
 import User from "../auth/user.entity.js";
 import {WeakCachedObject} from "../cache/cached-object.js";
-import {EM} from "../core/orm.js";
 import {UserContainer} from "../core/sync.typings.js";
 import {Receiver, UserData} from "../core/ws.typings.js";
 import Item from "../item/item.entity.js";
+import Entity from "../orm/entity.js";
+import ORM from "../orm/orm.js";
+import {EntityClass, IEntity} from "../orm/orm.typings.js";
 import Const from "../util/const.js";
-import {Vec2, Vector2} from "../util/vector.embeddable.js";
+import {Vec2, Vector2} from "../util/vector.js";
 import Location from "./location.entity.js";
 import Tile from "./tile.entity.js";
 import ZoneEntities, {EntityInfo} from "./zone-entities.js";
@@ -134,13 +135,13 @@ export default class Subzone extends WeakCachedObject implements Receiver, UserC
 	}
 
 	/** Removes en entity from this subzone */
-	leave(entity: AnyEntity): void {
+	leave(entity: Entity): void {
 		assert(this.loaded);
 		this.entities.delete(entity);
 	}
 
 	/** Adds en entity to this subzone */
-	enter(entity: AnyEntity): void {
+	enter(entity: Entity): void {
 		assert(this.loaded);
 		this.entities.enter(entity);
 	}
@@ -171,7 +172,7 @@ export default class Subzone extends WeakCachedObject implements Receiver, UserC
 	isTileFree(position: Vector2): boolean {
 		assert(this.loaded);
 		assert(this.isInside(position));
-		for (const model of [User, Item] as EntityClass<AnyEntity>[]) {
+		for (const model of [User, Item] as EntityClass[]) {
 			for (const entity of this.getFrom(model, position)) {
 				if (model != Item || (!entity.type.walkable && !entity.holder)) {
 					return false;
@@ -182,19 +183,19 @@ export default class Subzone extends WeakCachedObject implements Receiver, UserC
 	}
 
 	/** Returns all entities of the given model at the given position */
-	getFrom<T extends AnyEntity>(model: EntityClass<T>, position: Vector2): Set<T> {
+	getFrom<T extends IEntity>(model: T, position: Vector2): Set<InstanceType<T>> {
 		assert(this.loaded);
 		assert(this.isInside(position));
 		const result = new Set<T>;
 
-		for (const entity of this.entities.get(model)) {
+		for (const entity of this.entities.get(model) as any) {
 			const entityPositions = (entity.getPositions ? entity.getPositions(entity.position, true) : [entity.position]);
 			if (position.isElementOf(entityPositions)) {
 				result.add(entity);
 			}
 		}
 
-		return result;
+		return result as any;
 	}
 
 	/** Returns a random position inside of this subzone */
@@ -213,28 +214,23 @@ export default class Subzone extends WeakCachedObject implements Receiver, UserC
 	private async getIdsOfShapedObjects(info: EntityInfo): Promise<number[]> {
 		const query = `SELECT DISTINCT ${info.table}.id FROM ${info.table}
 INNER JOIN ${info.partTable} ON ${info.partTable}.${info.partForeignKey || info.foreignKey}=${info.table}.${info.foreignKey} WHERE
-${info.table}.location_id = ? AND
-${info.partTable}.x + ${info.table}.x >= ? AND ${info.partTable}.x + ${info.table}.x < ? AND
-${info.partTable}.y + ${info.table}.y >= ? AND ${info.partTable}.y + ${info.table}.y < ?`;
+${info.table}.location_id = $1 AND
+${info.partTable}.x + ${info.table}.x >= $2 AND ${info.partTable}.x + ${info.table}.x < $3 AND
+${info.partTable}.y + ${info.table}.y >= $4 AND ${info.partTable}.y + ${info.table}.y < $5`;
 		const params = [this.location.id, this.start.x, this.end.x, this.start.y, this.end.y];
-		return (await EM.execute(query, params)).map(el => el.id);
+		return (await ORM.query(query, params)).rows.map(el => el.id);
 	}
 
 	/** Loads all entities that are in this subzone */
 	private async loadEntities(): Promise<void> {
-		const where = {location: this.location, position: {
-			x: {$gte: this.start.x, $lt: this.end.x},
-			y: {$gte: this.start.y, $lt: this.end.y}
-		}};
-		const orderBy = {id: QueryOrder.ASC};
 		const entities = this.entities;
 
 		for (const [entity, entityInfo] of ZoneEntities.getEntitiesInfo()) {
 			if (entityInfo.table) {
 				const entityIds = await this.getIdsOfShapedObjects(entityInfo);
-				entities.set(entity, await EM.find(entity, {id: entityIds}, {orderBy, populate: true}) );
+				entities.set(entity, await ORM.find(entity, `id IN (${entityIds.join(", ")}) ORDER BY id`) );
 			} else {
-				entities.set(entity, await EM.find(entity, where, {orderBy, populate: true}) );
+				entities.set(entity, await ORM.find(entity, `location_id=${this.location.id} and x >= ${this.start.x} and x < ${this.end.x} and y >= ${this.start.y} and y < ${this.end.y} ORDER BY id`) );
 			}
 		}
 	}

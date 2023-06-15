@@ -1,38 +1,27 @@
-import {Entity, Property, Unique} from "@mikro-orm/core";
-import {WeakCachedEntity} from "../cache/cached-entity.js";
-
 /** Account entity */
-@Entity()
-export default class Account extends WeakCachedEntity {
-	@Unique()
-	@Property()
-	name: string;
+import Entity from "../orm/entity.js";
+import {Property} from "../orm/orm.decorator.js";
 
-	@Unique()
+export default class Account extends Entity {
 	@Property()
-	mail: string;
+	id!: number;
 
 	@Property()
-	pass: string;
+	name!: string;
 
 	@Property()
-	salt: string;
+	mail!: string;
+
+	@Property()
+	pass!: string;
+
+	@Property()
+	salt = "";
 
 	@Property()
 	regDate = new Date();
 
 	/** Authorization token with which the user can sign in */
-	@Unique()
 	@Property()
-	token: string;
-
-	constructor(name: string, mail: string, pass: string, token: string, id = 0) {
-		super(id);
-		this.name = name;
-		this.mail = mail;
-		this.pass = pass;
-		this.salt = "";
-		this.token = token;
-		return this.getInstance();
-	}
+	token!: string;
 }

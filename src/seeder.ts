@@ -8,7 +8,7 @@ import ItemType from "./item/item-type.entity.js";
 import Item from "./item/item.entity.js";
 import Location from "./map/location.entity.js";
 import Const from "./util/const.js";
-import {Vec2} from "./util/vector.embeddable.js";
+import {Vec2} from "./util/vector.js";
 
 export default class Seeder {
 	static started = false;

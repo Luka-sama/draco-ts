@@ -1,28 +1,31 @@
-import {Embedded, Entity, ManyToOne, Rel} from "@mikro-orm/core";
 import assert from "assert/strict";
 import User from "../auth/user.entity.js";
-import {WeakCachedEntity} from "../cache/cached-entity.js";
 import {Sync} from "../core/sync.decorator.js";
 import {SyncFor} from "../core/sync.typings.js";
 import Location from "../map/location.entity.js";
-import {Vec2, Vector2} from "../util/vector.embeddable.js";
+import Entity from "../orm/entity.js";
+import {Property} from "../orm/orm.decorator.js";
+import {Rel} from "../orm/orm.typings.js";
+import {Vec2, Vector2} from "../util/vector.js";
 import ItemType from "./item-type.entity.js";
 
 /** Item entity */
-@Entity()
-export default class Item extends WeakCachedEntity {
-	@ManyToOne()
+export default class Item extends Entity {
+	@Property()
+	id!: number;
+
+	@Property({manyToOne: () => ItemType})
 	@Sync({for: SyncFor.Zone, map: ["name", "height"]})
-	type: ItemType;
+	type!: ItemType;
 
-	@ManyToOne()
-	location: Location;
+	@Property({manyToOne: () => Location})
+	location!: Location;
 
-	@Embedded({prefix: false})
+	@Property({vector: true})
 	@Sync(SyncFor.Zone)
-	position: Vector2;
+	position!: Vector2;
 
-	@ManyToOne()
+	@Property({manyToOne: () => User})
 	@Sync({for: SyncFor.Zone, map: "id", default: 0})
 	holder?: Rel<User>;
 
@@ -38,13 +41,5 @@ export default class Item extends WeakCachedEntity {
 				const offset = (shouldCorrect ? shapePart.add(Vec2(1, 0)) : shapePart);
 				return position.add(offset);
 			});
-	}
-
-	constructor(type: ItemType, location: Location, position: Vector2, id = 0) {
-		super(id);
-		this.type = type;
-		this.location = location;
-		this.position = position;
-		return this.getInstance();
 	}
 }

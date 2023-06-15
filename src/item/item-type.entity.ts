@@ -1,36 +1,28 @@
-import {Collection, Entity, OneToMany, Property} from "@mikro-orm/core";
-import {WeakCachedEntity} from "../cache/cached-entity.js";
+import Collection from "../orm/collection.js";
+import Entity from "../orm/entity.js";
+import {Property} from "../orm/orm.decorator.js";
 import ItemShapePart from "./item-shape-part.entity.js";
 
 /** Item type entity */
-@Entity()
-export default class ItemType extends WeakCachedEntity {
+export default class ItemType extends Entity {
 	@Property()
-	name: string;
-
-	@OneToMany({mappedBy: (itemShapePart: ItemShapePart) => itemShapePart.type})
-	shape = new Collection<ItemShapePart>(this);
+	id!: number;
 
 	@Property()
-	height: number;
+	name!: string;
+
+	@Property({oneToMany: [ItemShapePart, "type"]})
+	shape!: Collection<ItemShapePart>;
 
 	@Property()
-	walkable: boolean;
+	height!: number;
 
 	@Property()
-	takable: boolean;
+	walkable!: boolean;
 
 	@Property()
-	weight: number;
+	takable!: boolean;
 
-	constructor(name: string, height: number, walkable: boolean, takable: boolean, weight: number, id = 0) {
-		super(id);
-		this.name = name;
-		this.height = height;
-		this.walkable = walkable;
-		this.takable = takable;
-		this.weight = weight;
-		const instance = this.getInstance();
-		return instance;
-	}
+	@Property()
+	weight!: number;
 }

@@ -1,6 +1,5 @@
 import Cache from "./cache.js";
 import {CacheOptions} from "./cache.typings.js";
-import {CachedEntity} from "./cached-entity.js";
 
 /**
  * If a class derives CachedObject, it will be ensured that there is only one instance of this class for each name,
@@ -12,8 +11,6 @@ import {CachedEntity} from "./cached-entity.js";
  * const zone2 = new Zone(location, position);
  * console.log(zone1 == zone2); // true
  * ```
- *
- * For entities (objects that should be stored in the DB), use {@link CachedEntity} or {@link WeakCachedEntity}.
  *
  * In most cases you should use WeakCachedObject. Using CachedObject can lead to weird bugs with multiple instances for the same name,
  * due to the fact that normal (not weak) cache entries are removed in a few seconds after they are not read. This is only not a problem

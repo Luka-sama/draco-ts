@@ -1,16 +1,11 @@
-import {Entity, Property, Unique} from "@mikro-orm/core";
-import {WeakCachedEntity} from "../cache/cached-entity.js";
+import Entity from "../orm/entity.js";
+import {Property} from "../orm/orm.decorator.js";
 
 /** Location entity */
-@Entity()
-export default class Location extends WeakCachedEntity {
-	@Unique()
+export default class Location extends Entity {
 	@Property()
-	name: string;
+	id!: number;
 
-	constructor(name: string, id = 0) {
-		super(id);
-		this.name = name;
-		return this.getInstance();
-	}
+	@Property()
+	name!: string;
 }

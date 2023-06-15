@@ -4,7 +4,7 @@ import {LoggedArgs} from "../core/ws.typings.js";
 import Const from "../util/const.js";
 import Limit from "../util/limit.js";
 import {ensure, Is} from "../util/validation.js";
-import {Vec2} from "../util/vector.embeddable.js";
+import {Vec2} from "../util/vector.js";
 
 /** This class handles movement of players */
 export default class Movement {
@@ -35,7 +35,7 @@ export default class Movement {
 				Limit.updateLastTime("Movement.move", user);
 				user.position = newPosition;
 				user.speed = speed;
-				for (const item of user.items) {
+				for (const item of user.items.getItems()) {
 					item.position = newPosition;
 				}
 				return;

@@ -1,5 +1,3 @@
-import {Embeddable, Property} from "@mikro-orm/core";
-
 /**
  * Vector2 interface
  *
@@ -12,12 +10,8 @@ export interface IVector2 {
 }
 
 /** Vector2 class. Usually used to represent positions */
-@Embeddable()
 export class Vector2 {
-	@Property()
 	readonly x: number = 0;
-
-	@Property()
 	readonly y: number = 0;
 
 	constructor(x: number, y: number) {

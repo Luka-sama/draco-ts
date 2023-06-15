@@ -1,12 +1,11 @@
-import {RequestContext} from "@mikro-orm/core";
 import assert from "assert/strict";
 import {Buffer} from "buffer";
 import _ from "lodash";
 import uWS from "uWebSockets.js";
 import User from "../auth/user.entity.js";
+import ORM from "../orm/orm.js";
 import {EndOfRequest} from "../util/limit.js";
 import {ensure, Is, WrongDataError} from "../util/validation.js";
-import ORM, {EM} from "./orm.js";
 import Tr from "./tr.js";
 import {EventHandler, GuestArgs, JSONData, Socket, UserData, WSData} from "./ws.typings.js";
 
@@ -249,23 +248,15 @@ export default class WS {
 
 		const raw = WS.convertKeysInData(json.data, _.camelCase);
 
-		await RequestContext.createAsync(EM, async function() {
-			if (sck.account) {
-				ORM.register(sck.account);
+		try {
+			await handleEvent({sck, raw} as GuestArgs);
+			await ORM.flush();
+		} catch(e) {
+			if (!(e instanceof EndOfRequest) && (e as any)?.code != "ABORT_ERR") {
+				const isWrongData = (e instanceof WrongDataError || e instanceof assert.AssertionError);
+				sck.info(isWrongData ? Tr.get("WRONG_DATA") : Tr.get("UNKNOWN_ERROR"));
+				console.error(e);
 			}
-			if (sck.user) {
-				ORM.register(sck.user);
-			}
-			try {
-				await handleEvent({sck, raw} as GuestArgs);
-				await EM.flush();
-			} catch(e) {
-				if (!(e instanceof EndOfRequest) && (e as any)?.code != "ABORT_ERR") {
-					const isWrongData = (e instanceof WrongDataError || e instanceof assert.AssertionError);
-					sck.info(isWrongData ? Tr.get("WRONG_DATA") : Tr.get("UNKNOWN_ERROR"));
-					console.error(e);
-				}
-			}
-		});
+		}
 	}
 }

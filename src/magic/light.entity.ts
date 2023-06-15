@@ -1,22 +1,17 @@
-import {Embedded, Entity, ManyToOne, Rel, Unique} from "@mikro-orm/core";
-import {WeakCachedEntity} from "../cache/cached-entity.js";
-import {Vector2} from "../util/vector.embeddable.js";
+import Entity from "../orm/entity.js";
+import {Property} from "../orm/orm.decorator.js";
+import {Rel} from "../orm/orm.typings.js";
+import {Vector2} from "../util/vector.js";
 import LightsGroup from "./lights-group.entity.js";
 
 /** Item shape entity */
-@Entity()
-@Unique({properties: ["lightsGroup", "x", "y"]})
-export default class Light extends WeakCachedEntity {
-	@ManyToOne()
-	lightsGroup: Rel<LightsGroup>;
+export default class Light extends Entity {
+	@Property()
+	id!: number;
 
-	@Embedded({prefix: false})
-	position: Vector2;
+	@Property({manyToOne: () => LightsGroup})
+	lightsGroup!: Rel<LightsGroup>;
 
-	constructor(lightsGroup: Rel<LightsGroup>, position: Vector2, id = 0) {
-		super(id);
-		this.lightsGroup = lightsGroup;
-		this.position = position;
-		return this.getInstance();
-	}
+	@Property({vector: true})
+	position!: Vector2;
 }
