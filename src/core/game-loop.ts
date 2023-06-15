@@ -27,7 +27,7 @@ export default class GameLoop {
 	}
 
 	static removeTask(task: Task) {
-		GameLoop.tasks = _.without(GameLoop.tasks, task);
+		_.pull(GameLoop.tasks, task);
 	}
 
 	private static async exec() {

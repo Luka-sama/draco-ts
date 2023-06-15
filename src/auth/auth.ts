@@ -37,7 +37,7 @@ export default class Auth {
 			Limit.updateLastTime("Auth.signUpAccount", sck);
 			const token = await Auth.generateToken();
 			const account = new Account(name, mail, pass, token);
-			await account.create();
+			account.create();
 			sck.emit("sign_up_account");
 		} else {
 			sck.emit("sign_up_account_errors", {errors});
@@ -78,7 +78,7 @@ export default class Auth {
 			const location = EM.getReference(Location, 1);
 			const position = Vec2(0, 0);
 			const user = new User(name, account, location, position);
-			await user.create();
+			user.create();
 			const zone = await Zone.getByEntity(user);
 			await Magic.createLightsForMage(user, zone);
 			sck.emit("sign_up_user");

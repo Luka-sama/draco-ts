@@ -1,7 +1,7 @@
 import {RequestContext} from "@mikro-orm/core";
 import _ from "lodash";
 import {HttpResponse} from "uWebSockets.js";
-import ORM, {EM} from "../core/orm.js";
+import {EM} from "../core/orm.js";
 import WS from "../core/ws.js";
 import {JSONData} from "../core/ws.typings.js";
 import {IVector2, Vec2} from "../util/vector.embeddable.js";
@@ -43,7 +43,7 @@ export default class Deploy {
 		let location = await EM.findOne(Location, {name: locName});
 		if (!location) {
 			location = new Location(locName);
-			await location.create();
+			location.create();
 		}
 
 		const existingTilesets = await EM.find(Tileset, {name: tilesets});
@@ -54,7 +54,7 @@ export default class Deploy {
 		for (const tilesetName of tilesets) {
 			if (!tilesetMap.has(tilesetName)) {
 				const tilesetEntity = new Tileset(tilesetName);
-				ORM.register(tilesetEntity);
+				tilesetEntity.create();
 				tilesetMap.set(tilesetName, tilesetEntity);
 			}
 		}
@@ -63,7 +63,7 @@ export default class Deploy {
 		for (const oldTile of tiles) {
 			const newTile = _.get(map, [oldTile.position.y, oldTile.position.x]);
 			if (!newTile) {
-				EM.remove(oldTile);
+				oldTile.remove();
 				continue;
 			}
 
@@ -84,7 +84,7 @@ export default class Deploy {
 					const tilesetName = tilesets[tile.tileset];
 					const tileset = tilesetMap.get(tilesetName)!;
 					const tileEntity = new Tile(location, Vec2(+x, +y), tileset, Vec2(tile.atlasCoords));
-					ORM.register(tileEntity);
+					tileEntity.create();
 				}
 			}
 		}

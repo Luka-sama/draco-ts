@@ -268,7 +268,7 @@ export default class Synchronizer {
 				position: syncForKey.split("/")[1]
 			} : syncForKey);
 
-			const lazyCheck = Object.keys(convertedEntity)
+			const lazyCheck = type != SyncType.Update || Object.keys(convertedEntity)
 				.map(property => toSyncModel.get(property))
 				.filter(properties => properties && properties.filter(property => _.isEqual(property.for, syncFor) && !property.lazy).length)
 				.length > 0;

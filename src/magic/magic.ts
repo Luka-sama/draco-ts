@@ -1,3 +1,4 @@
+import assert from "assert/strict";
 import _ from "lodash";
 import User from "../auth/user.entity.js";
 import Cache from "../cache/cache.js";
@@ -13,14 +14,22 @@ import LightsGroup from "./lights-group.entity.js";
 
 /** Magic and lights controller */
 export default class Magic {
+	private static removeQueue = new Set<LightsGroup>;
+
 	public static moveAllLightsGroups(): void {
 		const zones = (Cache.getLeaves("zone") as Zone[]).filter(zone => zone.isSomebodyOnline());
 		const lightsGroups = new Set<LightsGroup>;
+		const zoneLightsGroups: number[] = [];
+		const userLightsGroups: any = {};
 		for (const zone of zones) {
-			SetUtil.merge(lightsGroups, zone.getEntitiesFromMemory().get(LightsGroup));
+			const zoneEntities = zone.getEntitiesFromMemory().get(LightsGroup);
+			zoneEntities.forEach(group => zoneLightsGroups.push(group.id));
+			SetUtil.merge(lightsGroups, zoneEntities);
 			for (const user of zone.getUsersFromMemory()) {
+				userLightsGroups[user.id] = [];
 				for (const lightsGroup of user.lightsGroups) {
 					lightsGroups.add(lightsGroup);
+					userLightsGroups[user.id].push(lightsGroup.id);
 				}
 			}
 		}
@@ -33,7 +42,11 @@ export default class Magic {
 				continue;
 			}
 			lightsGroup.lastMovement = now;
-			Magic.moveLightsGroup(lightsGroup);
+			try {
+				Magic.moveLightsGroup(lightsGroup);
+			} catch(e) {
+				console.error(e);
+			}
 		}
 	}
 
@@ -58,11 +71,10 @@ export default class Magic {
 		const direction = Magic.generateLightsDirection(position, user);
 
 		const lightsGroup = new LightsGroup(speed, direction, user.location, position, user);
-		ORM.register(lightsGroup);
 		for (const part of shape) {
 			const light = new Light(lightsGroup, part);
-			ORM.register(light);
 		}
+		lightsGroup.create();
 	}
 
 	public static generateLightsDirection(from: Vector2, user: User, toTarget = true): Vector2 {
@@ -78,37 +90,44 @@ export default class Magic {
 		return dir;
 	}
 
-	private static moveLightsGroup(lightsGroup: LightsGroup): void {
-		lightsGroup.position = lightsGroup.position.add(lightsGroup.direction.toStaggered());
-		if (lightsGroup.activated) {
-			Magic.collide(lightsGroup);
-			return;
+	public static removeLightsFromQueue(): void {
+		for (const lightsGroup of Magic.removeQueue) {
+			lightsGroup.remove();
+			lightsGroup.targetMage.lightsGroups.remove(lightsGroup);
 		}
+		Magic.removeQueue.clear();
+	}
+
+	private static moveLightsGroup(lightsGroup: LightsGroup): void {
+		const oldPosition = lightsGroup.position;
+		lightsGroup.position = lightsGroup.position.add(lightsGroup.direction.toStaggered());
 		const distanceToMage = lightsGroup.position.distanceSquaredTo(lightsGroup.targetMage.position);
 		const strictMinDistance = Math.pow(Const.LIGHTS_STRICT_MIN_DISTANCE_TO_TARGET, 2);
 		const softMinDistance = Math.pow(Const.LIGHTS_SOFT_MIN_DISTANCE_TO_TARGET, 2);
+		let farAway = false;
 
 		if (distanceToMage <= strictMinDistance) {
 			lightsGroup.toTarget = false;
-		} else if (distanceToMage <= softMinDistance && _.random(0, 1)) {
-			lightsGroup.toTarget = false;
-		} else if (distanceToMage > softMinDistance && !lightsGroup.toTarget) {
-			const lightsZonePosition = Zone.getZonePosition(lightsGroup.position);
-			const userZonePosition = Zone.getZonePosition(lightsGroup.targetMage.position);
-			const diff = lightsZonePosition.sub(userZonePosition).abs();
-			if (diff.x > 1 && diff.y > 1) {
-				lightsGroup.toTarget = true;
-			}
+		} else if (distanceToMage <= softMinDistance) {
+			lightsGroup.toTarget = (_.random(0, 1) ? false : lightsGroup.toTarget);
+		} else if (Zone.areInDifferentZones(lightsGroup.position, lightsGroup.targetMage.position)) {
+			farAway = true;
+			lightsGroup.toTarget = true;
+			lightsGroup.activated = false;
 		}
 
-		const shouldChangeDirection = _.random(1, 100) <= Const.LIGHTS_DIRECTION_CHANGE_PROBABILITY;
+		const shouldChangeDirection = !lightsGroup.activated && _.random(1, 100) <= Const.LIGHTS_DIRECTION_CHANGE_PROBABILITY;
 		if (shouldChangeDirection) {
 			lightsGroup.direction = Magic.generateLightsDirection(lightsGroup.position, lightsGroup.targetMage, lightsGroup.toTarget);
 			lightsGroup.speed = _.clamp(
-				lightsGroup.speed + _.random(-Const.LIGHTS_MAX_SPEED_CHANGE, Const.LIGHTS_MAX_SPEED_CHANGE),
+				lightsGroup.speed + _.random((farAway ? 0 : -Const.LIGHTS_MAX_SPEED_CHANGE), Const.LIGHTS_MAX_SPEED_CHANGE),
 				Const.LIGHTS_MIN_SPEED,
 				Const.LIGHTS_MAX_SPEED
 			);
+		}
+
+		if (lightsGroup.activated) {
+			Magic.collide(lightsGroup);
 		}
 	}
 
@@ -117,10 +136,12 @@ export default class Magic {
 		if (users.size < 1) {
 			return;
 		}
-		for (const user of users) {
-			Magic.applyMagic(lightsGroup, user);
-			lightsGroup.activated = false;
-		}
+
+		const zone = Zone.getByEntityFromMemory(lightsGroup.targetMage);
+		assert(zone.isLoaded());
+		Magic.createLightsGroupForMage(lightsGroup.targetMage, zone);
+		users.forEach(user => Magic.applyMagic(lightsGroup, user));
+		Magic.removeQueue.add(lightsGroup);
 	}
 
 	private static applyMagic(lightsGroup: LightsGroup, user: User): void {

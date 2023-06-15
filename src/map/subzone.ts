@@ -203,7 +203,7 @@ export default class Subzone extends WeakCachedObject implements Receiver, UserC
 			_.random(this.start.x, this.end.x - 1),
 			_.random(this.start.y, this.end.y - 1),
 		);
-		if (staggered && position.y % 2 == 1) {
+		if (staggered && position.y % 2 != 0) {
 			return position.add(Vec2(0, (position.y == this.start.y ? 1 : -1)));
 		}
 		return position;

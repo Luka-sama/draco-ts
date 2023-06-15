@@ -151,16 +151,23 @@ export abstract class CachedEntity {
 		}
 	}
 
-	/** Creates the entity in the DB and caches this entity */
-	async create(): Promise<void> {
-		await EM.persistAndFlush(this);
+	/** Creates the entity in the DB (without flushing) and caches this entity */
+	create(): void {
+		EM.persist(this);
 		this.cache();
 	}
 
-	/** Removes the entity from the DB and the cache */
+	/**
+	 * Removes the entity from the DB (without flushing) and the cache.
+	 * Saves the positions for shaped objects to sync it correctly (otherwise at the sync time the object will not have any shape).
+	 */
 	async remove(): Promise<void> {
+		if ("getPositions" in this && typeof this.getPositions == "function") {
+			const positions = this.getPositions();
+			this.getPositions = () => positions;
+		}
 		this.__removed = true;
-		await EM.removeAndFlush(this);
+		await EM.remove(this);
 		this.uncache();
 	}
 

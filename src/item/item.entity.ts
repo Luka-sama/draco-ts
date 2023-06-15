@@ -34,7 +34,7 @@ export default class Item extends WeakCachedEntity {
 			.filter(shapePart => !excludeNegative || shapePart.x >= 0 && shapePart.y >= 0)
 			.map(shapePart => {
 				// Correct shape for odd Y because we have staggered isometric map
-				const shouldCorrect = (position.y % 2 == 1 && shapePart.y % 2 == 1);
+				const shouldCorrect = (position.y % 2 != 0 && shapePart.y % 2 != 0);
 				const offset = (shouldCorrect ? shapePart.add(Vec2(1, 0)) : shapePart);
 				return position.add(offset);
 			});

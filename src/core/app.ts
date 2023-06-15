@@ -36,6 +36,7 @@ export default class App {
 		GameLoop.addTask(Synchronizer.synchronize, Const.SYNC_FREQUENCY_MS);
 		GameLoop.addTask(Zone.stayInCacheIfSomebodyIsOnline, Const.CACHE_CLEAN_FREQUENCY_MS / 2);
 		GameLoop.addTask(Magic.moveAllLightsGroups);
+		GameLoop.addTask(Magic.removeLightsFromQueue);
 	}
 
 	/** Auto-import to make @OnlyLogged() and other decorators to work without explicit import */

@@ -1,8 +1,7 @@
-import {Collection, Embedded, Entity, ManyToOne, OneToMany, Property, Rel} from "@mikro-orm/core";
+import {Cascade, Collection, Embedded, Entity, ManyToOne, OneToMany, Property, Rel} from "@mikro-orm/core";
 import assert from "assert/strict";
 import User from "../auth/user.entity.js";
 import {WeakCachedEntity} from "../cache/cached-entity.js";
-import {Task} from "../core/game-loop.js";
 import {Sync} from "../core/sync.decorator.js";
 import {SyncFor} from "../core/sync.typings.js";
 import Location from "../map/location.entity.js";
@@ -13,7 +12,7 @@ import Light from "./light.entity.js";
 @Entity()
 export default class LightsGroup extends WeakCachedEntity {
 	/** Shape. Each lights group consists of some number of lights, each located in its own tile */
-	@OneToMany({mappedBy: (light: Light) => light.lightsGroup})
+	@OneToMany({mappedBy: (light: Light) => light.lightsGroup, cascade: [Cascade.ALL]})
 	shape = new Collection<Light>(this);
 
 	/** Speed. May change randomly */
@@ -56,8 +55,6 @@ export default class LightsGroup extends WeakCachedEntity {
 	activated = false;
 
 	lastMovement = 0;
-
-	task!: Task;
 
 	constructor(speed: number, direction: Vector2, location: Location, position: Vector2, targetMage: Rel<User>, id = 0) {
 		super(id);

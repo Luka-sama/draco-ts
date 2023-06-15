@@ -25,7 +25,7 @@ export default class Zone extends CachedObject implements Receiver {
 	private loaded = false;
 	private readonly location: Location;
 	private readonly zonePosition: Vector2;
-	private subzones: Set<Subzone> = new Set();
+	private subzones = new Set<Subzone>;
 	private centralSubzone!: Subzone;
 
 	/** Returns the name of a zone with the given location and zone position */
@@ -74,7 +74,7 @@ export default class Zone extends CachedObject implements Receiver {
 
 	/** Returns multiple (probably) not loaded zones by a given location and multiple positions */
 	static getByPositionsFromMemory(location: Location, positions: Vector2[]): Set<Zone> {
-		const zones = new Set<Zone>();
+		const zones = new Set<Zone>;
 		for (const position of positions) {
 			const zone = Zone.getByPositionFromMemory(location, position);
 			if (zone) {
@@ -91,22 +91,22 @@ export default class Zone extends CachedObject implements Receiver {
 
 	/** Collects entities from all given subzones */
 	static getEntitiesFromSubzones(subzones: Set<Subzone>): ZoneEntities {
-		const zoneEntities = new ZoneEntities();
+		const zoneEntities = new ZoneEntities;
 		subzones.forEach(subzone => zoneEntities.merge(subzone.getEntities()));
 		return zoneEntities;
 	}
 
 	/** Collects entities from all given subzones */
 	static getEntitiesFromSubzonesFromMemory(subzones: Set<Subzone>): ZoneEntities {
-		const zoneEntities = new ZoneEntities();
+		const zoneEntities = new ZoneEntities;
 		subzones.forEach(subzone => zoneEntities.merge(subzone.getEntitiesFromMemory()));
 		return zoneEntities;
 	}
 
 	/** Returns a list of subzones that are in the given zones */
 	static getSubzonesFrom(zones: Set<Zone>): Set<Subzone> {
-		const subzones = new Set<Subzone>();
-		zones.forEach(zone => SetUtil.merge(subzones, zone.getSubzonesFromMemory()));
+		const subzones = new Set<Subzone>;
+		zones.forEach(zone => SetUtil.merge(subzones, zone.subzones));
 		return subzones;
 	}
 
@@ -178,10 +178,26 @@ export default class Zone extends CachedObject implements Receiver {
 		return result;
 	}
 
+	public static areInDifferentZones(position1: Vector2, position2: Vector2): boolean {
+		const zonePosition1 = Zone.getZonePosition(position1);
+		const zonePosition2 = Zone.getZonePosition(position2);
+		const diff = zonePosition1.sub(zonePosition2).abs();
+		return (diff.x > 1 && diff.y > 1);
+	}
+
 	constructor(location: Location, zonePosition: Vector2) {
 		super(location, zonePosition);
 		this.location = location;
 		this.zonePosition = zonePosition;
+		for (let y = -1; y <= 1; y++) {
+			for (let x = -1; x <= 1; x++) {
+				const subzone = new Subzone(this.location, zonePosition.add(Vec2(x, y)));
+				this.subzones.add(subzone);
+				if (x == 0 && y == 0) {
+					this.centralSubzone = subzone;
+				}
+			}
+		}
 		return this.getInstance();
 	}
 
@@ -207,41 +223,21 @@ export default class Zone extends CachedObject implements Receiver {
 
 	/** Loads all subzones */
 	async load(): Promise<void> {
-		if (this.loaded) {
-			return;
+		if (!this.loaded) {
+			await Subzone.loadAll(this.subzones);
+			this.loaded = true;
 		}
-
-		this.subzones = this.getSubzonesFromMemory();
-		for (const subzone of this.subzones) {
-			if (subzone.getZonePosition().equals(this.zonePosition)) {
-				this.centralSubzone = subzone;
-			}
-		}
-		await Subzone.loadAll(this.subzones);
-
-		this.loaded = true;
 	}
 
-	/** Returns set with all subzones */
+	/** Returns set with all subzones. Checks if the zone is loaded */
 	getSubzones(): Set<Subzone> {
 		assert(this.loaded);
 		return this.subzones;
 	}
 
+	/** Returns set with all subzones */
 	getSubzonesFromMemory(): Set<Subzone> {
-		if (this.loaded) {
-			return this.subzones;
-		}
-
-		const subzones = new Set<Subzone>;
-		for (let y = -1; y <= 1; y++) {
-			for (let x = -1; x <= 1; x++) {
-				const zonePos = this.zonePosition.add(Vec2(x, y));
-				const subzone = new Subzone(this.location, zonePos);
-				subzones.add(subzone);
-			}
-		}
-		return subzones;
+		return this.subzones;
 	}
 
 	/** Returns the central subzone */
@@ -267,7 +263,7 @@ export default class Zone extends CachedObject implements Receiver {
 
 	/** Returns `true` if the given position is inside of this zone */
 	isInside(position: Vector2): boolean {
-		for (const subzone of this.getSubzonesFromMemory()) {
+		for (const subzone of this.subzones) {
 			if (subzone.isInside(position)) {
 				return true;
 			}
@@ -277,17 +273,15 @@ export default class Zone extends CachedObject implements Receiver {
 
 	/** Removes en entity from central subzone if it is loaded */
 	leave(entity: AnyEntity): void {
-		const centralSubzone = this.getCentralSubzoneFromMemory();
-		if (centralSubzone.isLoaded()) {
-			centralSubzone.leave(entity);
+		if (this.centralSubzone.isLoaded()) {
+			this.centralSubzone.leave(entity);
 		}
 	}
 
 	/** Adds en entity to central subzone if it is loaded */
 	enter(entity: AnyEntity): void {
-		const centralSubzone = this.getCentralSubzoneFromMemory();
-		if (centralSubzone.isLoaded()) {
-			centralSubzone.enter(entity);
+		if (this.centralSubzone.isLoaded()) {
+			this.centralSubzone.enter(entity);
 		}
 	}
 
@@ -298,7 +292,7 @@ export default class Zone extends CachedObject implements Receiver {
 
 	/** Collects entities from all already loaded subzones of this zone */
 	getEntitiesFromMemory(): ZoneEntities {
-		return Zone.getEntitiesFromSubzonesFromMemory(this.getSubzonesFromMemory());
+		return Zone.getEntitiesFromSubzonesFromMemory(this.subzones);
 	}
 
 	/** Returns all users from this zone */
@@ -354,7 +348,7 @@ export default class Zone extends CachedObject implements Receiver {
 	}
 
 	getFromFromMemory<T extends AnyEntity>(model: EntityClass<T>, position: Vector2): Set<T> {
-		for (const subzone of this.getSubzonesFromMemory()) {
+		for (const subzone of this.subzones) {
 			if (subzone.isInside(position)) {
 				return (subzone.isLoaded() ? subzone.getFrom(model, position) : new Set);
 			}
