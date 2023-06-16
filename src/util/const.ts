@@ -31,7 +31,7 @@ export default class Const {
 	/** Delete message from chat after .. ms */
 	static readonly CHAT_DELETE_MESSAGE_AFTER_MS = 300 * 1000;
 	/** Hearing radius (in tiles) */
-	static readonly CHAT_HEARING_RADIUS = 30;
+	static readonly CHAT_HEARING_RADIUS = 1000;
 
 	/** Count of created lights groups per user */
 	static readonly LIGHTS_GROUPS_PER_USER = 3;
@@ -42,7 +42,7 @@ export default class Const {
 	/** Lights group min speed (tiles per second) */
 	static readonly LIGHTS_MIN_SPEED = 5;
 	/** Lights group max speed (tiles per second) */
-	static readonly LIGHTS_MAX_SPEED = 10;
+	static readonly LIGHTS_MAX_SPEED = 9;
 	/** The probability (from 0 to 100) that a lights group will take a random direction (i.e. not to target or from target) */
 	static readonly LIGHTS_RANDOM_DIRECTION_PROBABILITY = 25;
 	/** The max possible distance from the target mage (the more, the greater the load on the server may be) */

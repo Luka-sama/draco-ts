@@ -1,5 +1,6 @@
 import {glob} from "glob";
 import Cache from "../cache/cache.js";
+import Chat from "../chat/chat.js";
 import Magic from "../magic/magic.js";
 import Zone from "../map/zone.js";
 import ORM from "../orm/orm.js";
@@ -37,6 +38,7 @@ export default class App {
 		GameLoop.addTask(Zone.stayInCacheIfSomebodyIsOnline, Const.CACHE_CLEAN_FREQUENCY_MS / 2);
 		GameLoop.addTask(Magic.moveAllLightsGroups);
 		GameLoop.addTask(Magic.removeLightsFromQueue);
+		GameLoop.addTask(Chat.sendTime);
 	}
 
 	/** Auto-import to make @OnlyLogged() and other decorators to work without explicit import */

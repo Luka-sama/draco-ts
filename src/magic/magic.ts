@@ -141,7 +141,8 @@ export default class Magic {
 	}
 
 	private static applyMagic(lightsGroup: LightsGroup, user: User): void {
-		Message.create({text: `${user.id} catched`, user, location: user.location, position: user.position});
+		user.pigeonHits++;
+		Message.create({text: `${user.name} was hit ${user.pigeonHits} times!`, user: {id: 7}, location: user.location, position: user.position});
 	}
 
 	private static generateLightsShape(): Vector2[] {

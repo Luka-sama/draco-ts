@@ -46,6 +46,8 @@ export default class User extends Entity implements Receiver {
 	@Property({oneToMany: [LightsGroup, "targetMage"]})
 	lightsGroups!: Collection<LightsGroup>;
 
+	pigeonHits = 0;
+
 	socket?: Socket;
 
 	connected = false;
