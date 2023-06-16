@@ -47,7 +47,7 @@ export default class Auth {
 		const data = ensure(raw, {nameOrMail: Is.string, pass: Is.string});
 		await Limit.softUpdatingTime("Auth.signInAccount", sck, 1000);
 
-		const acc = await ORM.findOne(Account, `mail="${data.nameOrMail}" or name="${data.nameOrMail}"`);
+		const acc = await ORM.findOne(Account, `mail='${data.nameOrMail}' or name='${data.nameOrMail}'`);
 		if (!acc) {
 			sck.emit("sign_in_account_error", {error: Tr.get("AUTH_ACCOUNT_NOT_FOUND")});
 		} else if (acc.pass != data.pass) {
