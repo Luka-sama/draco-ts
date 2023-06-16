@@ -2,7 +2,6 @@ import assert from "assert/strict";
 import _ from "lodash";
 import {OnlyLogged} from "../auth/auth.decorator.js";
 import User from "../auth/user.entity.js";
-import Cache from "../cache/cache.js";
 import {LoggedArgs} from "../core/ws.typings.js";
 import ORM from "../orm/orm.js";
 import {ensure, Is} from "../util/validation.js";
@@ -74,7 +73,7 @@ export default class Chat {
 	}
 
 	static resetHits() {
-		const users = Cache.getLeaves("user") as User[];
+		const users = Array.from(ORM.cachedEntries.get(User)!.values());
 		for (const user of users) {
 			user.pigeonHits = 0;
 		}
