@@ -60,6 +60,11 @@ export default class LightsGroup extends Entity {
 
 	lastMovement = 0;
 
+	constructor(id: number) {
+		super(id);
+		return this.getInstance();
+	}
+
 	getPositions(position = this.position): Vector2[] {
 		assert(this.shape.isInitialized());
 		return this.shape

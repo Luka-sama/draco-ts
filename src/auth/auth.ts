@@ -85,7 +85,7 @@ export default class Auth {
 		const data = ensure(raw, {name: Is.string});
 		await Limit.softUpdatingTime("Auth.signInUser", sck, 1000);
 
-		const user = await User.get(`name="${data.name}" and account=${sck.account?.id}`);
+		const user = await User.get(`name='${data.name}' and account=${sck.account?.id}`);
 		if (user) {
 			user.connected = true;
 			sck.user = user;
@@ -109,7 +109,7 @@ export default class Auth {
 		const data = ensure(raw, {accountToken: Is.string, userName: Is.string});
 		await Limit.softUpdatingTime("Auth.signInByToken", sck, 1000);
 
-		const user = await User.get(`name=${data.userName}`);
+		const user = await User.get(`name='${data.userName}'`);
 		if (user && user.account.token == data.accountToken) {
 			sck.account = user.account;
 			sck.user = user;

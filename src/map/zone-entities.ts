@@ -63,7 +63,9 @@ export default class ZoneEntities {
 	/** Removes an entity from the set for its model */
 	delete(entity: Entity): void {
 		const set = this.get((entity as any).constructor);
-		set.delete(entity);
+		if (!set.delete(entity)) {
+			console.error("Entity was not presented in this subzone.", entity);
+		}
 	}
 
 	/** Merges other entities into this */

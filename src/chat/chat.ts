@@ -9,6 +9,6 @@ export default class Chat {
 	static sendMessage({user, raw}: LoggedArgs): void {
 		const {text} = ensure(raw, {text: Is.string});
 		assert(text.length <= 255);
-		Message.create({text, user});
+		Message.create({text, user, location: user.location, position: user.position});
 	}
 }

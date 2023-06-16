@@ -24,4 +24,9 @@ export default class Account extends Entity {
 	/** Authorization token with which the user can sign in */
 	@Property()
 	token!: string;
+
+	constructor(id: number) {
+		super(id);
+		return this.getInstance();
+	}
 }

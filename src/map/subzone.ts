@@ -228,7 +228,11 @@ ${info.partTable}.y + ${info.table}.y >= $4 AND ${info.partTable}.y + ${info.tab
 		for (const [entity, entityInfo] of ZoneEntities.getEntitiesInfo()) {
 			if (entityInfo.table) {
 				const entityIds = await this.getIdsOfShapedObjects(entityInfo);
-				entities.set(entity, await ORM.find(entity, `id IN (${entityIds.join(", ")}) ORDER BY id`) );
+				if (entityIds.length > 0) {
+					entities.set(entity, await ORM.find(entity, `id IN (${entityIds.join(", ")}) ORDER BY id`));
+				} else {
+					entities.set(entity, []);
+				}
 			} else {
 				entities.set(entity, await ORM.find(entity, `location_id=${this.location.id} and x >= ${this.start.x} and x < ${this.end.x} and y >= ${this.start.y} and y < ${this.end.y} ORDER BY id`) );
 			}

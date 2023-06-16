@@ -8,4 +8,9 @@ export default class Tileset extends Entity {
 
 	@Property()
 	name!: string;
+
+	constructor(id: number) {
+		super(id);
+		return this.getInstance();
+	}
 }

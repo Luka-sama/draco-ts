@@ -8,4 +8,9 @@ export default class Location extends Entity {
 
 	@Property()
 	name!: string;
+
+	constructor(id: number) {
+		super(id);
+		return this.getInstance();
+	}
 }

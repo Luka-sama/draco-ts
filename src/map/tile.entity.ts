@@ -29,4 +29,9 @@ export default class Tile extends Entity {
 	@Property({vector: true})
 	@Sync({for: SyncFor.Zone, as: "a"})
 	atlasCoords!: Vector2;
+
+	constructor(id: number) {
+		super(id);
+		return this.getInstance();
+	}
 }

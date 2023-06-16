@@ -14,16 +14,18 @@ export default class MagicControl {
 		assert(Math.abs(direction.x) <= 1 && Math.abs(direction.y) <= 1 && (direction.x != 0 || direction.y != 0));
 		await Limit.softBySpeed("MagicControl.changeLightsGroupDirection", user, 100);
 
-		const lightsGroup = await LightsGroup.getOrFail(lightId);
+		const lightsGroup = await LightsGroup.get(lightId);
+		if (!lightsGroup) {
+			return;
+		}
 		assert(!Zone.areInDifferentZones(lightsGroup.position, user.position));
-		const userLightsGroups = user.lightsGroups.getItems();
-		userLightsGroups.forEach(lightsGroup => lightsGroup.activated = false);
+		const userLights = user.lightsGroups.getItems();
+		userLights.forEach(lightsGroup => lightsGroup.activated = false);
 		if (lightsGroup.targetMage != user) {
-			const userLights = userLightsGroups.filter(lightsGroup => !lightsGroup.activated);
 			assert(userLights.length > 0);
 			userLights[_.random(0, userLights.length - 1)].targetMage = lightsGroup.targetMage;
 			lightsGroup.targetMage.lightsGroups.remove(lightsGroup);
-			lightsGroup.targetMage = user;
+			user.lightsGroups.add(lightsGroup);
 		}
 		lightsGroup.direction = direction;
 		lightsGroup.activated = true;

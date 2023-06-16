@@ -14,4 +14,9 @@ export default class Light extends Entity {
 
 	@Property({vector: true})
 	position!: Vector2;
+
+	constructor(id: number) {
+		super(id);
+		return this.getInstance();
+	}
 }

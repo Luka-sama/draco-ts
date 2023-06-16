@@ -52,6 +52,11 @@ export default class User extends Entity implements Receiver {
 
 	hadFirstSync = false;
 
+	constructor(id: number) {
+		super(id);
+		return this.getInstance();
+	}
+
 	emit(event: string, data?: UserData): void {
 		if (this.socket) {
 			this.socket.emit(event, data);

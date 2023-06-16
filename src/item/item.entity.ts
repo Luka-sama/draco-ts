@@ -29,6 +29,11 @@ export default class Item extends Entity {
 	@Sync({for: SyncFor.Zone, map: "id", default: 0})
 	holder?: Rel<User>;
 
+	constructor(id: number) {
+		super(id);
+		return this.getInstance();
+	}
+
 	getPositions(position = this.position, excludeNegative = false): Vector2[] {
 		assert(this.type.shape.isInitialized());
 		return this.type.shape

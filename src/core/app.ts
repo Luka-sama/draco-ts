@@ -1,7 +1,6 @@
 import {glob} from "glob";
 import Cache from "../cache/cache.js";
 import Magic from "../magic/magic.js";
-import Deploy from "../map/deploy.js";
 import Zone from "../map/zone.js";
 import ORM from "../orm/orm.js";
 import Const from "../util/const.js";
@@ -27,8 +26,9 @@ export default class App {
 		ORM.init();
 		GameLoop.init();
 		WS.init();
-		Deploy.init();
+		//Deploy.init();
 		App.addGlobalTasks();
+		ORM.getChanges = Synchronizer.addChangeSets;
 	}
 
 	private static addGlobalTasks() {
@@ -43,7 +43,7 @@ export default class App {
 	private static async autoimport(): Promise<void> {
 		const ignore = [
 			"**/*.entity.js", "**/*.test.js", "**/*.typings.js",
-			"seeder.js", "jest-setup.js",
+			"seeder.js", "jest-setup.js", "map/deploy.js"
 		];
 		const files = await glob("./**/*.js", {ignore, cwd: "./dist"});
 		for (const file of files) {

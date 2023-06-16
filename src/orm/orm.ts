@@ -1,58 +1,22 @@
 import assert from "assert/strict";
 import _ from "lodash";
 import pg, {QueryResult} from "pg";
+import {SyncType} from "../core/sync.typings.js";
 import MapUtil from "../util/map-util.js";
-import {Vec2, Vector2} from "../util/vector.js";
+import {Vec2} from "../util/vector.js";
 import Collection from "./collection.js";
 import Entity from "./entity.js";
-import {DB, Property} from "./orm.decorator.js";
-import {EntityClass, IEntity} from "./orm.typings.js";
-
-class LightsGroup extends Entity {
-	@Property()
-	id!: number;
-
-	@Property()
-	speed!: number;
-
-	@Property({vector: true})
-	direction!: Vector2;
-}
-
-class Location extends Entity {
-	@Property()
-	id!: number;
-
-	@Property()
-	name!: string;
-}
-
-class User extends Entity {
-	@Property()
-	id!: number;
-
-	@Property()
-	name!: string;
-
-	@Property()
-	regDate = new Date();
-
-	@Property({manyToOne: () => Location as any})
-	location!: Location;
-
-	@Property({vector: true})
-	position!: Vector2;
-
-	@Property({oneToMany: [LightsGroup, "targetMage"]})
-	lightsGroups = new Collection<LightsGroup>;
-}
+import {DB} from "./orm.decorator.js";
+import {ChangeSet, EntityClass, EntityData, IEntity} from "./orm.typings.js";
 
 export default class ORM {
+	public static isSeeder = false;
+	public static getChanges = (async (changeSets: ChangeSet[]): Promise<void> => undefined);
 	private static pool: pg.Pool;
-	private static cachedEntries = new Map<EntityClass, Map<number, Entity>>;
+	public static cachedEntries = new Map<EntityClass, Map<number, Entity>>;
 	private static toInsert = new Set<Entity>;
 	private static toDelete = new Set<Entity>;
-	private static toUpdate = new Set<Entity>;
+	private static toUpdate = new Map<EntityClass, Map<Entity, Set<string>>>;
 
 	static init() {
 		ORM.pool = new pg.Pool({
@@ -66,9 +30,13 @@ export default class ORM {
 	}
 
 	static async query(queryText: string, values?: any[]): Promise<QueryResult> {
-		console.log(queryText);
-		console.log(values);
-		return await ORM.pool.query(queryText, values);
+		let result: any;
+		try {
+			result = await ORM.pool.query(queryText, values);
+		} catch(e) {
+			console.error(e, queryText, values);
+		}
+		return result;
 	}
 
 	static async getByQuery<T extends EntityClass>(entityClass: T, queryText: string): Promise<T[]> {
@@ -78,38 +46,67 @@ export default class ORM {
 		return entities;
 	}
 
-	static map<T extends EntityClass>(entityClass: T, raw: {[index: string]: any}): T {
-		const entity = new entityClass as any;
-		const model = DB.get(entityClass);
+	static map<T extends EntityClass>(entityClass: T, raw: EntityData): T {
+		const entity = new entityClass(raw.id) as any;
+		if (entity.isInitialized()) {
+			return entity;
+		}
+		return ORM.mapEntity(entity, raw) as any;
+	}
+
+	static mapEntity<T extends IEntity>(entity: any, raw: EntityData): InstanceType<T> {
+		const model = DB.get(entity.constructor as typeof Entity);
 		assert(model);
 		let populated = true;
 
 		for (const [property, options] of model) {
 			let dbProperty = _.snakeCase(property);
 			if (options.vector) {
-				if (dbProperty == "position") {
-					entity[property] = Vec2(raw.x, raw.y);
-				} else {
-					entity[property] = Vec2(raw[`${dbProperty}_x`], raw[`${dbProperty}_y`]);
-				}
+				dbProperty = (dbProperty == "position" ? "" : `${dbProperty}_`);
+				entity[property] = Vec2(raw[`${dbProperty}x`], raw[`${dbProperty}y`]);
 			} else if (options.manyToOne) {
-				populated = false;
 				dbProperty += "_id";
-				const constr = (typeof options.manyToOne == "function" ? (options.manyToOne as any)() : options.manyToOne);
-				const reference = new constr;
-				reference.id = raw[dbProperty];
-				entity[property] = reference;
+				if (raw[dbProperty]) {
+					populated = false;
+					const referenceClass = (typeof options.manyToOne == "function" ? (options.manyToOne as any)() : options.manyToOne);
+					entity[property] = new referenceClass(raw[dbProperty]);
+				} else {
+					entity[property] = null;
+				}
 			} else if (options.oneToMany) {
-				entity[property] = new Collection;
-			} else {
+				populated = false;
+				entity[property] = new Collection(entity, options.oneToMany[1]);
+			} else if (raw[dbProperty] !== undefined) {
 				entity[property] = raw[dbProperty];
 			}
 		}
 
 		entity.__helper.initialized = true;
+		entity.__helper.original = raw;
 		entity.__helper.populated = populated;
-		const entries = MapUtil.getMap(ORM.cachedEntries, entityClass);
-		return MapUtil.get(entries, entity.id, entity);
+		return entity;
+	}
+
+	static unmap(entity: Entity): EntityData {
+		const raw: EntityData = {};
+		const model = DB.get(entity.constructor as typeof Entity);
+		assert(model);
+
+		for (const [property, options] of model) {
+			let dbProperty = _.snakeCase(property);
+			if (options.vector) {
+				dbProperty = (dbProperty == "position" ? "" : `${dbProperty}_`);
+				raw[`${dbProperty}x`] = entity[property].x;
+				raw[`${dbProperty}y`] = entity[property].y;
+			} else if (options.manyToOne) {
+				dbProperty += "_id";
+				raw[dbProperty] = (entity[property] ? entity[property].id : entity[property]);
+			} else {
+				raw[dbProperty] = entity[property];
+			}
+		}
+
+		return raw;
 	}
 
 	static async find<T extends IEntity>(entityClass: T, where?: number | string): Promise<InstanceType<T>[]> {
@@ -131,12 +128,8 @@ export default class ORM {
 
 	static async findOne<T extends IEntity>(entityClass: T, where?: number | string): Promise<InstanceType<T> | null> {
 		const tryCache = (typeof where == "number" ? ORM.getIfCached(entityClass, where) : null);
-		if (tryCache) {
+		if (tryCache && tryCache.isInitialized()) {
 			return tryCache as any;
-		}
-		const entries = MapUtil.getMap(ORM.cachedEntries, entityClass as any);
-		if (typeof where == "number" && entries.has(where)) {
-			return entries.get(where) as any;
 		}
 		const objects = await ORM.find(entityClass, where);
 		assert(objects.length <= 1);
@@ -149,14 +142,6 @@ export default class ORM {
 		return result as InstanceType<T>;
 	}
 
-	static async test() {
-		//const user = await User.getOrFail(1);
-		//Message.create({text: "kwa kwa", user, location: user.location, position: user.position});
-		//const msg = await Message.getOrFail(505);
-		//msg.remove();
-		//await ORM.flush();
-	}
-
 	static async populate(entity: any): Promise<void> {
 		if (entity.__helper.populated) {
 			return;
@@ -167,10 +152,13 @@ export default class ORM {
 		for (const [property, options] of model) {
 			if (options.manyToOne) {
 				const reference = entity[property];
-				entity[property] = await ORM.findOne(reference.constructor, reference.id);
-			} else if (options.oneToMany) {
+				if (reference && reference.id && !reference.isInitialized()) {
+					await ORM.findOne(reference.constructor, reference.id);
+				}
+			} else if (options.oneToMany && !entity[property].isInitialized()) {
 				const [referenceClass, foreignKey] = options.oneToMany;
-				entity[property].addEntities(await ORM.find(referenceClass, `${_.snakeCase(foreignKey)}_id=${entity.id}`));
+				const entities = await ORM.find(referenceClass, `${_.snakeCase(foreignKey)}_id=${entity.id}`);
+				entity[property].addEntities(entities);
 				entity[property].__helper.initialized = true;
 			}
 		}
@@ -179,21 +167,42 @@ export default class ORM {
 	}
 
 	static async flush(): Promise<void> {
+		const changeSets: ChangeSet[] = [];
+
 		const toInsert = this.toInsert;
 		this.toInsert = new Set;
 		for (const entity of toInsert) {
 			const model = _.snakeCase(entity.constructor.name);
 			const [queryPart, values] = ORM.toSetQuery(entity, true);
-			await this.query(`INSERT INTO "${model}" ${queryPart} RETURNING id`, values);
+			const result = await this.query(`INSERT INTO "${model}" ${queryPart} RETURNING id`, values);
+			entity.id = result.rows[0].id;
+			entity.__helper.notCreated = false;
+			const entries = ORM.cachedEntries.get(entity.constructor as typeof Entity);
+			if (entries) {
+				entries.set(entity.id, entity);
+			}
+			await ORM.populate(entity);
+			changeSets.push({entity, type: SyncType.Create, payload: {}});
 		}
 
 		const toUpdate = this.toUpdate;
-		this.toUpdate = new Set;
-		for (const entity of toUpdate) {
-			const model = _.snakeCase(entity.constructor.name);
-			const [queryPart, values] = ORM.toSetQuery(entity);
-			values.push(entity.id);
-			await this.query(`UPDATE "${model}" SET ${queryPart} WHERE id=${values.length}`, values);
+		this.toUpdate = new Map;
+		for (const [model, modelChanges] of toUpdate) {
+			for (const [entity, entityChanges] of modelChanges) {
+				const [queryPart, values] = ORM.toSetQuery(entity, false, entityChanges);
+				if (!queryPart) {
+					continue;
+				}
+				if (!entity.isRemoved()) {
+					values.push(entity.id);
+					const modelName = _.snakeCase(model.name);
+					await this.query(`UPDATE "${modelName}" SET ${queryPart} WHERE id = $${values.length}`, values);
+				}
+				const payload = _.pick(entity, Array.from(entityChanges));
+				const original = entity.__helper.original;
+				entity.__helper.original = ORM.unmap(entity);
+				changeSets.push({entity, type: SyncType.Update, payload, original});
+			}
 		}
 
 		const toDelete = this.toDelete;
@@ -201,30 +210,42 @@ export default class ORM {
 		for (const entity of toDelete) {
 			const model = _.snakeCase(entity.constructor.name);
 			await this.query(`DELETE FROM ${model} WHERE id=$1`, [entity.id]);
+			changeSets.push({entity, type: SyncType.Delete, payload: {}});
 		}
+
+		await ORM.getChanges(changeSets);
 	}
 
 	static insert(entity: Entity): void {
 		this.toInsert.add(entity);
 	}
 
-	static update(entity: Entity): void {
-		this.toUpdate.add(entity);
+	static update(entity: Entity, property: string): void {
+		const model = DB.get(entity.constructor as typeof Entity);
+		if (!model) { //  || !model.has(property)
+			return;
+		}
+		const modelChanges = MapUtil.getMap(this.toUpdate, entity.constructor);
+		const entityChanges = MapUtil.getSet(modelChanges, entity);
+		entityChanges.add(property);
 	}
 
 	static remove(entity: Entity): void {
 		this.toDelete.add(entity);
+		MapUtil.getMap(ORM.cachedEntries, entity.constructor).delete(entity.id);
 	}
 
-	private static toSetQuery(entity: any, insert = false): [queryPart: string, values: any[]] {
+	private static toSetQuery(entity: any, insert = false, properties?: Set<string> | IterableIterator<string>): [queryPart: string, values: any[]] {
 		const model = DB.get(entity.constructor as any);
 		assert(model);
 		const placeholders: string[] = [];
 		const fields: string[] = [];
 		const values: any[] = [];
+		properties = properties || model.keys();
 
-		for (const [property, options] of model) {
-			if (property == "id") {
+		for (const property of properties) {
+			const options = model.get(property);
+			if (property == "id" || !options) {
 				continue;
 			}
 			let dbProperty = _.snakeCase(property);
@@ -239,7 +260,7 @@ export default class ORM {
 				placeholders.push(`$${values.length}`);
 			} else if (options.manyToOne) {
 				dbProperty += "_id";
-				values.push(value.id);
+				values.push(value ? value.id : value);
 				fields.push(`${dbProperty}`);
 				placeholders.push(`$${values.length}`);
 			} else if (!options.oneToMany) {

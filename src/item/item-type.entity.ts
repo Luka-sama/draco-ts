@@ -25,4 +25,9 @@ export default class ItemType extends Entity {
 
 	@Property()
 	weight!: number;
+
+	constructor(id: number) {
+		super(id);
+		return this.getInstance();
+	}
 }
