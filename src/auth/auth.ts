@@ -85,7 +85,7 @@ export default class Auth {
 		const data = ensure(raw, {name: Is.string});
 		await Limit.softUpdatingTime("Auth.signInUser", sck, 1000);
 
-		const user = await User.get(`name='${data.name}' and account=${sck.account?.id}`);
+		const user = await User.get(`name='${data.name}' and account_id=${sck.account?.id}`);
 		if (user) {
 			user.connected = true;
 			sck.user = user;
@@ -99,7 +99,7 @@ export default class Auth {
 	/** Returns a list of usernames. The player can see this list after logging into the account */
 	@OnlyLoggedAccount()
 	static async getUserList({sck}: GuestArgs): Promise<void> {
-		const userList = (await ORM.find(User, `account=${sck.account?.id} ORDER BY id ASC`)).map(user => user.name);
+		const userList = (await ORM.find(User, `account_id=${sck.account?.id} ORDER BY id ASC`)).map(user => user.name);
 		sck.emit("get_user_list", {list: userList});
 	}
 
