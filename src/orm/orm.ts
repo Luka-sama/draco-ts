@@ -1,8 +1,10 @@
 import assert from "assert/strict";
+import fs from "fs";
 import _ from "lodash";
 import pg, {QueryResult} from "pg";
 import {SyncType} from "../core/sync.typings.js";
 import MapUtil from "../util/map-util.js";
+import SetUtil from "../util/set-util.js";
 import {Vec2} from "../util/vector.js";
 import Collection from "./collection.js";
 import Entity from "./entity.js";
@@ -11,12 +13,15 @@ import {ChangeSet, EntityClass, EntityData, IEntity} from "./orm.typings.js";
 
 export default class ORM {
 	public static isSeeder = false;
-	public static getChanges = (async (changeSets: ChangeSet[]): Promise<void> => undefined);
+	public static getChanges = ((changeSets: ChangeSet[]): void => undefined);
 	private static pool: pg.Pool;
 	public static cachedEntries = new Map<EntityClass, Map<number, Entity>>;
-	private static toInsert = new Set<Entity>;
-	private static toDelete = new Set<Entity>;
-	private static toUpdate = new Map<EntityClass, Map<Entity, Set<string>>>;
+	private static toInsertSync = new Set<Entity>;
+	private static toDeleteSync = new Set<Entity>;
+	private static toUpdateSync = new Map<EntityClass, Map<Entity, Set<string>>>;
+	private static toInsertFlush = new Set<Entity>;
+	private static toDeleteFlush = new Set<Entity>;
+	private static toUpdateFlush = new Map<EntityClass, Map<Entity, Set<string>>>;
 
 	static init() {
 		ORM.pool = new pg.Pool({
@@ -30,6 +35,7 @@ export default class ORM {
 	}
 
 	static async query(queryText: string, values?: any[]): Promise<QueryResult> {
+		await ORM.flush();
 		let result: any;
 		try {
 			result = await ORM.pool.query(queryText, values);
@@ -166,15 +172,47 @@ export default class ORM {
 		entity.__helper.populated = true;
 	}
 
-	static async flush(): Promise<void> {
+	static sync(): void {
 		const changeSets: ChangeSet[] = [];
 
-		const toInsert = this.toInsert;
-		this.toInsert = new Set;
+		for (const entity of ORM.toInsertSync) {
+			changeSets.push({entity, type: SyncType.Create, payload: {}});
+			ORM.toInsertFlush.add(entity);
+		}
+
+		for (const [model, modelChanges] of ORM.toUpdateSync) {
+			for (const [entity, entityChanges] of modelChanges) {
+				const payload = _.pick(entity, Array.from(entityChanges));
+				const original = entity.__helper.original;
+				entity.__helper.original = ORM.unmap(entity);
+				changeSets.push({entity, type: SyncType.Update, payload, original});
+
+				const modelChangesFlush = MapUtil.getMap(ORM.toUpdateFlush, model);
+				const entityChangesFlush = MapUtil.getSet(modelChangesFlush, entity);
+				SetUtil.merge(entityChangesFlush, entityChanges);
+			}
+		}
+
+		for (const entity of ORM.toDeleteSync) {
+			changeSets.push({entity, type: SyncType.Delete, payload: {}});
+			ORM.toDeleteFlush.add(entity);
+		}
+
+		ORM.getChanges(changeSets);
+	}
+
+	static async flush(): Promise<void> {
+		//const changeSets: ChangeSet[] = [];
+		const queries = [];
+		//const flushStart = Date.now();
+
+		const toInsert = ORM.toInsertFlush;
+		ORM.toInsertFlush = new Set;
 		for (const entity of toInsert) {
 			const model = _.snakeCase(entity.constructor.name);
 			const [queryPart, values] = ORM.toSetQuery(entity, true);
-			const result = await this.query(`INSERT INTO "${model}" ${queryPart} RETURNING id`, values);
+			const result = await ORM.query(`INSERT INTO "${model}" ${queryPart} RETURNING id`, values);
+			//fs.appendFileSync("D:/test.txt", `[${Date.now()}] Flush ${flushStart} INSERT INTO "${model}" ${queryPart} RETURNING id ${values.join(", ")}\n`);
 			entity.id = result.rows[0].id;
 			entity.__helper.notCreated = false;
 			const entries = ORM.cachedEntries.get(entity.constructor as typeof Entity);
@@ -182,42 +220,43 @@ export default class ORM {
 				entries.set(entity.id, entity);
 			}
 			await ORM.populate(entity);
-			changeSets.push({entity, type: SyncType.Create, payload: {}});
+			//changeSets.push({entity, type: SyncType.Create, payload: {}});
 		}
 
-		const toUpdate = this.toUpdate;
-		this.toUpdate = new Map;
+		const toUpdate = ORM.toUpdateFlush;
+		ORM.toUpdateFlush = new Map;
 		for (const [model, modelChanges] of toUpdate) {
 			for (const [entity, entityChanges] of modelChanges) {
 				const [queryPart, values] = ORM.toSetQuery(entity, false, entityChanges);
-				if (!queryPart) {
+				if (!queryPart || entity.isRemoved()) {
 					continue;
 				}
-				if (!entity.isRemoved()) {
-					values.push(entity.id);
-					const modelName = _.snakeCase(model.name);
-					await this.query(`UPDATE "${modelName}" SET ${queryPart} WHERE id = $${values.length}`, values);
-				}
-				const payload = _.pick(entity, Array.from(entityChanges));
-				const original = entity.__helper.original;
-				entity.__helper.original = ORM.unmap(entity);
-				changeSets.push({entity, type: SyncType.Update, payload, original});
+				values.push(entity.id);
+				const modelName = _.snakeCase(model.name);
+				queries.push(ORM.query(`UPDATE "${modelName}" SET ${queryPart} WHERE id = $${values.length}`, values));
+				//fs.appendFileSync("D:/test.txt", `[${Date.now()}] Flush ${flushStart} UPDATE "${modelName}" SET ${queryPart} WHERE id = $${values.length} ${values.join(", ")}\n`);
+				/*if (model.name == "LightsGroup" && Object.keys(payload).length == 1 && Object.keys(payload)[0] == "targetMage" && payload.targetMage === null) {
+					console.log("check check");
+				}*/
 			}
 		}
 
-		const toDelete = this.toDelete;
-		this.toDelete = new Set;
+		const toDelete = ORM.toDeleteFlush;
+		ORM.toDeleteFlush = new Set;
 		for (const entity of toDelete) {
 			const model = _.snakeCase(entity.constructor.name);
-			await this.query(`DELETE FROM ${model} WHERE id=$1`, [entity.id]);
-			changeSets.push({entity, type: SyncType.Delete, payload: {}});
+			await ORM.query(`DELETE FROM ${model} WHERE id=$1`, [entity.id]);
+			//fs.appendFileSync("D:/test.txt", `[${Date.now()}] Flush ${flushStart} DELETE FROM ${model} WHERE id=$1 ${entity.id}\n`);
+			//changeSets.push({entity, type: SyncType.Delete, payload: {}});
 		}
 
-		await ORM.getChanges(changeSets);
+		//const changes = util.inspect(changeSets.map(cs => ({id: cs.entity.id, type: cs.type, payload: cs.payload})));
+		//fs.appendFileSync("D:/test.txt", `[${Date.now()}] Flush ${flushStart} - changes ${changes}\n`);
+		//await ORM.getChanges(changeSets);
 	}
 
 	static insert(entity: Entity): void {
-		this.toInsert.add(entity);
+		ORM.toInsertSync.add(entity);
 	}
 
 	static update(entity: Entity, property: string): void {
@@ -225,13 +264,14 @@ export default class ORM {
 		if (!model) { //  || !model.has(property)
 			return;
 		}
-		const modelChanges = MapUtil.getMap(this.toUpdate, entity.constructor);
+		const modelChanges = MapUtil.getMap(ORM.toUpdateSync, entity.constructor);
 		const entityChanges = MapUtil.getSet(modelChanges, entity);
 		entityChanges.add(property);
+		fs.appendFileSync("D:/test.txt", `[${Date.now()}] ${entity.constructor.name} ${entity.id} changed ${property}\n`);
 	}
 
 	static remove(entity: Entity): void {
-		this.toDelete.add(entity);
+		ORM.toDeleteSync.add(entity);
 		MapUtil.getMap(ORM.cachedEntries, entity.constructor).delete(entity.id);
 	}
 

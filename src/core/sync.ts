@@ -1,4 +1,5 @@
 import assert from "assert/strict";
+import fs from "fs";
 import _ from "lodash";
 import User from "../auth/user.entity.js";
 import LightsGroup from "../magic/lights-group.entity.js";
@@ -40,17 +41,17 @@ export default class Synchronizer {
 	/** The accumulated changes to sync */
 	private static syncMap: SyncMap = new Map;
 	private static created: number[] = [];
+	private static newZoneQueue: any[] = [];
 
 	/** Calculates a sync map for the given change sets */
-	static async addChangeSets(changeSets: ChangeSet[]): Promise<void> {
+	static addChangeSets(changeSets: ChangeSet[]): void {
 		if (ORM.isSeeder) {
 			return;
 		}
 
 		for (const changeSet of changeSets) {
-			if (changeSet.entity instanceof User) {
-				await Zone.getByEntity(changeSet.entity); // Load the new zone if needed so that it can be used for further synchronization
-			}
+			const entity = changeSet.entity;
+			fs.appendFileSync("D:/test.txt", `[${Date.now()}] Syncing ${entity.constructor.name} ${entity.id} (type=${changeSet.type})\n`);
 			const syncMap = Synchronizer.getSyncMapFromChangeSet(changeSet);
 			Synchronizer.mergeSyncMaps(Synchronizer.syncMap, syncMap);
 		}
@@ -59,6 +60,7 @@ export default class Synchronizer {
 			const syncMap = Synchronizer.getSyncMap(model, entity, SyncType.Update, {});
 			Synchronizer.mergeSyncMaps(Synchronizer.syncMap, syncMap);
 		}
+		//Zone.checkup();
 	}
 
 	/** Emits to the player who has just logged into the game all the necessary information */
@@ -346,6 +348,26 @@ export default class Synchronizer {
 		const remainingSubzones = Zone.getRemainingSubzones(oldZones, currZones);
 
 		if (entity instanceof User) {
+			Synchronizer.newZoneQueue.push({user: entity, zone: Zone.getByEntityFromMemory(entity), newSubzones, leftSubzones, remainingSubzones});
+		}
+		const createList = Synchronizer.getCreateList(model, entity, SyncFor.Zone);
+		const deleteList = Synchronizer.getDeleteList(model, entity);
+		Synchronizer.addToSyncMap(newSubzones, createList, syncMap, entity instanceof LightsGroup);
+		Synchronizer.addToSyncMap(leftSubzones, deleteList, syncMap, entity instanceof LightsGroup, true);
+		Synchronizer.addToSyncMap(remainingSubzones, updateList, syncMap);
+		return syncMap;
+	}
+
+	/** Sends new entities to user and removed old entities when switching the zone */
+	static async syncNewZones(): Promise<void> {
+		const syncMap: SyncMap = new Map();
+		for (const info of Synchronizer.newZoneQueue) {
+			const user: User = info.user;
+			const zone: Zone = info.zone;
+			const newSubzones: Set<Subzone> = info.newSubzones;
+			const leftSubzones: Set<Subzone> = info.leftSubzones;
+			const remainingSubzones: Set<Subzone> = info.remainingSubzones;
+			await zone.load();
 			const newEntities = Zone.getEntitiesFromSubzones(newSubzones);
 			const leftEntities = Zone.getEntitiesFromSubzones(leftSubzones);
 			const newIds = Array.from(newEntities.get(LightsGroup)).map(lightsGroup => lightsGroup.id);
@@ -356,17 +378,12 @@ export default class Synchronizer {
 			// We need to do this as an entity can be in multiple subzones at the same time
 			const entitiesToCreate = newEntities.difference(remainingEntities).difference(leftEntities);
 			const entitiesToDelete = leftEntities.difference(remainingEntities).difference(newEntities);
-			syncMap.set(entity, _.concat(
+			syncMap.set(user, _.concat(
 				Synchronizer.getDeleteListFromZoneEntities(entitiesToDelete),
 				Synchronizer.getCreateListFromZoneEntities(entitiesToCreate)
 			));
 		}
-		const createList = Synchronizer.getCreateList(model, entity, SyncFor.Zone);
-		const deleteList = Synchronizer.getDeleteList(model, entity);
-		Synchronizer.addToSyncMap(newSubzones, createList, syncMap, entity instanceof LightsGroup);
-		Synchronizer.addToSyncMap(leftSubzones, deleteList, syncMap, entity instanceof LightsGroup, true);
-		Synchronizer.addToSyncMap(remainingSubzones, updateList, syncMap);
-		return syncMap;
+		Synchronizer.mergeSyncMaps(Synchronizer.syncMap, syncMap);
 	}
 
 	/** Returns receiver objects for the given entity and property */

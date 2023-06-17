@@ -1,4 +1,5 @@
 import assert from "assert/strict";
+import fs from "fs";
 import _ from "lodash";
 import User from "../auth/user.entity.js";
 import {WeakCachedObject} from "../cache/cached-object.js";
@@ -138,12 +139,14 @@ export default class Subzone extends WeakCachedObject implements Receiver, UserC
 	leave(entity: Entity): void {
 		assert(this.loaded);
 		this.entities.delete(entity);
+		fs.appendFileSync("D:/test.txt", `[${Date.now()}] ${entity.constructor.name} ${entity.id} (${entity.position.x}, ${entity.position.y}) leaved ${this.zonePosition.x}x${this.zonePosition.y}\n`);
 	}
 
 	/** Adds en entity to this subzone */
 	enter(entity: Entity): void {
 		assert(this.loaded);
 		this.entities.enter(entity);
+		fs.appendFileSync("D:/test.txt", `[${Date.now()}] ${entity.constructor.name} ${entity.id} (${entity.position.x}, ${entity.position.y}) entered ${this.zonePosition.x}x${this.zonePosition.y}\n`);
 	}
 
 	/** Checks if somebody in this subzone is online */

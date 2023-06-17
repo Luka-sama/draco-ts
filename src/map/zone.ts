@@ -1,4 +1,5 @@
 import assert from "assert/strict";
+import fs from "fs";
 import User from "../auth/user.entity.js";
 import Cache from "../cache/cache.js";
 import CachedObject from "../cache/cached-object.js";
@@ -186,6 +187,23 @@ export default class Zone extends CachedObject implements Receiver {
 		return (diff.x > 1 && diff.y > 1);
 	}
 
+	public static checkup(): void {
+		const subzones = Cache.getLeaves("subzone") as Subzone[];
+		for (const subzone of subzones) {
+			const entities = subzone.getEntitiesFromMemory();
+			for (const model of ZoneEntities.getModels()) {
+				for (const entity of entities.getFromMemory(model)) {
+					const positions = ("getPositions" in entity ? entity.getPositions() : [entity.position]);
+					for (const position of positions) {
+						if (!subzone.isInside(position)) {
+							fs.appendFileSync("D:/test.txt", `[${Date.now()}] Wrong zone by ${entity.constructor.name} ${entity.id}\n`);
+						}
+					}
+				}
+			}
+		}
+	}
+
 	constructor(location: Location, zonePosition: Vector2) {
 		super(location, zonePosition);
 		this.location = location;
@@ -276,6 +294,8 @@ export default class Zone extends CachedObject implements Receiver {
 	leave(entity: Entity): void {
 		if (this.centralSubzone.isLoaded()) {
 			this.centralSubzone.leave(entity);
+		} else {
+			fs.appendFileSync("D:/test.txt", `[${Date.now()}] ${entity.constructor.name} ${entity.id} not leaved ${this.centralSubzone.getZonePosition().x}x${this.centralSubzone.getZonePosition().y}\n`);
 		}
 	}
 
@@ -283,6 +303,8 @@ export default class Zone extends CachedObject implements Receiver {
 	enter(entity: Entity): void {
 		if (this.centralSubzone.isLoaded()) {
 			this.centralSubzone.enter(entity);
+		} else {
+			fs.appendFileSync("D:/test.txt", `[${Date.now()}] ${entity.constructor.name} ${entity.id} not entered ${this.centralSubzone.getZonePosition().x}x${this.centralSubzone.getZonePosition().y}\n`);
 		}
 	}
 

@@ -250,7 +250,7 @@ export default class WS {
 
 		try {
 			await handleEvent({sck, raw} as GuestArgs);
-			await ORM.flush();
+			ORM.sync();
 		} catch(e) {
 			if (!(e instanceof EndOfRequest) && (e as any)?.code != "ABORT_ERR") {
 				const isWrongData = (e instanceof WrongDataError || e instanceof assert.AssertionError);

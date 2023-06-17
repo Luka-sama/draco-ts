@@ -35,7 +35,9 @@ export default class App {
 	private static addGlobalTasks() {
 		GameLoop.addTask(Cache.clean, Const.CACHE_CLEAN_FREQUENCY_MS);
 		GameLoop.addTask(Synchronizer.synchronize, Const.SYNC_FREQUENCY_MS);
+		GameLoop.addTask(Synchronizer.syncNewZones);
 		GameLoop.addTask(Zone.stayInCacheIfSomebodyIsOnline, Const.CACHE_CLEAN_FREQUENCY_MS / 2);
+		GameLoop.addTask(ORM.flush, 100);
 		GameLoop.addTask(Magic.moveAllLightsGroups);
 		GameLoop.addTask(Magic.removeLightsFromQueue);
 		GameLoop.addTask(Chat.sendTime);

@@ -31,7 +31,7 @@ export default class ZoneEntities {
 
 	/** Returns all models that are here stored */
 	public static getModels(): EntityClass[] {
-		return Array.from(this.getEntitiesInfo().keys());
+		return Array.from(ZoneEntities.getEntitiesInfo().keys());
 	}
 
 	/** Returns entity set for the given model */

@@ -37,7 +37,7 @@ export default class GameLoop {
 				task.untilNextExecutionLeft = Infinity; // Task locking, prevents the simultaneous execution of two identical tasks
 				try {
 					await task.task(delta);
-					await ORM.flush();
+					ORM.sync();
 				} catch(e) {
 					if (!(e instanceof EndOfRequest) && (e as any)?.code != "ABORT_ERR") {
 						console.error(e);

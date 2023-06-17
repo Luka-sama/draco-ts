@@ -1,4 +1,5 @@
 import assert from "assert/strict";
+import fs from "fs";
 import _ from "lodash";
 import User from "../auth/user.entity.js";
 import Cache from "../cache/cache.js";
@@ -40,6 +41,7 @@ export default class Magic {
 			lightsGroup.lastMovement = now;
 			Magic.moveLightsGroup(lightsGroup);
 		}
+		fs.appendFileSync("D:/test.txt", `[${Date.now()}] end of task moveAllLightsGroups\n`);
 	}
 
 	public static async createLightsForAll(): Promise<void> {
@@ -97,6 +99,10 @@ export default class Magic {
 
 	private static moveLightsGroup(lightsGroup: LightsGroup): void {
 		lightsGroup.position = lightsGroup.position.add(lightsGroup.direction.toStaggered());
+		fs.appendFileSync("D:/test.txt", `[${Date.now()}] LightsGroup ${lightsGroup.id} moved to (${lightsGroup.position.x}, ${lightsGroup.position.y})\n`);
+		if (!lightsGroup.targetMage) {
+			console.log("test");
+		}
 		const distanceToMage = lightsGroup.position.distanceSquaredTo(lightsGroup.targetMage.position);
 		const strictMinDistance = Math.pow(Const.LIGHTS_STRICT_MIN_DISTANCE_TO_TARGET, 2);
 		const softMinDistance = Math.pow(Const.LIGHTS_SOFT_MIN_DISTANCE_TO_TARGET, 2);
