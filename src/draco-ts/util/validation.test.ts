@@ -1,6 +1,5 @@
+import {ensure, Is, Of, UserData, UserDataExtended, WrongDataError} from "./validation.js";
 import {Vec2, Vector2} from "./vector.js";
-import {ensure, Is, Of, WrongDataError} from "./validation.js";
-import {UserData, UserDataExtended} from "../core/ws.typings.js";
 
 describe("ensure", () => {
 	function check(raw: UserData, result: boolean, shouldBe: UserDataExtended): void {

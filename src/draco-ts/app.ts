@@ -1,12 +1,9 @@
+import "dotenv/config";
 import {glob} from "glob";
-import Cache from "../cache/cache.js";
-import Chat from "../chat/chat.js";
-import Magic from "../magic/magic.js";
-import Zone from "../map/zone.js";
-import ORM from "../orm/orm.js";
-import Const from "../util/const.js";
+import Cache from "./cache/cache.js";
 import GameLoop from "./game-loop.js";
-import Synchronizer from "./sync.js";
+import ORM from "./orm/orm.js";
+import Synchronizer from "./sync/sync.js";
 import Tr from "./tr.js";
 import WS from "./ws.js";
 
@@ -14,7 +11,7 @@ import WS from "./ws.js";
 export default class App {
 	private static started = false;
 
-	/** Initializes all components (Cache, ORM, WS etc) */
+	/** Initializes all core components (ORM, WS, GameLoop etc) */
 	static async init(): Promise<void> {
 		if (App.started) {
 			return;
@@ -23,36 +20,30 @@ export default class App {
 
 		App.catchExceptions();
 		Tr.init();
-		await App.autoimport();
 		ORM.init();
+		ORM.enableSync();
 		GameLoop.init();
 		WS.init();
-		//Deploy.init();
 		App.addGlobalTasks();
-		ORM.getChanges = Synchronizer.addChangeSets;
+		await App.autoimport();
 	}
 
+	/** Adds all core global tasks from different modules */
 	private static addGlobalTasks() {
-		GameLoop.addTask(Cache.clean, Const.CACHE_CLEAN_FREQUENCY_MS);
-		GameLoop.addTask(Synchronizer.synchronize, Const.SYNC_FREQUENCY_MS);
+		GameLoop.addTask(Cache.clean, Cache.CLEAN_FREQUENCY);
+		GameLoop.addTask(Synchronizer.synchronize, Synchronizer.FREQUENCY);
 		GameLoop.addTask(Synchronizer.syncNewZones);
-		GameLoop.addTask(Zone.stayInCacheIfSomebodyIsOnline, Const.CACHE_CLEAN_FREQUENCY_MS / 2);
-		GameLoop.addTask(ORM.flush, 100);
-		GameLoop.addTask(Magic.moveAllLightsGroups);
-		GameLoop.addTask(Magic.removeLightsFromQueue);
-		GameLoop.addTask(Chat.sendTime);
+		GameLoop.addTask(ORM.flush, ORM.FLUSH_FREQUENCY);
 	}
 
 	/** Auto-import to make @OnlyLogged() and other decorators to work without explicit import */
 	private static async autoimport(): Promise<void> {
 		const ignore = [
 			"**/*.entity.js", "**/*.test.js", "**/*.typings.js",
-			"seeder.js", "jest-setup.js", "map/deploy.js"
+			"seeder.js", "jest-setup.js"
 		];
 		const files = await glob("./**/*.js", {ignore, cwd: "./dist"});
-		for (const file of files) {
-			await import(`../${file}`);
-		}
+		await Promise.all(files.map(file => import(`../${file}`)));
 	}
 
 	/** Catches uncaught exceptions and unhandled rejections */

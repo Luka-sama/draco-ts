@@ -1,5 +1,5 @@
 import assert from "assert/strict";
-import {Vec2} from "../util/vector.js";
+import {Vec2} from "../draco-ts/util/vector.js";
 import Movement from "./movement.js";
 
 describe("move", () => {

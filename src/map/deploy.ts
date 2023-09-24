@@ -1,10 +1,9 @@
-import {RequestContext} from "@mikro-orm/core";
 import _ from "lodash";
 import {HttpResponse} from "uWebSockets.js";
-import {EM} from "../core/orm.js";
-import WS from "../core/ws.js";
-import {JSONData} from "../core/ws.typings.js";
-import {IVector2, Vec2} from "../util/vector.js";
+import ORM from "../draco-ts/orm/orm.js";
+import {JSONData} from "../draco-ts/util/validation.js";
+import {IVector2, Vec2} from "../draco-ts/util/vector.js";
+import WS from "../draco-ts/ws.js";
 import Location from "./location.entity.js";
 import Tile from "./tile.entity.js";
 import Tileset from "./tileset.entity.js";
@@ -27,9 +26,7 @@ export default class Deploy {
 	static init(): void {
 		WS.getApp().post("/deploy", (res) => {
 			Deploy.readJson(res, async mapData => {
-				await RequestContext.createAsync(EM, async function() {
-					await Deploy.deploy(mapData as any);
-				});
+				await Deploy.deploy(mapData as any);
 				res.end("Successfully deployed!");
 			}, () => {
 				console.log("Invalid JSON or no data at all!");
@@ -40,12 +37,12 @@ export default class Deploy {
 	static async deploy(mapData: MapData): Promise<void> {
 		const {locName, tilesets, map} = mapData;
 
-		let location = await EM.findOne(Location, {name: locName});
+		let location = await ORM.findOne(Location, {name: locName});
 		if (!location) {
 			location = Location.create({name: locName});
 		}
 
-		const existingTilesets = await EM.find(Tileset, {name: tilesets});
+		const existingTilesets = await ORM.find(Tileset, {name: tilesets});
 		const tilesetMap = new Map<string, Tileset>();
 		for (const tileset of existingTilesets) {
 			tilesetMap.set(tileset.name, tileset);
@@ -57,7 +54,7 @@ export default class Deploy {
 			}
 		}
 
-		const tiles = await EM.find(Tile, {location}, {populate: ["tileset"]});
+		const tiles = await ORM.find(Tile, {location}, {populate: ["tileset"]});
 		for (const oldTile of tiles) {
 			const newTile = _.get(map, [oldTile.position.y, oldTile.position.x]);
 			if (!newTile) {
@@ -87,7 +84,7 @@ export default class Deploy {
 			}
 		}
 
-		await EM.flush();
+		await ORM.flush();
 	}
 
 	/** Helper function for reading a posted JSON body */

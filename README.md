@@ -13,12 +13,12 @@ Installation
 * Create .env-file with the content:
 ```
 NODE_ENV=development
-MIKRO_ORM_HOST=localhost
-MIKRO_ORM_PORT=5432
-MIKRO_ORM_USER=postgres
-MIKRO_ORM_PASSWORD=YOUR_PASSWORD_HERE
-MIKRO_ORM_DB_NAME=enveltia
-MIKRO_ORM_DEBUG=false
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=YOUR_PASSWORD_HERE
+DB_DATABASE=enveltia
+WS_PORT=9001
 WS_DEBUG=false
 LOCALE=en_US
 ```
@@ -26,7 +26,6 @@ You can change the connection data, the debug options or the locale.
 
 WS_DEBUG can also be `verbose`. In this case, the events for unconnected users are also logged.
 * Create database schema and seed database with `node dist/seeder`
-* Create link from server to client, e.g. using this command (in Windows): mklink /J "YOUR_PATH_TO_SERVER/client" "YOUR_PATH_TO_CLIENT"
 
 PhpStorm setup
 ------------

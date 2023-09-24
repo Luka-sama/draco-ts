@@ -1,19 +1,21 @@
 import assert from "assert/strict";
 import fs from "fs";
 import _ from "lodash";
-import User from "../auth/user.entity.js";
-import LightsGroup from "../magic/lights-group.entity.js";
-import Location from "../map/location.entity.js";
-import Subzone from "../map/subzone.js";
-import ZoneEntities from "../map/zone-entities.js";
-import Zone from "../map/zone.js";
+import User from "../../auth/user.entity.js";
+import LightsGroup from "../../magic/lights-group.entity.js";
+import Location from "../../map/location.entity.js";
+import Subzone from "../../map/subzone.js";
+import ZoneEntities from "../../map/zone-entities.js";
+import Zone from "../../map/zone.js";
 import Collection from "../orm/collection.js";
 import Entity from "../orm/entity.js";
 import ORM from "../orm/orm.js";
-import {ChangeSet, EntityClass, EntityData} from "../orm/orm.typings.js";
+import {ChangeSet, ChangeType, EntityClass, EntityData} from "../orm/orm.typings.js";
 import MapUtil from "../util/map-util.js";
 import SetUtil from "../util/set-util.js";
+import {JSONDataExtended, UserData} from "../util/validation.js";
 import {Vec2, Vector2} from "../util/vector.js";
+import WS, {Receiver} from "../ws.js";
 import {toSync} from "./sync.decorator.js";
 import {
 	AreaType,
@@ -24,11 +26,8 @@ import {
 	SyncMap,
 	SyncModel,
 	SyncProperty,
-	SyncType,
 	UserContainer
 } from "./sync.typings.js";
-import WS from "./ws.js";
-import {JSONDataExtended, Receiver, UserData} from "./ws.typings.js";
 
 /**
  * Synchronizer class. See {@link Sync} decorator for details how to use it.
@@ -38,29 +37,21 @@ import {JSONDataExtended, Receiver, UserData} from "./ws.typings.js";
  * Every few milliseconds all accumulated syncs are emitted and the sync map is cleared.
  */
 export default class Synchronizer {
+	/** Sync all updates with clients every .. ms. It makes no sense to set this value lower than GAME_LOOP_FREQUENCY_MS */
+	public static readonly FREQUENCY = 16;
 	/** The accumulated changes to sync */
 	private static syncMap: SyncMap = new Map;
 	private static created: number[] = [];
 	private static newZoneQueue: any[] = [];
 
-	/** Calculates a sync map for the given change sets */
-	static addChangeSets(changeSets: ChangeSet[]): void {
-		if (ORM.isSeeder) {
-			return;
+	/** Emits all accumulated changes */
+	static synchronize(): void {
+		const changeSets = ORM.sync();
+		Synchronizer.addChangeSets(changeSets);
+		for (const [user, syncList] of Synchronizer.syncMap) {
+			Synchronizer.emitSync(user, syncList);
 		}
-
-		for (const changeSet of changeSets) {
-			const entity = changeSet.entity;
-			fs.appendFileSync("D:/test.txt", `[${Date.now()}] Syncing ${entity.constructor.name} ${entity.id} (type=${changeSet.type})\n`);
-			const syncMap = Synchronizer.getSyncMapFromChangeSet(changeSet);
-			Synchronizer.mergeSyncMaps(Synchronizer.syncMap, syncMap);
-		}
-		for (const [entity] of Entity.syncTracked) {
-			const model = entity.constructor as typeof Entity;
-			const syncMap = Synchronizer.getSyncMap(model, entity, SyncType.Update, {});
-			Synchronizer.mergeSyncMaps(Synchronizer.syncMap, syncMap);
-		}
-		//Zone.checkup();
+		Synchronizer.syncMap.clear();
 	}
 
 	/** Emits to the player who has just logged into the game all the necessary information */
@@ -70,15 +61,7 @@ export default class Synchronizer {
 		const userInfo = Synchronizer.getCreateList(User, user, SyncFor.This);
 		const syncList = Synchronizer.getCreateListFromZoneEntities(entities).concat(userInfo);
 		Synchronizer.emitSync(user, syncList);
-		user.hadFirstSync = true;
-	}
-
-	/** Emits all accumulated changes */
-	static synchronize(): void {
-		for (const [user, syncList] of Synchronizer.syncMap) {
-			Synchronizer.emitSync(user, syncList);
-		}
-		Synchronizer.syncMap.clear();
+		user.hadFirstSync = true; // TODO: currently log out does not update this to false; make it as a WeakSet of sockets instead
 	}
 
 	/** Syncs the creation of an entity in the zone. This is useful if the entity should not be created in the database */
@@ -89,6 +72,22 @@ export default class Synchronizer {
 	/** Syncs the deletion of an entity from the zone. This is useful if the entity should not be deleted from the database */
 	static deleteEntityFromZone(entity: Entity): void {
 		Synchronizer.createOrDeleteEntity(entity, false);
+	}
+
+	/** Calculates a sync map for the given change sets */
+	private static addChangeSets(changeSets: ChangeSet[]): void {
+		for (const changeSet of changeSets) {
+			const entity = changeSet.entity;
+			fs.appendFileSync("D:/test.txt", `[${Date.now()}] Syncing ${entity.constructor.name} ${entity.id} (type=${changeSet.type})\n`);
+			const syncMap = Synchronizer.getSyncMapFromChangeSet(changeSet);
+			Synchronizer.mergeSyncMaps(Synchronizer.syncMap, syncMap);
+		}
+		for (const [entity] of Entity.syncTracked) {
+			const model = entity.constructor as typeof Entity;
+			const syncMap = Synchronizer.getSyncMap(model, entity, ChangeType.Update, {});
+			Synchronizer.mergeSyncMaps(Synchronizer.syncMap, syncMap);
+		}
+		//Zone.checkup();
 	}
 
 	/**
@@ -137,7 +136,7 @@ export default class Synchronizer {
 			const convertedEntity = Synchronizer.convertEntityToUserData(toSyncModel, entity, syncFor);
 			// If converted entity has any properties besides id
 			if (Object.keys(convertedEntity).length > 1) {
-				syncList.push([SyncType.Create, modelName, convertedEntity]);
+				syncList.push([ChangeType.Create, modelName, convertedEntity]);
 			}
 		}
 		return syncList;
@@ -153,7 +152,7 @@ export default class Synchronizer {
 
 		const syncList: Sync[] = [];
 		for (const entity of (entities instanceof Set ? entities : [entities])) {
-			syncList.push([SyncType.Delete, modelName, {id: entity.id}]);
+			syncList.push([ChangeType.Delete, modelName, {id: entity.id}]);
 		}
 		return syncList;
 	}
@@ -181,7 +180,7 @@ export default class Synchronizer {
 	}
 
 	/** Calculates a sync map from the given data */
-	private static getSyncMap(model: EntityClass, entity: Entity, type: SyncType,
+	private static getSyncMap(model: EntityClass, entity: Entity, type: ChangeType,
 		payload: EntityData, original?: EntityData): SyncMap {
 		const syncMap: SyncMap = new Map;
 		const toSyncModel = toSync.get(model)!;
@@ -196,7 +195,7 @@ export default class Synchronizer {
 				const syncFor = toSyncProperty.for;
 				const syncForKey = (typeof syncFor == "object" ? `${syncFor.location}/${syncFor.position}` : syncFor);
 				const data = MapUtil.get(collectedData, syncForKey, {id: entity.id});
-				if (type != SyncType.Delete) {
+				if (type != ChangeType.Delete) {
 					Synchronizer.writePropertyToData(toSyncProperty, entity, data, property);
 				}
 			}
@@ -208,7 +207,7 @@ export default class Synchronizer {
 				position: syncForKey.split("/")[1]
 			} : syncForKey);
 
-			const lazyCheck = type != SyncType.Update || Object.keys(convertedEntity)
+			const lazyCheck = type != ChangeType.Update || Object.keys(convertedEntity)
 				.map(property => toSyncModel.get(property))
 				.filter(properties => properties && properties.filter(property => _.isEqual(property.for, syncFor) && !property.lazy).length)
 				.length > 0;
@@ -247,7 +246,7 @@ export default class Synchronizer {
 			}
 		}
 
-		if (entity.isRemoved() && type != SyncType.Delete) {
+		if (entity.isRemoved() && type != ChangeType.Delete) {
 			return new Map; // Leave sync for zone handling, but do not send events to users
 		}
 		return syncMap;
@@ -274,13 +273,13 @@ export default class Synchronizer {
 	 * For the creation and the deletion it returns all properties that are in the given sync model.
 	 * For the updation it returns a list with names of those changed properties that are in sync model.
 	 * */
-	private static getPropertiesToSync(model: EntityClass, entity: Entity, type: SyncType, payload: EntityData): string[] {
+	private static getPropertiesToSync(model: EntityClass, entity: Entity, type: ChangeType, payload: EntityData): string[] {
 		const toSyncModel = toSync.get(model);
 		if (!toSyncModel) {
 			return [];
 		}
 		const syncProperties = Array.from(toSyncModel.keys());
-		if (type != SyncType.Update) {
+		if (type != ChangeType.Update) {
 			return syncProperties;
 		}
 		const trackedProperties = Array.from(Entity.syncTracked.get(entity) || []);
@@ -298,21 +297,21 @@ export default class Synchronizer {
 	 * For the updation of an entity it prepares arguments for {@link changeZone}, calls it and returns its sync map
 	 */
 	private static handleZones(syncFor: SyncForCustom, model: EntityClass, entity: Entity,
-		currZones: Set<Zone>, type: SyncType, updateList: Sync[], original?: EntityData): SyncMap {
+		currZones: Set<Zone>, type: ChangeType, updateList: Sync[], original?: EntityData): SyncMap {
 		if (!ZoneEntities.getModels().includes(model)) {
 			return new Map();
 		}
 		assert(syncFor == SyncFor.Zone || typeof syncFor == "object" && syncFor.location && syncFor.position);
 
-		if (type == SyncType.Create) {
+		if (type == ChangeType.Create) {
 			for (const currZone of currZones) {
 				currZone.enter(entity);
 			}
-		} else if (type == SyncType.Delete) {
+		} else if (type == ChangeType.Delete) {
 			for (const currZone of currZones) {
 				currZone.leave(entity);
 			}
-		} else if (type == SyncType.Update && original) {
+		} else if (type == ChangeType.Update && original) {
 			const locationField = _.snakeCase(syncFor == SyncFor.Zone ? "location" : syncFor.location) + "_id";
 			const positionField = (syncFor == SyncFor.Zone ? "position" : syncFor.position);
 			//const metadata = EM.getMetadata().get(model.name).properties;
@@ -389,7 +388,7 @@ export default class Synchronizer {
 	/** Returns receiver objects for the given entity and property */
 	private static getReceiver(syncFor: SyncForCustom, entity: Entity): Set<Zone> | Receiver | AreaType | null {
 		if (syncFor == SyncFor.This) {
-			assert(typeof entity.emit == "function" && typeof entity.info == "function");
+			assert(typeof entity.emit == "function");
 			return entity as unknown as Receiver;
 		} else if (syncFor == SyncFor.Zone) {
 			assert(entity.location instanceof Location && entity.position instanceof Vector2);

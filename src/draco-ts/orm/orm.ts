@@ -1,50 +1,76 @@
 import assert from "assert/strict";
-import fs from "fs";
 import _ from "lodash";
-import pg, {QueryResult} from "pg";
-import {SyncType} from "../core/sync.typings.js";
+import pg from "pg";
 import MapUtil from "../util/map-util.js";
-import SetUtil from "../util/set-util.js";
 import {Vec2} from "../util/vector.js";
 import Collection from "./collection.js";
 import Entity from "./entity.js";
 import {DB} from "./orm.decorator.js";
-import {ChangeSet, EntityClass, EntityData, IEntity} from "./orm.typings.js";
+import {ChangeSet, ChangeType, EntityClass, EntityData, IEntity} from "./orm.typings.js";
 
 export default class ORM {
-	public static isSeeder = false;
-	public static getChanges = ((changeSets: ChangeSet[]): void => undefined);
-	private static pool: pg.Pool;
+	/** Flushes all entity changes to the database at least every .. ms */
+	public static readonly FLUSH_FREQUENCY = 100;
 	public static cachedEntries = new Map<EntityClass, Map<number, Entity>>;
-	private static toInsertSync = new Set<Entity>;
-	private static toDeleteSync = new Set<Entity>;
-	private static toUpdateSync = new Map<EntityClass, Map<Entity, Set<string>>>;
+	private static pool: pg.Pool;
+
 	private static toInsertFlush = new Set<Entity>;
 	private static toDeleteFlush = new Set<Entity>;
-	private static toUpdateFlush = new Map<EntityClass, Map<Entity, Set<string>>>;
+	private static toUpdateFlush = new Map<Entity, Set<string>>;
 
-	static init() {
+	private static shouldSync = false;
+	private static changeSets: ChangeSet[] = [];
+	private static toUpdateSync = new Map<Entity, Set<string>>;
+
+	/** Connects to the database */
+	static init(): void {
 		ORM.pool = new pg.Pool({
-			user: "postgres",
-			"password": "lT4z70kAnCi12tefd8EK",
-			"database": "enveltia"
+			host: process.env.DB_HOST,
+			port: +process.env.DB_PORT!,
+			user: process.env.DB_USER,
+			password: process.env.DB_PASSWORD,
+			database: process.env.DB_DATABASE
 		});
 		ORM.pool.on("error", (err, client) => {
 			console.error("Unexpected error on idle client", err, client);
 		});
 	}
 
-	static async query(queryText: string, values?: any[]): Promise<QueryResult> {
-		await ORM.flush();
-		let result: any;
-		try {
-			result = await ORM.pool.query(queryText, values);
-		} catch(e) {
-			console.error(e, queryText, values);
-		}
-		return result;
+	/** Closes database connection */
+	static async close(): Promise<void> {
+		await ORM.pool.end();
 	}
 
+	/** Clears cache and flush/sync queue */
+	static clear(): void {
+		ORM.cachedEntries.clear();
+		ORM.toInsertFlush.clear();
+		ORM.toDeleteFlush.clear();
+		ORM.toUpdateFlush.clear();
+		ORM.toUpdateSync.clear();
+		ORM.changeSets.length = 0;
+	}
+
+	static enableSync(): void {
+		ORM.shouldSync = true;
+	}
+
+	static disableSync(): void {
+		ORM.shouldSync = false;
+	}
+
+	/** Executes any raw SQL query and returns it as QueryResult object (see node-postgres documentation) */
+	static async query(queryText: string, values?: any[]): Promise<pg.QueryResult> {
+		await ORM.flush(); // Flush changes to ensure that the query returns fresh results
+		try {
+			return await ORM.pool.query(queryText, values);
+		} catch(e) {
+			console.error(e, queryText, values);
+			throw e;
+		}
+	}
+
+	/** Executes any raw SQL query, maps result to entity instances and populates them */
 	static async getByQuery<T extends EntityClass>(entityClass: T, queryText: string): Promise<T[]> {
 		const result = await ORM.query(queryText);
 		const entities = result.rows.map(raw => ORM.map(entityClass, raw));
@@ -52,6 +78,7 @@ export default class ORM {
 		return entities;
 	}
 
+	/** Creates an entity instance and maps raw data to them */
 	static map<T extends EntityClass>(entityClass: T, raw: EntityData): T {
 		const entity = new entityClass(raw.id) as any;
 		if (entity.isInitialized()) {
@@ -60,6 +87,7 @@ export default class ORM {
 		return ORM.mapEntity(entity, raw) as any;
 	}
 
+	/** Maps raw data to an already created entity instance */
 	static mapEntity<T extends IEntity>(entity: any, raw: EntityData): InstanceType<T> {
 		const model = DB.get(entity.constructor as typeof Entity);
 		assert(model);
@@ -88,33 +116,11 @@ export default class ORM {
 		}
 
 		entity.__helper.initialized = true;
-		entity.__helper.original = raw;
 		entity.__helper.populated = populated;
 		return entity;
 	}
 
-	static unmap(entity: Entity): EntityData {
-		const raw: EntityData = {};
-		const model = DB.get(entity.constructor as typeof Entity);
-		assert(model);
-
-		for (const [property, options] of model) {
-			let dbProperty = _.snakeCase(property);
-			if (options.vector) {
-				dbProperty = (dbProperty == "position" ? "" : `${dbProperty}_`);
-				raw[`${dbProperty}x`] = entity[property].x;
-				raw[`${dbProperty}y`] = entity[property].y;
-			} else if (options.manyToOne) {
-				dbProperty += "_id";
-				raw[dbProperty] = (entity[property] ? entity[property].id : entity[property]);
-			} else {
-				raw[dbProperty] = entity[property];
-			}
-		}
-
-		return raw;
-	}
-
+	/** Searches for entities of certain class by ID (i.e. a number) or condition string (e.g. "x=3 AND y=4") */
 	static async find<T extends IEntity>(entityClass: T, where?: number | string): Promise<InstanceType<T>[]> {
 		const model = _.snakeCase(entityClass.name);
 		let queryText = `SELECT * FROM "${model}"`;
@@ -124,6 +130,7 @@ export default class ORM {
 		return await ORM.getByQuery(entityClass as any, queryText) as any;
 	}
 
+	/** Returns an entity only if it is cached */
 	static getIfCached<T extends IEntity>(entityClass: any, id: number): InstanceType<T> | null {
 		const entries = MapUtil.getMap(ORM.cachedEntries, entityClass);
 		if (entries.has(id)) {
@@ -132,6 +139,11 @@ export default class ORM {
 		return null;
 	}
 
+	/**
+	 * Searches for an entity of certain class by ID (i.e. a number) or condition string (e.g. "x=3 AND y=4").
+	 * When searching by ID, it tries the cache before executing the query.
+	 * Throws an exception in the case when there are two or more objects found.
+	 */
 	static async findOne<T extends IEntity>(entityClass: T, where?: number | string): Promise<InstanceType<T> | null> {
 		const tryCache = (typeof where == "number" ? ORM.getIfCached(entityClass, where) : null);
 		if (tryCache && tryCache.isInitialized()) {
@@ -142,6 +154,11 @@ export default class ORM {
 		return (objects.length > 0 ? objects[0] as InstanceType<T> : null);
 	}
 
+	/**
+	 * Searches for an entity of certain class by ID (i.e. a number) or condition string (e.g. "x=3 AND y=4").
+	 * When searching by ID, it tries the cache before executing the query.
+	 * Throws an exception if not exactly one object was found (i.e. zero, two or more).
+	 */
 	static async findOneOrFail<T extends IEntity>(entityClass: T, where?: number | string): Promise<InstanceType<T>> {
 		const result = await ORM.findOne(entityClass, where);
 		assert(result != null);
@@ -172,106 +189,82 @@ export default class ORM {
 		entity.__helper.populated = true;
 	}
 
-	static sync(): void {
-		const changeSets: ChangeSet[] = [];
+	static createChangeSet(entity: Entity, type: ChangeType, payload: EntityData = {}): void {
+		if (ORM.shouldSync) {
+			ORM.changeSets.push({entity, type, payload});
+		}
+	}
 
-		for (const entity of ORM.toInsertSync) {
-			changeSets.push({entity, type: SyncType.Create, payload: {}});
-			ORM.toInsertFlush.add(entity);
+	static sync(): ChangeSet[] {
+		for (const [entity, entityChanges] of ORM.toUpdateSync) {
+			const payload = _.pick(entity, Array.from(entityChanges));
+			ORM.createChangeSet(entity, ChangeType.Update, payload);
 		}
 
-		for (const [model, modelChanges] of ORM.toUpdateSync) {
-			for (const [entity, entityChanges] of modelChanges) {
-				const payload = _.pick(entity, Array.from(entityChanges));
-				const original = entity.__helper.original;
-				entity.__helper.original = ORM.unmap(entity);
-				changeSets.push({entity, type: SyncType.Update, payload, original});
-
-				const modelChangesFlush = MapUtil.getMap(ORM.toUpdateFlush, model);
-				const entityChangesFlush = MapUtil.getSet(modelChangesFlush, entity);
-				SetUtil.merge(entityChangesFlush, entityChanges);
-			}
-		}
-
-		for (const entity of ORM.toDeleteSync) {
-			changeSets.push({entity, type: SyncType.Delete, payload: {}});
-			ORM.toDeleteFlush.add(entity);
-		}
-
-		ORM.getChanges(changeSets);
+		const changeSets = ORM.changeSets;
+		ORM.changeSets = [];
+		ORM.toUpdateSync = new Map;
+		return changeSets;
 	}
 
 	static async flush(): Promise<void> {
-		//const changeSets: ChangeSet[] = [];
-		const queries = [];
-		//const flushStart = Date.now();
-
 		const toInsert = ORM.toInsertFlush;
 		ORM.toInsertFlush = new Set;
 		for (const entity of toInsert) {
 			const model = _.snakeCase(entity.constructor.name);
 			const [queryPart, values] = ORM.toSetQuery(entity, true);
 			const result = await ORM.query(`INSERT INTO "${model}" ${queryPart} RETURNING id`, values);
-			//fs.appendFileSync("D:/test.txt", `[${Date.now()}] Flush ${flushStart} INSERT INTO "${model}" ${queryPart} RETURNING id ${values.join(", ")}\n`);
 			entity.id = result.rows[0].id;
 			entity.__helper.notCreated = false;
 			const entries = ORM.cachedEntries.get(entity.constructor as typeof Entity);
-			if (entries) {
+			if (entries) { // why???????
 				entries.set(entity.id, entity);
 			}
 			await ORM.populate(entity);
-			//changeSets.push({entity, type: SyncType.Create, payload: {}});
 		}
 
 		const toUpdate = ORM.toUpdateFlush;
 		ORM.toUpdateFlush = new Map;
-		for (const [model, modelChanges] of toUpdate) {
-			for (const [entity, entityChanges] of modelChanges) {
-				const [queryPart, values] = ORM.toSetQuery(entity, false, entityChanges);
-				if (!queryPart || entity.isRemoved()) {
-					continue;
-				}
-				values.push(entity.id);
-				const modelName = _.snakeCase(model.name);
-				queries.push(ORM.query(`UPDATE "${modelName}" SET ${queryPart} WHERE id = $${values.length}`, values));
-				//fs.appendFileSync("D:/test.txt", `[${Date.now()}] Flush ${flushStart} UPDATE "${modelName}" SET ${queryPart} WHERE id = $${values.length} ${values.join(", ")}\n`);
-				/*if (model.name == "LightsGroup" && Object.keys(payload).length == 1 && Object.keys(payload)[0] == "targetMage" && payload.targetMage === null) {
-					console.log("check check");
-				}*/
+		const queries = [];
+		for (const [entity, entityChanges] of toUpdate) {
+			const [queryPart, values] = ORM.toSetQuery(entity, false, entityChanges);
+			if (!queryPart || entity.isRemoved()) {
+				continue;
 			}
+			values.push(entity.id);
+			const modelName = _.snakeCase(entity.constructor.name);
+			queries.push(ORM.query(`UPDATE "${modelName}" SET ${queryPart} WHERE id = $${values.length}`, values));
 		}
+		await Promise.all(queries);
 
 		const toDelete = ORM.toDeleteFlush;
 		ORM.toDeleteFlush = new Set;
 		for (const entity of toDelete) {
 			const model = _.snakeCase(entity.constructor.name);
 			await ORM.query(`DELETE FROM ${model} WHERE id=$1`, [entity.id]);
-			//fs.appendFileSync("D:/test.txt", `[${Date.now()}] Flush ${flushStart} DELETE FROM ${model} WHERE id=$1 ${entity.id}\n`);
-			//changeSets.push({entity, type: SyncType.Delete, payload: {}});
 		}
-
-		//const changes = util.inspect(changeSets.map(cs => ({id: cs.entity.id, type: cs.type, payload: cs.payload})));
-		//fs.appendFileSync("D:/test.txt", `[${Date.now()}] Flush ${flushStart} - changes ${changes}\n`);
-		//await ORM.getChanges(changeSets);
 	}
 
 	static insert(entity: Entity): void {
-		ORM.toInsertSync.add(entity);
+		ORM.toInsertFlush.add(entity);
+		ORM.createChangeSet(entity, ChangeType.Create);
 	}
 
 	static update(entity: Entity, property: string): void {
 		const model = DB.get(entity.constructor as typeof Entity);
-		if (!model) { //  || !model.has(property)
+		if (!model) { // || !model.has(property)
 			return;
 		}
-		const modelChanges = MapUtil.getMap(ORM.toUpdateSync, entity.constructor);
-		const entityChanges = MapUtil.getSet(modelChanges, entity);
-		entityChanges.add(property);
-		fs.appendFileSync("D:/test.txt", `[${Date.now()}] ${entity.constructor.name} ${entity.id} changed ${property}\n`);
+		MapUtil.getSet(ORM.toUpdateFlush, entity).add(property);
+		if (ORM.shouldSync) {
+			MapUtil.getSet(ORM.toUpdateSync, entity).add(property);
+		}
 	}
 
 	static remove(entity: Entity): void {
-		ORM.toDeleteSync.add(entity);
+		entity.__helper.removed = true;
+		ORM.toDeleteFlush.add(entity);
+		ORM.createChangeSet(entity, ChangeType.Delete);
 		MapUtil.getMap(ORM.cachedEntries, entity.constructor).delete(entity.id);
 	}
 

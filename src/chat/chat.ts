@@ -1,14 +1,17 @@
 import assert from "assert/strict";
 import _ from "lodash";
-import {OnlyLogged} from "../auth/auth.decorator.js";
+import {LoggedArgs, OnlyLogged} from "../auth/auth.decorator.js";
 import User from "../auth/user.entity.js";
-import {LoggedArgs} from "../core/ws.typings.js";
-import ORM from "../orm/orm.js";
-import {ensure, Is} from "../util/validation.js";
-import {Vec2} from "../util/vector.js";
+import ORM from "../draco-ts/orm/orm.js";
+import {ensure, Is} from "../draco-ts/util/validation.js";
+import {Vec2} from "../draco-ts/util/vector.js";
 import Message from "./message.entity.js";
 
 export default class Chat {
+	/** Delete message from chat after .. ms */
+	public static readonly DELETE_MESSAGE_AFTER = 300 * 1000;
+	/** Hearing radius (in tiles) */
+	public static readonly HEARING_RADIUS = 1000;
 	private static fightLeft = 0;
 
 	@OnlyLogged()

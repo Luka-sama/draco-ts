@@ -1,8 +1,9 @@
 import assert from "assert/strict";
 import User from "../auth/user.entity.js";
-import {UserContainer} from "../core/sync.typings.js";
-import {Receiver, UserData} from "../core/ws.typings.js";
-import {Vec2, Vector2} from "../util/vector.js";
+import {UserContainer} from "../draco-ts/sync/sync.typings.js";
+import {UserData} from "../draco-ts/util/validation.js";
+import {Vec2, Vector2} from "../draco-ts/util/vector.js";
+import {Receiver} from "../draco-ts/ws.js";
 import Location from "./location.entity.js";
 import Subzone from "./subzone.js";
 

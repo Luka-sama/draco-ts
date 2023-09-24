@@ -1,4 +1,3 @@
-import {SyncType} from "../core/sync.typings.js";
 import Entity from "./entity.js";
 
 export interface ORMHelper {
@@ -9,7 +8,6 @@ export interface ORMHelper {
 export interface EntityHelper extends ORMHelper {
 	notCreated: boolean;
 	removed: boolean;
-	original?: EntityData;
 }
 
 export interface CollectionHelper extends ORMHelper {
@@ -29,10 +27,11 @@ export interface IEntity {
 
 export interface ChangeSet {
 	entity: Entity;
-	type: SyncType;
+	type: ChangeType;
 	payload: EntityData;
-	original?: EntityData;
 }
+/** Type that shows whether the entity was created, updated or deleted */
+export enum ChangeType {Create, Update, Delete}
 
 export type EntityClass = typeof Entity;
 

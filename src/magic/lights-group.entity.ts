@@ -1,13 +1,13 @@
 import assert from "assert/strict";
 import User from "../auth/user.entity.js";
-import {Sync} from "../core/sync.decorator.js";
-import {SyncFor} from "../core/sync.typings.js";
+import Collection from "../draco-ts/orm/collection.js";
+import Entity from "../draco-ts/orm/entity.js";
+import {Property} from "../draco-ts/orm/orm.decorator.js";
+import {Rel} from "../draco-ts/orm/orm.typings.js";
+import {Sync} from "../draco-ts/sync/sync.decorator.js";
+import {SyncFor} from "../draco-ts/sync/sync.typings.js";
+import {Vector2} from "../draco-ts/util/vector.js";
 import Location from "../map/location.entity.js";
-import Collection from "../orm/collection.js";
-import Entity from "../orm/entity.js";
-import {Property} from "../orm/orm.decorator.js";
-import {Rel} from "../orm/orm.typings.js";
-import {Vector2} from "../util/vector.js";
 import Light from "./light.entity.js";
 
 /** Lights group entity */

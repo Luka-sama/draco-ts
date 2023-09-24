@@ -1,22 +1,20 @@
 import assert from "assert/strict";
-import {OnlyLogged} from "../auth/auth.decorator.js";
-import {LoggedArgs} from "../core/ws.typings.js";
+import {LoggedArgs, OnlyLogged} from "../auth/auth.decorator.js";
+import Limit from "../draco-ts/limit.js";
+import SetUtil from "../draco-ts/util/set-util.js";
+import {ensure, Is} from "../draco-ts/util/validation.js";
+import {Vec2, Vector2} from "../draco-ts/util/vector.js";
 import Zone from "../map/zone.js";
-import Const from "../util/const.js";
-import Limit from "../util/limit.js";
-import SetUtil from "../util/set-util.js";
-import {ensure, Is} from "../util/validation.js";
-import {Vec2, Vector2} from "../util/vector.js";
 import Item from "./item.entity.js";
 
 export default class Inventory {
 	@OnlyLogged()
 	static async takeItem({user, zone}: LoggedArgs): Promise<void> {
-		await Limit.soft("Inventory.takeItem", user, 100);
+		await Limit.soft(this, user, 100);
 
 		const itemsNearby = new Set<Item>;
-		for (const y of Const.NEIGHBORING_Y) {
-			for (const x of Const.NEIGHBORING_X) {
+		for (const y of Zone.NEIGHBORING_Y) {
+			for (const x of Zone.NEIGHBORING_X) {
 				const positionToCheck = user.position.add(Vec2(x, y));
 				SetUtil.merge(itemsNearby, zone.getFrom(Item, positionToCheck));
 			}
@@ -33,14 +31,14 @@ export default class Inventory {
 		if (itemToTake) {
 			user.items.add(itemToTake);
 			itemToTake.position = user.position;
-			Limit.updateLastTime("Inventory.takeItem", user);
+			Limit.updateLastTime(this, user);
 		}
 	}
 
 	@OnlyLogged()
 	static async putItem({raw, user}: LoggedArgs): Promise<void> {
 		const {itemId} = ensure(raw, {itemId: Is.int});
-		await Limit.soft("Inventory.putItem", user, 100);
+		await Limit.soft(this, user, 100);
 
 		const item = await Item.getOrFail(itemId);
 		assert(item.holder == user);
@@ -57,13 +55,13 @@ export default class Inventory {
 
 		if (canPut) {
 			user.items.remove(item);
-			Limit.updateLastTime("Inventory.putItem", user);
+			Limit.updateLastTime(this, user);
 		}
 	}
 
 	private static async findFreeTile(item: Item): Promise<Vector2 | null> {
-		for (const y of Const.NEIGHBORING_Y) {
-			for (const x of Const.NEIGHBORING_X) {
+		for (const y of Zone.NEIGHBORING_Y) {
+			for (const x of Zone.NEIGHBORING_X) {
 				const positionToCheck = item.position.add(Vec2(x, y));
 				const positions = item.getPositions(positionToCheck, true);
 				const areTilesFree = await Zone.areTilesFree(item.location, positions);

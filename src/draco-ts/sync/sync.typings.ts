@@ -1,6 +1,7 @@
-import User from "../auth/user.entity.js";
-import {Area} from "../map/area.js";
-import {JSONDataExtended, UserData} from "./ws.typings.js";
+import User from "../../auth/user.entity.js";
+import {Area} from "../../map/area.js";
+import {ChangeType} from "../orm/orm.typings.js";
+import {JSONDataExtended, UserData} from "../util/validation.js";
 
 /** Synchronization options for a single property (how this property should be synced) */
 export interface SyncProperty {
@@ -51,11 +52,8 @@ export type SyncForCustom = SyncFor | string | {
  */
 export type SyncForKey = SyncFor | string | AreaType;
 
-/** Type that shows whether the entity should be created, updated or deleted on the client-side */
-export enum SyncType {Create, Update, Delete}
-
 /** Objects with this info will be sent to the user during sync */
-export type Sync = [type: SyncType, model: string, entity: UserData];
+export type Sync = [type: ChangeType, model: string, entity: UserData];
 
 /** A map containing information about which {@link Sync | syncs} should be sent to which users */
 export type SyncMap = Map<User, Sync[]>;

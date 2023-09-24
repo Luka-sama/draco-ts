@@ -1,6 +1,6 @@
-import Collection from "../orm/collection.js";
-import Entity from "../orm/entity.js";
-import {Property} from "../orm/orm.decorator.js";
+import Collection from "../draco-ts/orm/collection.js";
+import Entity from "../draco-ts/orm/entity.js";
+import {Property} from "../draco-ts/orm/orm.decorator.js";
 import ItemShapePart from "./item-shape-part.entity.js";
 
 /** Item type entity */

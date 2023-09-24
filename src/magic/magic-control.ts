@@ -1,10 +1,9 @@
 import assert from "assert/strict";
 import _ from "lodash";
-import {OnlyLogged} from "../auth/auth.decorator.js";
-import {LoggedArgs} from "../core/ws.typings.js";
+import {LoggedArgs, OnlyLogged} from "../auth/auth.decorator.js";
+import Limit from "../draco-ts/limit.js";
+import {ensure, Is} from "../draco-ts/util/validation.js";
 import Zone from "../map/zone.js";
-import Limit from "../util/limit.js";
-import {ensure, Is} from "../util/validation.js";
 import LightsGroup from "./lights-group.entity.js";
 
 export default class MagicControl {

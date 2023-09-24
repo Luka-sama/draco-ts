@@ -1,6 +1,6 @@
 /** Tileset entity */
-import Entity from "../orm/entity.js";
-import {Property} from "../orm/orm.decorator.js";
+import Entity from "../draco-ts/orm/entity.js";
+import {Property} from "../draco-ts/orm/orm.decorator.js";
 
 export default class Tileset extends Entity {
 	@Property()

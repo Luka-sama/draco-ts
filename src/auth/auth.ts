@@ -1,17 +1,25 @@
 import {randomBytes} from "crypto";
 import {promisify} from "util";
-import Synchronizer from "../core/sync.js";
-import Tr from "../core/tr.js";
-import {GuestArgs, LoggedArgs} from "../core/ws.typings.js";
+import Limit from "../draco-ts/limit.js";
+import ORM from "../draco-ts/orm/orm.js";
+import Synchronizer from "../draco-ts/sync/sync.js";
+import Tr from "../draco-ts/tr.js";
+import {ensure, Is} from "../draco-ts/util/validation.js";
+import {Vec2} from "../draco-ts/util/vector.js";
+import {GuestArgs} from "../draco-ts/ws.js";
 import Magic from "../magic/magic.js";
 import Location from "../map/location.entity.js";
 import Zone from "../map/zone.js";
-import ORM from "../orm/orm.js";
-import Limit from "../util/limit.js";
-import {ensure, Is} from "../util/validation.js";
-import {Vec2} from "../util/vector.js";
 import Account from "./account.entity.js";
-import {ForAll, OnlyGuest, OnlyLogged, OnlyLoggedAccount, OnlyLoggedAtLeastAccount} from "./auth.decorator.js";
+import {
+	ForAll,
+	LoggedArgs,
+	OnlyGuest,
+	OnlyLogged,
+	OnlyLoggedAccount,
+	OnlyLoggedAtLeastAccount
+} from "./auth.decorator.js";
+import Session from "./session.js";
 import User from "./user.entity.js";
 
 /** Class for authorization (sign up and sign in) */
@@ -24,7 +32,7 @@ export default class Auth {
 	@OnlyGuest()
 	static async signUpAccount({sck, raw}: GuestArgs): Promise<void> {
 		const {name, mail, pass} = ensure(raw, {name: Is.string, mail: Is.string, pass: Is.string});
-		Limit.strict("Auth.signUpAccount", sck, 60000);
+		Limit.strict("Auth.signUpAccount", sck, 60000, Tr.get("LIMIT_REACHED"));
 
 		const errors = [
 			(!/^[a-z0-9-]+$/i.test(name) ? Tr.get("ACCOUNT_NAME_FORMAT_WRONG") : null),
@@ -47,21 +55,21 @@ export default class Auth {
 		const data = ensure(raw, {nameOrMail: Is.string, pass: Is.string});
 		await Limit.softUpdatingTime("Auth.signInAccount", sck, 1000);
 
-		const acc = await ORM.findOne(Account, `mail='${data.nameOrMail}' or name='${data.nameOrMail}'`);
-		if (!acc) {
+		const account = await ORM.findOne(Account, `mail='${data.nameOrMail}' or name='${data.nameOrMail}'`);
+		if (!account) {
 			sck.emit("sign_in_account_error", {error: Tr.get("AUTH_ACCOUNT_NOT_FOUND")});
-		} else if (acc.pass != data.pass) {
+		} else if (account.pass != data.pass) {
 			sck.emit("sign_in_account_error", {error: Tr.get("AUTH_WRONG_PASSWORD")});
 		} else {
-			sck.account = acc;
-			sck.emit("sign_in_account", {token: acc.token});
+			Session.signInAccount(sck, account);
+			sck.emit("sign_in_account", {token: account.token});
 		}
 	}
 
 	@OnlyLoggedAccount()
 	static async signUpUser({sck, raw}: GuestArgs): Promise<void> {
 		const {name} = ensure(raw, {name: Is.string});
-		Limit.strict("Auth.signUpUser", sck, 60000);
+		Limit.strict("Auth.signUpUser", sck, 60000, Tr.get("LIMIT_REACHED"));
 
 		const errors = [
 			(!/^[A-Z][a-z]*$/.test(name) ? Tr.get("USER_NAME_FORMAT_WRONG") : null),
@@ -87,9 +95,8 @@ export default class Auth {
 
 		const user = await User.get(`name='${data.name}' and account_id=${sck.account?.id}`);
 		if (user) {
-			user.connected = true;
-			sck.user = user;
-			user.socket = sck;
+			// TODO: log out old socket
+			Session.signInUser(sck, user);
 			user.emit("sign_in_user", {accountToken: user.account.token, userName: user.name});
 		} else {
 			sck.emit("sign_in_user_error", {error: Tr.get("AUTH_USER_NOT_FOUND")});
@@ -111,29 +118,23 @@ export default class Auth {
 
 		const user = await User.get(`name='${data.userName}'`);
 		if (user && user.account.token == data.accountToken) {
-			sck.account = user.account;
-			sck.user = user;
-			user.socket = sck;
-			user.connected = true;
+			// TODO: log out old sockets
+			Session.signInAccount(sck, user.account);
+			Session.signInUser(sck, user);
 			user.emit("sign_in_user");
 		} else {
-			sck.info(Tr.get("WRONG_TOKEN"));
+			sck.emit("info", {text: Tr.get("WRONG_TOKEN")});
 		}
 	}
 
 	@OnlyLoggedAtLeastAccount()
 	static logOutAccount({sck}: GuestArgs): void {
-		if (sck.user) {
-			sck.user.connected = false;
-			delete sck.user.socket;
-		}
-		delete sck.account;
-		delete sck.user;
+		Session.logOutAccount(sck);
 	}
 
 	@OnlyLogged()
-	static logOutUser({user}: LoggedArgs): void {
-		delete user.socket!.user;
+	static logOutUser({sck}: LoggedArgs): void {
+		Session.logOutUser(sck);
 	}
 
 	@OnlyLogged()

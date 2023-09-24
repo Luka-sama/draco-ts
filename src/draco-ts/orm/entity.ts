@@ -1,6 +1,5 @@
 import assert from "assert/strict";
 import _ from "lodash";
-import {toSync} from "../core/sync.decorator.js";
 import MapUtil from "../util/map-util.js";
 import {DB} from "./orm.decorator.js";
 import ORM from "./orm.js";
@@ -15,7 +14,8 @@ export default class Entity {
 	public static create<T extends IEntity>(this: T, params: {[key: string]: any}): InstanceType<T> {
 		const entity = new this as InstanceType<T>;
 		entity.__helper.notCreated = true;
-		const model = DB.get((entity as any).constructor);
+
+		const model = DB.get(entity.constructor as typeof Entity);
 		assert(model);
 
 		let addedParams = 0;
@@ -103,7 +103,6 @@ export default class Entity {
 	}
 
 	public remove(): void {
-		this.__helper.removed = true;
 		ORM.remove(this);
 	}
 
@@ -132,8 +131,7 @@ export default class Entity {
 	 */
 	private syncTrack(): void {
 		const model = this.constructor as typeof Entity;
-		const toSyncModel = toSync.get(model)!;
-		const syncProperties = Array.from(toSyncModel.keys());
+		const syncProperties: string[] = [];
 		const metadata = DB.get(model);
 		assert(metadata);
 		const syncedProperties = syncProperties.filter(property => !metadata.has(property));
@@ -160,9 +158,6 @@ export default class Entity {
 	}
 
 	private addTrackData(property: string): void {
-		if (ORM.isSeeder) {
-			return;
-		}
 		const changedProperties = MapUtil.getSet(Entity.syncTracked, this);
 		changedProperties.add(property);
 	}

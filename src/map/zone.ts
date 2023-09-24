@@ -1,13 +1,14 @@
 import assert from "assert/strict";
 import fs from "fs";
 import User from "../auth/user.entity.js";
-import Cache from "../cache/cache.js";
-import CachedObject from "../cache/cached-object.js";
-import {Receiver, UserData} from "../core/ws.typings.js";
-import Entity from "../orm/entity.js";
-import {IEntity} from "../orm/orm.typings.js";
-import SetUtil from "../util/set-util.js";
-import {Vec2, Vector2} from "../util/vector.js";
+import Cache from "../draco-ts/cache/cache.js";
+import CachedObject from "../draco-ts/cache/cached-object.js";
+import Entity from "../draco-ts/orm/entity.js";
+import {IEntity} from "../draco-ts/orm/orm.typings.js";
+import SetUtil from "../draco-ts/util/set-util.js";
+import {UserData} from "../draco-ts/util/validation.js";
+import {Vec2, Vector2} from "../draco-ts/util/vector.js";
+import {Receiver} from "../draco-ts/ws.js";
 import Location from "./location.entity.js";
 import Subzone from "./subzone.js";
 import ZoneEntities from "./zone-entities.js";
@@ -24,6 +25,10 @@ import ZoneEntities from "./zone-entities.js";
  * the tile with position 12x7 will be in the zone 0x0.
  */
 export default class Zone extends CachedObject implements Receiver {
+	/** X-coordinate of neighboring tiles */
+	public static readonly NEIGHBORING_X = [0, -1, 1];
+	/** Y-coordinate of neighboring tiles (for staggered maps) */
+	public static readonly NEIGHBORING_Y = [0, -1, 1, -2, 2];
 	private loaded = false;
 	private readonly location: Location;
 	private readonly zonePosition: Vector2;

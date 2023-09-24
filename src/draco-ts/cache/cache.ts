@@ -1,5 +1,18 @@
-import Const from "../util/const.js";
-import {CacheOptions} from "./cache.typings.js";
+export interface CacheOptions {
+	/**
+	 * If `true`, the cached object is stored as WeakRef.
+	 * I.e. it can be automatically deleted from the cache if there are no references to this object anywhere.
+	 */
+	weak?: boolean;
+
+	/**
+	 * How long the value is stored in the cache after the last read or update (in ms).
+	 * If `weak` is set to `true`, this property has no effect
+	 * (the value is deleted sometime if there are no references to this object and not in `duration` ms).
+	 * See also {@link Cache.DEFAULT_DURATION}.
+	 */
+	duration?: number;
+}
 
 interface Entry {
 	value: any;
@@ -36,6 +49,13 @@ type Subtree = Entry | Map<string, Subtree>;
  * This can be useful to have e.g. statistics on how many of which objects are cached.
  */
 export default class Cache {
+	/** Cache should be cleaned every .. ms */
+	public static readonly CLEAN_FREQUENCY = 500;
+	/**
+	 * Default cache duration. It makes no sense to set this value lower than {@link Cache.CLEAN_FREQUENCY}.
+	 * See also {@link CacheOptions.duration} for details
+	 */
+	private static readonly DEFAULT_DURATION = 5000;
 	private static entries = new Map<string, Subtree>;
 	private static finalizationRegistry = new FinalizationRegistry<any>(Cache.delete);
 
@@ -114,7 +134,7 @@ export default class Cache {
 				if (curr.size < 1) {
 					subtree.delete(name);
 				}
-			} else if (!curr.options.weak && now - curr.lastAccess > Const.CACHE_DEFAULT_DURATION_MS) {
+			} else if (!curr.options.weak && now - curr.lastAccess > Cache.DEFAULT_DURATION) {
 				subtree.delete(name);
 			}
 		}

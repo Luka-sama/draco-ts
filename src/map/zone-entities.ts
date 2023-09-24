@@ -2,10 +2,10 @@ import assert from "assert/strict";
 import User from "../auth/user.entity.js";
 import Item from "../item/item.entity.js";
 import LightsGroup from "../magic/lights-group.entity.js";
-import Entity from "../orm/entity.js";
-import {EntityClass, IEntity} from "../orm/orm.typings.js";
-import MapUtil from "../util/map-util.js";
-import SetUtil from "../util/set-util.js";
+import Entity from "../draco-ts/orm/entity.js";
+import {EntityClass, IEntity} from "../draco-ts/orm/orm.typings.js";
+import MapUtil from "../draco-ts/util/map-util.js";
+import SetUtil from "../draco-ts/util/set-util.js";
 import Tile from "./tile.entity.js";
 
 /** Stores info only for shaped objects */

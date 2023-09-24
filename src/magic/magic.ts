@@ -2,19 +2,40 @@ import assert from "assert/strict";
 import fs from "fs";
 import _ from "lodash";
 import User from "../auth/user.entity.js";
-import Cache from "../cache/cache.js";
 import Message from "../chat/message.entity.js";
+import Cache from "../draco-ts/cache/cache.js";
+import ORM from "../draco-ts/orm/orm.js";
+import SetUtil from "../draco-ts/util/set-util.js";
+import {Vec2, Vector2} from "../draco-ts/util/vector.js";
 import Location from "../map/location.entity.js";
 import Zone from "../map/zone.js";
-import ORM from "../orm/orm.js";
-import Const from "../util/const.js";
-import SetUtil from "../util/set-util.js";
-import {Vec2, Vector2} from "../util/vector.js";
 import Light from "./light.entity.js";
 import LightsGroup from "./lights-group.entity.js";
 
 /** Magic and lights controller */
 export default class Magic {
+	/** Count of created lights groups per user */
+	private static readonly LIGHTS_GROUPS_PER_USER = 3;
+	/** Min count of lights per lights group (not less than 1) */
+	private static readonly LIGHTS_MIN_COUNT_PER_GROUP = 1;
+	/** Max count of lights per lights group (not less than 1) */
+	private static readonly LIGHTS_MAX_COUNT_PER_GROUP = 5;
+	/** Lights group min speed (tiles per second) */
+	private static readonly LIGHTS_MIN_SPEED = 5;
+	/** Lights group max speed (tiles per second) */
+	private static readonly LIGHTS_MAX_SPEED = 9;
+	/** The probability (from 0 to 100) that a lights group will take a random direction (i.e. not to target or from target) */
+	private static readonly LIGHTS_RANDOM_DIRECTION_PROBABILITY = 25;
+	/** The max possible distance from the target mage (the more, the greater the load on the server may be) */
+	private static readonly LIGHTS_MAX_POSSIBLE_DISTANCE_FROM_TARGET = 4;
+	/** The probability (from 0 to 100) that a lights group will change their direction and speed after a movement */
+	private static readonly LIGHTS_DIRECTION_CHANGE_PROBABILITY = 33;
+	/** The strict min distance (in tiles) to the target mage (if not controled by him). The lights group will definitely fly away */
+	private static readonly LIGHTS_STRICT_MIN_DISTANCE_TO_TARGET = 3;
+	/** The soft min distance (in tiles) to the target mage (if not controled by him). The lights group may fly away */
+	private static readonly LIGHTS_SOFT_MIN_DISTANCE_TO_TARGET = 5;
+	/** The maximum value by which the speed of a lights group can change at one time */
+	private static readonly LIGHTS_MAX_SPEED_CHANGE = 2;
 	private static removeQueue = new Set<LightsGroup>;
 
 	public static moveAllLightsGroups(): void {
@@ -53,14 +74,14 @@ export default class Magic {
 	}
 
 	public static createLightsForMage(user: User, zone: Zone): void {
-		for (let i = 0; i < Const.LIGHTS_GROUPS_PER_USER; i++) {
+		for (let i = 0; i < Magic.LIGHTS_GROUPS_PER_USER; i++) {
 			Magic.createLightsGroupForMage(user, zone);
 		}
 	}
 
 	public static createLightsGroupForMage(targetMage: User, zone: Zone): void {
 		const shape = Magic.generateLightsShape();
-		const speed = _.random(Const.LIGHTS_MIN_SPEED, Const.LIGHTS_MAX_SPEED);
+		const speed = _.random(Magic.LIGHTS_MIN_SPEED, Magic.LIGHTS_MAX_SPEED);
 		const location = targetMage.location;
 		const position = Magic.generateLightsPosition(targetMage, zone);
 		const direction = Magic.generateLightsDirection(position, targetMage);
@@ -75,7 +96,7 @@ export default class Magic {
 
 	public static generateLightsDirection(from: Vector2, user: User, toTarget = true): Vector2 {
 		let dir: Vector2;
-		const shouldTakeRandomDirection = _.random(1, 100) <= Const.LIGHTS_RANDOM_DIRECTION_PROBABILITY;
+		const shouldTakeRandomDirection = _.random(1, 100) <= Magic.LIGHTS_RANDOM_DIRECTION_PROBABILITY;
 		if (shouldTakeRandomDirection) {
 			dir = Vec2(_.random(-1, 1), _.random(-1, 1));
 		} else {
@@ -104,8 +125,8 @@ export default class Magic {
 			console.log("test");
 		}
 		const distanceToMage = lightsGroup.position.distanceSquaredTo(lightsGroup.targetMage.position);
-		const strictMinDistance = Math.pow(Const.LIGHTS_STRICT_MIN_DISTANCE_TO_TARGET, 2);
-		const softMinDistance = Math.pow(Const.LIGHTS_SOFT_MIN_DISTANCE_TO_TARGET, 2);
+		const strictMinDistance = Math.pow(Magic.LIGHTS_STRICT_MIN_DISTANCE_TO_TARGET, 2);
+		const softMinDistance = Math.pow(Magic.LIGHTS_SOFT_MIN_DISTANCE_TO_TARGET, 2);
 		let farAway = false;
 
 		if (distanceToMage <= strictMinDistance) {
@@ -118,13 +139,13 @@ export default class Magic {
 			lightsGroup.activated = false;
 		}
 
-		const shouldChangeDirection = !lightsGroup.activated && _.random(1, 100) <= Const.LIGHTS_DIRECTION_CHANGE_PROBABILITY;
+		const shouldChangeDirection = !lightsGroup.activated && _.random(1, 100) <= Magic.LIGHTS_DIRECTION_CHANGE_PROBABILITY;
 		if (shouldChangeDirection) {
 			lightsGroup.direction = Magic.generateLightsDirection(lightsGroup.position, lightsGroup.targetMage, lightsGroup.toTarget);
 			lightsGroup.speed = _.clamp(
-				lightsGroup.speed + _.random((farAway ? 0 : -Const.LIGHTS_MAX_SPEED_CHANGE), Const.LIGHTS_MAX_SPEED_CHANGE),
-				Const.LIGHTS_MIN_SPEED,
-				Const.LIGHTS_MAX_SPEED
+				lightsGroup.speed + _.random((farAway ? 0 : -Magic.LIGHTS_MAX_SPEED_CHANGE), Magic.LIGHTS_MAX_SPEED_CHANGE),
+				Magic.LIGHTS_MIN_SPEED,
+				Magic.LIGHTS_MAX_SPEED
 			);
 		}
 
@@ -156,10 +177,10 @@ export default class Magic {
 		const shape = [lastPart];
 		return shape;
 
-		for (let i = Const.LIGHTS_MIN_COUNT_PER_GROUP - 1; i < Const.LIGHTS_MAX_COUNT_PER_GROUP - 1; i++) {
+		for (let i = Magic.LIGHTS_MIN_COUNT_PER_GROUP - 1; i < Magic.LIGHTS_MAX_COUNT_PER_GROUP - 1; i++) {
 			const possibleDirections: Vector2[] = [];
-			for (const y of Const.NEIGHBORING_Y) {
-				for (const x of Const.NEIGHBORING_X) {
+			for (const y of Zone.NEIGHBORING_Y) {
+				for (const x of Zone.NEIGHBORING_X) {
 					const possibleDirection = Vec2(x, y);
 					const possiblePart = lastPart.add(possibleDirection);
 					if (possiblePart.x >= 0 && possiblePart.y >= 0 && (x != 0 || y != 0) && !possiblePart.isElementOf(shape)) {
@@ -188,7 +209,7 @@ export default class Magic {
 	private static getNextZoneWithoutMages(location: Location, centerZone: Zone): Zone {
 		const centerZonePosition = centerZone.getZonePosition();
 		let zoneToCheck = centerZone;
-		for (let distance = 1; distance <= Const.LIGHTS_MAX_POSSIBLE_DISTANCE_FROM_TARGET; distance++) {
+		for (let distance = 1; distance <= Magic.LIGHTS_MAX_POSSIBLE_DISTANCE_FROM_TARGET; distance++) {
 			for (let x = -distance; x <= distance; x++) {
 				for (let y = -distance; y <= distance; y++) {
 					if (Math.abs(x) === distance || Math.abs(y) === distance) {

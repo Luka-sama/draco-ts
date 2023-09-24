@@ -1,14 +1,14 @@
 import User from "../auth/user.entity.js";
-import {Sync} from "../core/sync.decorator.js";
+import Entity from "../draco-ts/orm/entity.js";
+import {Property} from "../draco-ts/orm/orm.decorator.js";
+import {Sync} from "../draco-ts/sync/sync.decorator.js";
+import {Vector2} from "../draco-ts/util/vector.js";
 import {RoundArea} from "../map/area.js";
 import Location from "../map/location.entity.js";
-import Entity from "../orm/entity.js";
-import {Property} from "../orm/orm.decorator.js";
-import Const from "../util/const.js";
-import {Vector2} from "../util/vector.js";
+import Chat from "./chat.js";
 
 function getDeleteIn(date: Date): number {
-	return Math.max(0, Const.CHAT_DELETE_MESSAGE_AFTER_MS - (Date.now() - date.getTime()));
+	return Math.max(0, Chat.DELETE_MESSAGE_AFTER - (Date.now() - date.getTime()));
 }
 
 /** Chat message class */
@@ -35,6 +35,6 @@ export default class Message extends Entity {
 	position!: Vector2;
 
 	getAreaParams(): ConstructorParameters<typeof RoundArea> {
-		return [this.location, this.position, Const.CHAT_HEARING_RADIUS];
+		return [this.location, this.position, Chat.HEARING_RADIUS];
 	}
 }

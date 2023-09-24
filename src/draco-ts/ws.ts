@@ -1,21 +1,42 @@
 import assert from "assert/strict";
 import {Buffer} from "buffer";
 import _ from "lodash";
+import {EventEmitter} from "node:events";
 import uWS from "uWebSockets.js";
-import User from "../auth/user.entity.js";
-import ORM from "../orm/orm.js";
-import {EndOfRequest} from "../util/limit.js";
-import {ensure, Is, WrongDataError} from "../util/validation.js";
-import Tr from "./tr.js";
-import {EventHandler, GuestArgs, JSONData, Socket, UserData, WSData} from "./ws.typings.js";
+import {EndOfRequest} from "./limit.js";
+import {ensure, Is, JSONData, UserData, WrongDataError} from "./util/validation.js";
+
+/** Anything you can emit events to (user, zone etc) */
+export interface Receiver {
+	/** Sends a message wrapped in the interface WSData */
+	emit(event: string, data?: UserData): void;
+}
+
+/** WebSocket with additional properties */
+export interface Socket extends uWS.WebSocket, Receiver {}
+
+/** Type for an event handler */
+export type EventHandler = (args: GuestArgs) => Promise<void> | Promise<boolean>;
+
+/** Event arguments for guests and logged only into account */
+export interface GuestArgs {
+	sck: Socket;
+	raw: UserData;
+}
+
+/** Data which we get from a user or send to a user with event name */
+interface WSData {
+	event: string;
+	data: UserData;
+}
 
 /** This class starts WebSocket server and handles getting/sending data */
 export default class WS {
+	public static emitter = new EventEmitter;
 	private static app: uWS.TemplatedApp;
 	private static events: {
 		[key: string]: EventHandler;
 	} = {};
-	private static port = 9001;
 
 	/** Initializes WebSocket server */
 	static init(): void {
@@ -23,6 +44,7 @@ export default class WS {
 			return;
 		}
 
+		const port = +process.env.WS_PORT!;
 		WS.app = uWS.App()
 			.ws("/ws", {
 				compression: uWS.SHARED_COMPRESSOR,
@@ -31,9 +53,11 @@ export default class WS {
 				message: WS.onMessage,
 				close: WS.onClose
 			})
-			.listen(WS.port, listenSocket => {
+			.listen(port, listenSocket => {
 				if (listenSocket) {
-					console.log(`Listening to port ${WS.port}`);
+					console.log(`Listening to port ${port}.`);
+				} else {
+					console.error(`Failed to listen to port ${port}.`);
 				}
 			});
 	}
@@ -51,49 +75,6 @@ export default class WS {
 	/** Adds an event to the event list */
 	static addEvent(event: string, func: EventHandler): void {
 		WS.events[event] = func;
-	}
-
-	/** Subscribes the socket or the user to a topic or topics */
-	static sub(sckOrUser: Socket | User, topics: string | string[]): void {
-		const sck = (sckOrUser instanceof User ? sckOrUser.socket! : sckOrUser);
-		if (!(topics instanceof Array)) {
-			topics = [topics];
-		}
-		for (const topic of topics) {
-			console.assert(sck.subscribe(topic), `Error subscribe ${topic}`);
-		}
-	}
-
-	/** Unsubscribes the socket or the user from a topic or topics */
-	static unsub(sckOrUser: Socket | User, topics: string | string[]): void {
-		const sck = (sckOrUser instanceof User ? sckOrUser.socket! : sckOrUser);
-		if (!(topics instanceof Array)) {
-			topics = [topics];
-		}
-		for (const topic of topics) {
-			console.assert(sck.unsubcribe(topic), `Error unsubcribe ${topic}`);
-		}
-	}
-
-	/** Sends a message to all users that are subscribed to the given topics */
-	static pub(topics: string | string[], event: string, data: UserData = {}): void {
-		const json = WS.prepareDataBeforeEmit(event, data);
-		if (!(topics instanceof Array)) {
-			topics = [topics];
-		}
-		for (const topic of topics) {
-			WS.app.publish(topic, json);
-		}
-	}
-
-	/** Returns all topics to them the socket or the user is subscribed */
-	static getTopics(sckOrUser: Socket | User, startsWith?: string): string[] {
-		const sck = (sckOrUser instanceof User ? sckOrUser.socket! : sckOrUser);
-		const topics = sck.getTopics();
-		if (startsWith) {
-			return topics.filter(topic => topic.startsWith(startsWith));
-		}
-		return topics;
 	}
 
 	/**
@@ -168,23 +149,15 @@ export default class WS {
 
 	/** Handles socket connection. Converts uWS.WebSocket to Socket */
 	private static onOpen(sck: uWS.WebSocket): void {
-		sck.limits = {};
 		sck.emit = function(event: string, data?: UserData): void {
 			WS.emit(sck, event, data);
 		};
-		sck.info = function(text: string): void {
-			sck.emit("info", {text});
-		};
+		WS.emitter.emit("open", sck as Socket);
 	}
 
 	/** Handles socket close event */
 	private static onClose(sck: uWS.WebSocket): void {
-		if (sck.user) {
-			const user = sck.user as User;
-			user.connected = false;
-			user.hadFirstSync = false;
-			delete user.socket;
-		}
+		WS.emitter.emit("close", sck as Socket);
 	}
 
 	/** Handles getting data. Parses JSON, calls {@link WS.route} */
@@ -250,12 +223,11 @@ export default class WS {
 
 		try {
 			await handleEvent({sck, raw} as GuestArgs);
-			ORM.sync();
 		} catch(e) {
 			if (!(e instanceof EndOfRequest) && (e as any)?.code != "ABORT_ERR") {
 				const isWrongData = (e instanceof WrongDataError || e instanceof assert.AssertionError);
-				sck.info(isWrongData ? Tr.get("WRONG_DATA") : Tr.get("UNKNOWN_ERROR"));
 				console.error(e);
+				WS.emitter.emit("error", sck, isWrongData);
 			}
 		}
 	}

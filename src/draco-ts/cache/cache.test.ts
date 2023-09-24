@@ -1,4 +1,3 @@
-import Const from "../util/const.js";
 import Cache from "./cache.js";
 
 test("clean", () => {
@@ -8,7 +7,7 @@ test("clean", () => {
 	expect(Cache.get(name)).toBe(value);
 	Cache["clean"]();
 	expect(Cache.get(name)).toBe(value);
-	Cache["searchFor"](name).entry!.lastAccess = Date.now() - Const.CACHE_DEFAULT_DURATION_MS - 5;
+	Cache["searchFor"](name).entry!.lastAccess = Date.now() - Cache["DEFAULT_DURATION"] - 5;
 	Cache["clean"]();
 	expect(Cache.has(name)).toBeFalsy();
 	expect(Cache["entries"].has("test")).toBeFalsy();

@@ -1,15 +1,17 @@
-import {Sync} from "../core/sync.decorator.js";
-import {SyncFor} from "../core/sync.typings.js";
-import {Receiver, Socket, UserData} from "../core/ws.typings.js";
+import Collection from "../draco-ts/orm/collection.js";
+import Entity from "../draco-ts/orm/entity.js";
+import {Property} from "../draco-ts/orm/orm.decorator.js";
+import {Sync} from "../draco-ts/sync/sync.decorator.js";
+import {SyncFor} from "../draco-ts/sync/sync.typings.js";
+import {UserData} from "../draco-ts/util/validation.js";
+import {Vector2} from "../draco-ts/util/vector.js";
+import {Receiver} from "../draco-ts/ws.js";
 import Item from "../item/item.entity.js";
 import LightsGroup from "../magic/lights-group.entity.js";
 import Location from "../map/location.entity.js";
-import Collection from "../orm/collection.js";
-import Entity from "../orm/entity.js";
-import {Property} from "../orm/orm.decorator.js";
-import Const from "../util/const.js";
-import {Vector2} from "../util/vector.js";
+import Movement from "../map/movement.js";
 import Account from "./account.entity.js";
+import Session from "./session.js";
 
 /**
  * User entity
@@ -38,7 +40,7 @@ export default class User extends Entity implements Receiver {
 	position!: Vector2;
 
 	@Sync(SyncFor.Zone)
-	speed = Const.MOVEMENT_WALK_SPEED;
+	speed = Movement.WALK_SPEED;
 
 	@Property({oneToMany: [Item, "holder"]})
 	items!: Collection<Item>;
@@ -48,10 +50,6 @@ export default class User extends Entity implements Receiver {
 
 	pigeonHits = 0;
 
-	socket?: Socket;
-
-	connected = false;
-
 	hadFirstSync = false;
 
 	constructor(id: number) {
@@ -60,8 +58,9 @@ export default class User extends Entity implements Receiver {
 	}
 
 	emit(event: string, data?: UserData): void {
-		if (this.socket) {
-			this.socket.emit(event, data);
+		const sockets = Session.getSocketsByUser(this);
+		if (sockets.size > 0) {
+			sockets.forEach(socket => socket.emit(event, data));
 		} else if (process.env.WS_DEBUG == "verbose") {
 			console.log(`User ${this.name} (ID=${this.id}) has no socket for event=${event} with data=${JSON.stringify(data)}`);
 		}

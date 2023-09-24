@@ -1,12 +1,12 @@
 import assert from "assert/strict";
 import User from "../auth/user.entity.js";
-import {Sync} from "../core/sync.decorator.js";
-import {SyncFor} from "../core/sync.typings.js";
+import Entity from "../draco-ts/orm/entity.js";
+import {Property} from "../draco-ts/orm/orm.decorator.js";
+import {Rel} from "../draco-ts/orm/orm.typings.js";
+import {Sync} from "../draco-ts/sync/sync.decorator.js";
+import {SyncFor} from "../draco-ts/sync/sync.typings.js";
+import {Vec2, Vector2} from "../draco-ts/util/vector.js";
 import Location from "../map/location.entity.js";
-import Entity from "../orm/entity.js";
-import {Property} from "../orm/orm.decorator.js";
-import {Rel} from "../orm/orm.typings.js";
-import {Vec2, Vector2} from "../util/vector.js";
 import ItemType from "./item-type.entity.js";
 
 /** Item entity */

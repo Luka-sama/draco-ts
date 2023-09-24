@@ -1,7 +1,7 @@
-import Entity from "../orm/entity.js";
-import {Property} from "../orm/orm.decorator.js";
-import {Rel} from "../orm/orm.typings.js";
-import {Vector2} from "../util/vector.js";
+import Entity from "../draco-ts/orm/entity.js";
+import {Property} from "../draco-ts/orm/orm.decorator.js";
+import {Rel} from "../draco-ts/orm/orm.typings.js";
+import {Vector2} from "../draco-ts/util/vector.js";
 import ItemType from "./item-type.entity.js";
 
 /** Item shape entity */

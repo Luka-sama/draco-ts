@@ -1,5 +1,5 @@
-import Entity from "../orm/entity.js";
-import {Property} from "../orm/orm.decorator.js";
+import Entity from "../draco-ts/orm/entity.js";
+import {Property} from "../draco-ts/orm/orm.decorator.js";
 
 /** Location entity */
 export default class Location extends Entity {

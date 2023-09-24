@@ -1,14 +1,15 @@
 import {faker} from "@faker-js/faker";
 import assert from "assert/strict";
+import "dotenv/config";
 import Account from "./auth/account.entity.js";
 import User from "./auth/user.entity.js";
-import ORM, {EM} from "./core/orm.js";
+import ORM from "./draco-ts/orm/orm.js";
+import {Vec2} from "./draco-ts/util/vector.js";
 import ItemShapePart from "./item/item-shape-part.entity.js";
 import ItemType from "./item/item-type.entity.js";
 import Item from "./item/item.entity.js";
 import Location from "./map/location.entity.js";
-import Const from "./util/const.js";
-import {Vec2} from "./util/vector.js";
+import Movement from "./map/movement.js";
 
 export default class Seeder {
 	static started = false;
@@ -20,13 +21,12 @@ export default class Seeder {
 		Seeder.started = true;
 
 		console.log("Seeder started...");
-		ORM.isSeeder = true;
-		await ORM.init({allowGlobalContext: true, persistOnCreate: true});
+		await ORM.init();
 		assert(process.env.NODE_ENV == "development", "You should start seeder only in development environment.");
 		await ORM.getInstance().getSchemaGenerator().refreshDatabase();
 		faker.seed(123);
 		Seeder.seed();
-		await EM.flush();
+		await ORM.flush();
 		await ORM.close();
 		console.log("Seeder finished!");
 	}
@@ -81,7 +81,7 @@ export default class Seeder {
 				regDate: faker.date.soon(10, account.regDate.toString()),
 				location: locations[0],
 				position: Vec2(faker.datatype.number({min: 1, max: 30}), faker.datatype.number({min: 1, max: 15}) * 2),
-				speed: Const.MOVEMENT_WALK_SPEED,
+				speed: Movement.WALK_SPEED,
 				connected: false,
 				hadFirstSync: false,
 			}) );

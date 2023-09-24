@@ -2,15 +2,15 @@ import assert from "assert/strict";
 import fs from "fs";
 import _ from "lodash";
 import User from "../auth/user.entity.js";
-import {WeakCachedObject} from "../cache/cached-object.js";
-import {UserContainer} from "../core/sync.typings.js";
-import {Receiver, UserData} from "../core/ws.typings.js";
+import {WeakCachedObject} from "../draco-ts/cache/cached-object.js";
+import Entity from "../draco-ts/orm/entity.js";
+import ORM from "../draco-ts/orm/orm.js";
+import {EntityClass, IEntity} from "../draco-ts/orm/orm.typings.js";
+import {UserContainer} from "../draco-ts/sync/sync.typings.js";
+import {UserData} from "../draco-ts/util/validation.js";
+import {Vec2, Vector2} from "../draco-ts/util/vector.js";
+import {Receiver} from "../draco-ts/ws.js";
 import Item from "../item/item.entity.js";
-import Entity from "../orm/entity.js";
-import ORM from "../orm/orm.js";
-import {EntityClass, IEntity} from "../orm/orm.typings.js";
-import Const from "../util/const.js";
-import {Vec2, Vector2} from "../util/vector.js";
 import Location from "./location.entity.js";
 import Tile from "./tile.entity.js";
 import ZoneEntities, {EntityInfo} from "./zone-entities.js";
@@ -21,6 +21,7 @@ import ZoneEntities, {EntityInfo} from "./zone-entities.js";
  * See {@link Zone} for details.
  */
 export default class Subzone extends WeakCachedObject implements Receiver, UserContainer {
+	private static readonly SIZE = Vec2(16, 32);
 	private loaded = false;
 	private loading = false;
 	private waiting: (() => void)[] = [];
@@ -29,11 +30,11 @@ export default class Subzone extends WeakCachedObject implements Receiver, UserC
 	private entities: ZoneEntities = new ZoneEntities();
 	/** Returns position of the start tile (included in this zone) */
 	private get start(): Vector2 {
-		return this.zonePosition.mul(Const.SUBZONE_SIZE);
+		return this.zonePosition.mul(Subzone.SIZE);
 	}
 	/** Returns position of the last tile plus (1, 1), i.e. not included in this zone */
 	private get end(): Vector2 {
-		return this.start.add(Const.SUBZONE_SIZE);
+		return this.start.add(Subzone.SIZE);
 	}
 
 	/** Returns the name of a subzone with the given location and zone position */
@@ -43,7 +44,7 @@ export default class Subzone extends WeakCachedObject implements Receiver, UserC
 
 	/** Converts a tile position (e.g. the position of a user, a item etc) to a zone position */
 	static getZonePosition(position: Vector2): Vector2 {
-		return position.intdiv(Const.SUBZONE_SIZE);
+		return position.intdiv(Subzone.SIZE);
 	}
 
 	/** Returns a loaded subzone by a given location and zone position */
