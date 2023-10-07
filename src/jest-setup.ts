@@ -22,8 +22,7 @@ declare global {
 global.sck = mock<Socket>();
 global.guestArgs = {sck, raw: {}};
 
-Tr.init(true);
-
+Tr.init();
 beforeAll(async () => {
 	ORM.init();
 	sck.account = global.account = await Account.getOrFail(1);

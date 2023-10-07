@@ -1,14 +1,15 @@
+import Tr from "../draco-ts/tr.js";
 import Auth from "./auth.js";
 
 describe("signInAccount", () => {
 	test("wrong name", async () => {
 		await Auth.signInAccount({...guestArgs, raw: {nameOrMail: "some user that doesn't exist", pass: "123"}});
-		expect(sck.emit).toHaveBeenCalledWith("sign_in_account_error", {error: "AUTH_ACCOUNT_NOT_FOUND"});
+		expect(sck.emit).toHaveBeenCalledWith("sign_in_account_error", {error: Tr.get("AUTH_ACCOUNT_NOT_FOUND")});
 	});
 
 	test("wrong password", async () => {
 		await Auth.signInAccount({...guestArgs, raw: {nameOrMail: "Luka-sama", pass: "wrong password"}});
-		expect(sck.emit).toHaveBeenCalledWith("sign_in_account_error", {error: "AUTH_WRONG_PASSWORD"});
+		expect(sck.emit).toHaveBeenCalledWith("sign_in_account_error", {error: Tr.get("AUTH_WRONG_PASSWORD")});
 	});
 
 	test("success", async () => {
