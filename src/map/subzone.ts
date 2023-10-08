@@ -3,6 +3,7 @@ import fs from "fs";
 import _ from "lodash";
 import User from "../auth/user.entity.js";
 import {WeakCachedObject} from "../draco-ts/cache/cached-object.js";
+import DB from "../draco-ts/orm/db.js";
 import Entity from "../draco-ts/orm/entity.js";
 import ORM from "../draco-ts/orm/orm.js";
 import {EntityClass, IEntity} from "../draco-ts/orm/orm.typings.js";
@@ -222,7 +223,7 @@ ${info.table}.location_id = $1 AND
 ${info.partTable}.x + ${info.table}.x >= $2 AND ${info.partTable}.x + ${info.table}.x < $3 AND
 ${info.partTable}.y + ${info.table}.y >= $4 AND ${info.partTable}.y + ${info.table}.y < $5`;
 		const params = [this.location.id, this.start.x, this.end.x, this.start.y, this.end.y];
-		return (await ORM.query(query, params)).rows.map(el => el.id);
+		return (await DB.query(query, params)).rows.map(el => el.id);
 	}
 
 	/** Loads all entities that are in this subzone */

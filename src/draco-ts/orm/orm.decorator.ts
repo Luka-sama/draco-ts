@@ -2,7 +2,7 @@ import assert from "assert/strict";
 import MapUtil from "../util/map-util.js";
 import {DBProperty, EntityClass, Model} from "./orm.typings.js";
 
-export const DB = new Map<EntityClass, Model>();
+export const ModelMap = new Map<EntityClass, Model>();
 
 export function Property(options?: DBProperty): PropertyDecorator {
 	return function(target: unknown, propertyKey: string | symbol): void {
@@ -10,6 +10,6 @@ export function Property(options?: DBProperty): PropertyDecorator {
 		assert(typeof propertyKey == "string");
 		const entityClass = target.constructor;
 
-		MapUtil.getMap(DB, entityClass).set(propertyKey, options || {});
+		MapUtil.getMap(ModelMap, entityClass).set(propertyKey, options || {});
 	};
 }

@@ -4,6 +4,7 @@ import Account from "./auth/account.entity.js";
 import {LoggedArgs} from "./auth/auth.decorator.js";
 import User from "./auth/user.entity.js";
 import Cache from "./draco-ts/cache/cache.js";
+import DB from "./draco-ts/orm/db.js";
 import ORM from "./draco-ts/orm/orm.js";
 import Tr from "./draco-ts/tr.js";
 import {GuestArgs, Socket} from "./draco-ts/ws.js";
@@ -24,15 +25,15 @@ global.guestArgs = {sck, raw: {}};
 
 Tr.init();
 beforeAll(async () => {
-	ORM.init();
+	DB.init();
 	sck.account = global.account = await Account.getOrFail(1);
 	sck.user = global.user = await User.getOrFail(1);
 	global.zone = await Zone.getByEntity(user);
-	global.loggedArgs = {...guestArgs, user, zone};
-}, 15000);
+	global.loggedArgs = {...guestArgs, account, user, zone};
+});
 
 afterAll(async () => {
-	await ORM.close();
+	await DB.close();
 });
 
 beforeEach(() => {

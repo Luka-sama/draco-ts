@@ -1,7 +1,7 @@
 import assert from "assert/strict";
 import _ from "lodash";
 import MapUtil from "../util/map-util.js";
-import {DB} from "./orm.decorator.js";
+import {ModelMap} from "./orm.decorator.js";
 import ORM from "./orm.js";
 import {EntityData, EntityHelper, IEntity} from "./orm.typings.js";
 
@@ -15,7 +15,7 @@ export default class Entity {
 		const entity = new this as InstanceType<T>;
 		entity.__helper.notCreated = true;
 
-		const model = DB.get(entity.constructor as typeof Entity);
+		const model = ModelMap.get(entity.constructor as typeof Entity);
 		assert(model);
 
 		let addedParams = 0;
@@ -132,7 +132,7 @@ export default class Entity {
 	private syncTrack(): void {
 		const model = this.constructor as typeof Entity;
 		const syncProperties: string[] = [];
-		const metadata = DB.get(model);
+		const metadata = ModelMap.get(model);
 		assert(metadata);
 		const syncedProperties = syncProperties.filter(property => !metadata.has(property));
 		for (const property of syncedProperties) {

@@ -176,7 +176,7 @@ export default class Synchronizer {
 	/** Calculates a sync map from the given change set */
 	private static getSyncMapFromChangeSet(changeSet: ChangeSet): SyncMap {
 		const model = changeSet.entity.constructor as typeof Entity;
-		return Synchronizer.getSyncMap(model, changeSet.entity, changeSet.type, changeSet.payload, changeSet.original);
+		return Synchronizer.getSyncMap(model, changeSet.entity, changeSet.type, changeSet.payload/*, changeSet.original*/);
 	}
 
 	/** Calculates a sync map from the given data */

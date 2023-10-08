@@ -1,18 +1,17 @@
 import assert from "assert/strict";
 import _ from "lodash";
-import pg from "pg";
 import MapUtil from "../util/map-util.js";
 import {Vec2} from "../util/vector.js";
 import Collection from "./collection.js";
+import DB from "./db.js";
 import Entity from "./entity.js";
-import {DB} from "./orm.decorator.js";
+import {ModelMap} from "./orm.decorator.js";
 import {ChangeSet, ChangeType, EntityClass, EntityData, IEntity} from "./orm.typings.js";
 
 export default class ORM {
 	/** Flushes all entity changes to the database at least every .. ms */
 	public static readonly FLUSH_FREQUENCY = 100;
 	public static cachedEntries = new Map<EntityClass, Map<number, Entity>>;
-	private static pool: pg.Pool;
 
 	private static toInsertFlush = new Set<Entity>;
 	private static toDeleteFlush = new Set<Entity>;
@@ -21,25 +20,6 @@ export default class ORM {
 	private static shouldSync = false;
 	private static changeSets: ChangeSet[] = [];
 	private static toUpdateSync = new Map<Entity, Set<string>>;
-
-	/** Connects to the database */
-	static init(): void {
-		ORM.pool = new pg.Pool({
-			host: process.env.DB_HOST,
-			port: +process.env.DB_PORT!,
-			user: process.env.DB_USER,
-			password: process.env.DB_PASSWORD,
-			database: process.env.DB_DATABASE
-		});
-		ORM.pool.on("error", (err, client) => {
-			console.error("Unexpected error on idle client", err, client);
-		});
-	}
-
-	/** Closes database connection */
-	static async close(): Promise<void> {
-		await ORM.pool.end();
-	}
 
 	/** Clears cache and flush/sync queue */
 	static clear(): void {
@@ -57,22 +37,13 @@ export default class ORM {
 
 	static disableSync(): void {
 		ORM.shouldSync = false;
-	}
-
-	/** Executes any raw SQL query and returns it as QueryResult object (see node-postgres documentation) */
-	static async query(queryText: string, values?: any[]): Promise<pg.QueryResult> {
-		await ORM.flush(); // Flush changes to ensure that the query returns fresh results
-		try {
-			return await ORM.pool.query(queryText, values);
-		} catch(e) {
-			console.error(e, queryText, values);
-			throw e;
-		}
+		ORM.toUpdateSync.clear();
+		ORM.changeSets.length = 0;
 	}
 
 	/** Executes any raw SQL query, maps result to entity instances and populates them */
 	static async getByQuery<T extends EntityClass>(entityClass: T, queryText: string): Promise<T[]> {
-		const result = await ORM.query(queryText);
+		const result = await DB.query(queryText);
 		const entities = result.rows.map(raw => ORM.map(entityClass, raw));
 		await Promise.all(entities.map(entity => ORM.populate(entity)));
 		return entities;
@@ -89,7 +60,7 @@ export default class ORM {
 
 	/** Maps raw data to an already created entity instance */
 	static mapEntity<T extends IEntity>(entity: any, raw: EntityData): InstanceType<T> {
-		const model = DB.get(entity.constructor as typeof Entity);
+		const model = ModelMap.get(entity.constructor as typeof Entity);
 		assert(model);
 		let populated = true;
 
@@ -169,7 +140,7 @@ export default class ORM {
 		if (entity.__helper.populated) {
 			return;
 		}
-		const model = DB.get((entity as any).constructor);
+		const model = ModelMap.get((entity as any).constructor);
 		assert(model);
 
 		for (const [property, options] of model) {
@@ -213,7 +184,7 @@ export default class ORM {
 		for (const entity of toInsert) {
 			const model = _.snakeCase(entity.constructor.name);
 			const [queryPart, values] = ORM.toSetQuery(entity, true);
-			const result = await ORM.query(`INSERT INTO "${model}" ${queryPart} RETURNING id`, values);
+			const result = await DB.query(`INSERT INTO "${model}" ${queryPart} RETURNING id`, values);
 			entity.id = result.rows[0].id;
 			entity.__helper.notCreated = false;
 			const entries = ORM.cachedEntries.get(entity.constructor as typeof Entity);
@@ -233,7 +204,7 @@ export default class ORM {
 			}
 			values.push(entity.id);
 			const modelName = _.snakeCase(entity.constructor.name);
-			queries.push(ORM.query(`UPDATE "${modelName}" SET ${queryPart} WHERE id = $${values.length}`, values));
+			queries.push(DB.query(`UPDATE "${modelName}" SET ${queryPart} WHERE id = $${values.length}`, values));
 		}
 		await Promise.all(queries);
 
@@ -241,7 +212,7 @@ export default class ORM {
 		ORM.toDeleteFlush = new Set;
 		for (const entity of toDelete) {
 			const model = _.snakeCase(entity.constructor.name);
-			await ORM.query(`DELETE FROM ${model} WHERE id=$1`, [entity.id]);
+			await DB.query(`DELETE FROM ${model} WHERE id=$1`, [entity.id]);
 		}
 	}
 
@@ -251,7 +222,7 @@ export default class ORM {
 	}
 
 	static update(entity: Entity, property: string): void {
-		const model = DB.get(entity.constructor as typeof Entity);
+		const model = ModelMap.get(entity.constructor as typeof Entity);
 		if (!model) { // || !model.has(property)
 			return;
 		}
@@ -269,7 +240,7 @@ export default class ORM {
 	}
 
 	private static toSetQuery(entity: any, insert = false, properties?: Set<string> | IterableIterator<string>): [queryPart: string, values: any[]] {
-		const model = DB.get(entity.constructor as any);
+		const model = ModelMap.get(entity.constructor as any);
 		assert(model);
 		const placeholders: string[] = [];
 		const fields: string[] = [];

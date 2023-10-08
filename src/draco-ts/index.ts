@@ -1,0 +1,1 @@
+export {default as Tr} from "./tr.js";
