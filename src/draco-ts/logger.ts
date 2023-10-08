@@ -62,7 +62,7 @@ export default class Logger {
 	 *
 	 * The constructor will also check process environment variables to determine the logger level.
 	 */
-	/* eslint-disable @typescript-eslint/ban-types */
+	// eslint-disable-next-line @typescript-eslint/ban-types
 	public constructor(component: string | Function, level?: LogLevel) {
 		this.component = (typeof component == "string" ? component : component.name);
 		assert(this.component.length > 0);

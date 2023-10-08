@@ -73,8 +73,7 @@ export default class GameLoop {
 	}
 
 	/** Executes a task during a loop iteration */
-	/* eslint-disable require-await */
-	private static async execTask(task: Task): Promise<void> {
+	private static execTask(task: Task): void | Promise<void> {
 		const now = Date.now();
 		const delta = now - task.lastExecution;
 		if (delta < task.frequency) {
