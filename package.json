@@ -42,7 +42,6 @@
     "gettext-parser": "^7.0.1",
     "glob": "^10.2.6",
     "lodash": "^4.17.21",
-    "node-gettext": "^3.0.0",
     "pg": "^8.11.0",
     "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.15.0"
   }

@@ -1,7 +1,7 @@
-import {glob} from "glob";
 import Cache from "./cache/cache.js";
 import GameLoop from "./game-loop.js";
 import Logger, {LogLevel} from "./logger.js";
+import DB from "./orm/db.js";
 import ORM from "./orm/orm.js";
 import Synchronizer from "./sync/sync.js";
 import Tr from "./tr.js";
@@ -9,47 +9,63 @@ import WS from "./ws.js";
 
 /** App class */
 export default class App {
-	private static logger = new Logger(App);
+	private static logger = new Logger(App, LogLevel.Info);
+	private static starting = false;
 	private static started = false;
 
 	/** Initializes all core components (ORM, WS, GameLoop, etc.) */
-	static async init(): Promise<void> {
-		if (App.started) {
+	public static init(): void {
+		if (App.starting || App.started) {
+			App.logger.warn("Tried to start the application that is already starting or started.");
 			return;
 		}
-		App.started = true;
-		App.logger.setLevel(LogLevel.Info);
+		App.starting = true;
+
 		Error.stackTraceLimit = 100;
 		process.on("uncaughtException", App.logger.error);
 		process.on("unhandledRejection", App.logger.error);
 
 		Tr.init();
-		ORM.init();
+		DB.init();
 		ORM.enableSync();
-		GameLoop.init();
 		WS.init();
-		App.addGlobalTasks();
-		await App.autoimport();
+		GameLoop.init();
 
-		App.logger.info("Started.");
-	}
-
-	/** Adds all core global tasks from different modules */
-	private static addGlobalTasks() {
+		GameLoop.addTask(Logger.flush, Logger.FLUSH_FREQUENCY);
+		GameLoop.addTask(ORM.flush, ORM.FLUSH_FREQUENCY);
 		GameLoop.addTask(Cache.clean, Cache.CLEAN_FREQUENCY);
 		GameLoop.addTask(Synchronizer.synchronize, Synchronizer.FREQUENCY);
 		GameLoop.addTask(Synchronizer.syncNewZones);
-		GameLoop.addTask(ORM.flush, ORM.FLUSH_FREQUENCY);
-		GameLoop.addTask(Logger.flush, Logger.FLUSH_FREQUENCY);
+
+		App.starting = false;
+		App.started = true;
+		App.logger.info("Started.");
 	}
 
-	/** Auto-import to make @OnlyLogged() and other decorators to work without explicit import */
-	private static async autoimport(): Promise<void> {
-		const ignore = [
-			"**/*.entity.js", "**/*.test.js", "**/*.typings.js",
-			"seeder.js", "jest-setup.js"
-		];
-		const files = await glob("./**/*.js", {ignore, cwd: "./dist"});
-		await Promise.all(files.map(file => import(`../${file}`)));
+	/** Stops the application. You can then use {@link App.init} to start it again */
+	public static async stop(): Promise<void> {
+		if (!App.started) {
+			App.logger.warn("Tried to stop the application that is already stopped or was not started.");
+			return;
+		}
+		GameLoop.stop();
+		WS.close();
+		ORM.disableSync();
+		await DB.close();
+
+		process.off("uncaughtException", App.logger.error);
+		process.off("unhandledRejection", App.logger.error);
+		App.started = false;
+		App.logger.info("Stopped.");
+	}
+
+	/** Returns whether the application is in the process of starting */
+	public static isStarting(): boolean {
+		return App.starting;
+	}
+
+	/** Returns whether the application is started */
+	public static isStarted(): boolean {
+		return App.started;
 	}
 }

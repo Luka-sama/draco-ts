@@ -20,10 +20,22 @@ export default class GameLoop {
 	private static readonly FREQUENCY = 16;
 	private static readonly logger = new Logger(GameLoop);
 	private static readonly tasks: Task[] = [];
+	private static interval?: NodeJS.Timer;
 
-	/** Initializes game loop */
+	/** Initializes the game loop */
 	public static init(): void {
-		setInterval(GameLoop.execAllTasks, GameLoop.FREQUENCY).unref();
+		if (!GameLoop.interval) {
+			GameLoop.interval = setInterval(GameLoop.execAllTasks, GameLoop.FREQUENCY);
+		}
+	}
+
+	/** Stops the game loop */
+	public static stop(): void {
+		if (GameLoop.interval) {
+			clearInterval(GameLoop.interval);
+			delete GameLoop.interval;
+		}
+		GameLoop.tasks.length = 0;
 	}
 
 	/**

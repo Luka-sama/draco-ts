@@ -62,19 +62,21 @@ export default class Logger {
 	 *
 	 * The constructor will also check process environment variables to determine the logger level.
 	 */
-	public constructor(component: string | Function) {
+	public constructor(component: string | Function, level?: LogLevel) {
 		this.component = (typeof component == "string" ? component : component.name);
 		assert(this.component.length > 0);
 
-		const defaultLogLevel = (process.env.DEFAULT_LOG_LEVEL || "").toLowerCase();
-		const level = (process.env[_.snakeCase(this.component).toUpperCase() + "_LOG_LEVEL"] || defaultLogLevel).toLowerCase();
-		if (level == "debug") {
+		const defaultLogLevel = (process.env.DEFAULT_LOG_LEVEL || "");
+		const levelStr = (process.env[_.snakeCase(this.component).toUpperCase() + "_LOG_LEVEL"] || defaultLogLevel).toLowerCase();
+		if (level) {
+			this.level = level;
+		} else if (levelStr == "debug") {
 			this.level = LogLevel.Debug;
-		} else if (level == "info") {
+		} else if (levelStr == "info") {
 			this.level = LogLevel.Info;
-		} else if (level == "warn") {
+		} else if (levelStr == "warn") {
 			this.level = LogLevel.Warn;
-		} else if (level == "error") {
+		} else if (levelStr == "error") {
 			this.level = LogLevel.Error;
 		}
 

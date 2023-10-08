@@ -1,4 +1,5 @@
 import "dotenv/config";
+import {glob} from "glob";
 import Session from "./auth/session.js";
 import Chat from "./chat/chat.js";
 import App from "./draco-ts/app.js";
@@ -9,10 +10,11 @@ import Zone from "./map/zone.js";
 
 class Index {
 	static async init() {
-		await App.init();
+		App.init();
 		Session.init();
 		//Deploy.init();
 		Index.addGlobalTasks();
+		await Index.autoimport();
 	}
 
 	static addGlobalTasks() {
@@ -20,6 +22,16 @@ class Index {
 		GameLoop.addTask(Magic.removeLightsFromQueue);
 		GameLoop.addTask(Chat.sendTime);
 		GameLoop.addTask(Zone.stayInCacheIfSomebodyIsOnline, Cache.CLEAN_FREQUENCY / 2);
+	}
+
+	/** Auto-import to make @OnlyLogged() and other decorators to work without explicit import */
+	private static async autoimport(): Promise<void> {
+		const ignore = [
+			"**/*.entity.js", "**/*.test.js", "**/*.typings.js",
+			"seeder.js", "jest-setup.js"
+		];
+		const files = await glob("./**/*.js", {ignore, cwd: "./dist"});
+		await Promise.all(files.map(file => import(`../${file}`)));
 	}
 }
 

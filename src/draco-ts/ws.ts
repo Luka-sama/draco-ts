@@ -36,6 +36,7 @@ export default class WS {
 	public static emitter = new EventEmitter;
 	public static logger = new Logger(WS);
 	private static app: uWS.TemplatedApp;
+	private static listenSocket: uWS.WebSocket;
 	private static events: {
 		[key: string]: EventHandler;
 	} = {};
@@ -57,6 +58,7 @@ export default class WS {
 			})
 			.listen(port, listenSocket => {
 				if (listenSocket) {
+					WS.listenSocket = listenSocket;
 					WS.logger.info(`Listening to port ${port}.`);
 				} else {
 					WS.logger.error(`Failed to listen to port ${port}.`);
@@ -66,6 +68,10 @@ export default class WS {
 
 	static getApp(): uWS.TemplatedApp {
 		return WS.app;
+	}
+
+	static close() {
+		uWS.us_listen_socket_close(WS.listenSocket);
 	}
 
 	/** Sends a message wrapped in the interface WSData to the given socket */

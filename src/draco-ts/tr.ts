@@ -3,7 +3,6 @@ import fs from "fs";
 import {po} from "gettext-parser";
 import {globSync} from "glob";
 import _ from "lodash";
-import Gettext from "node-gettext";
 import Logger from "./logger.js";
 
 /**
@@ -12,18 +11,33 @@ import Logger from "./logger.js";
 export default class Tr {
 	private static LOCALE_DIR = "./locales";
 	private static logger = new Logger(Tr);
-	private static gt = new Gettext();
+	private static locale = process.env.LOCALE || "en_US";
+	private static translations = new Map<string, Map<string, string>>;
 
 	/** Initializes gettext */
 	public static init(): void {
 		const files = globSync("*.po", {cwd: Tr.LOCALE_DIR, absolute: true});
 		for (const file of files) {
 			const parsed = po.parse(fs.readFileSync(file));
-			Tr.gt.addTranslations(parsed.headers.Language, "messages", parsed);
+			const language = parsed.headers.Language;
+			const translations = parsed.translations[""];
+			const dictionary = new Map<string, string>;
+			for (const msgid in translations) {
+				if (msgid) {
+					dictionary.set(msgid, translations[msgid].msgstr[0]);
+				}
+			}
+			Tr.translations.set(language, dictionary);
 		}
+	}
 
-		Tr.gt.setLocale(process.env.LOCALE || "en_US");
-		Tr.gt.on("error", Tr.logger.error);
+	/** Sets locale to the given if it exists in the dictionary */
+	public static setLocale(locale: string): void {
+		if (!Tr.translations.has(locale)) {
+			Tr.logger.error(`The locale ${locale} was not found.`);
+			return;
+		}
+		Tr.locale = locale;
 	}
 
 	/** Returns translated string.
@@ -53,16 +67,17 @@ export default class Tr {
 			}
 			const placeholderCamelCase = _.camelCase(placeholder);
 			const value = placeholders[placeholderCamelCase];
-			assert(value !== undefined, `No data was provided for the string with msgid ${msgid} and the placeholder ${placeholder}.`);
-			if (typeof value == "number" || typeof value == "boolean") {
+			if (value === undefined) {
+				Tr.logger.error(`No data was provided for the string with msgid ${msgid} and the placeholder ${placeholder}.`);
+			} else if (typeof value == "number" || typeof value == "boolean") {
 				lastNumber = +value;
 			}
 			_.pull(notUsedKeys, placeholderCamelCase);
-			return value.toString();
+			return (value === undefined ? "" : value.toString());
 		};
 
-		const translation = Tr.gt.gettext(msgid);
-		if (msgid == translation) {
+		const translation = Tr.getTranslation(msgid);
+		if (!translation) {
 			return msgid;
 		}
 		const result = translation
@@ -70,10 +85,29 @@ export default class Tr {
 			.replace(/\{(\w+)\}|\((\w*\/\w*)\)/g, replacer)
 			// Remove comments
 			.replace(/\/\*(.*?)\*\//g, "");
-		console.assert(
-			notUsedKeys.length < 1,
-			`Some data was provided for the string with msgid ${msgid} and not used (the placeholders ${notUsedKeys.join(", ")}).`
-		);
+		if (notUsedKeys.length > 0) {
+			Tr.logger.warn(
+				`Some data was provided for the string with msgid ${msgid} and not used (the placeholders ${notUsedKeys.join(", ")}).`
+			);
+		}
 		return result;
+	}
+
+	/**
+	 * Extracts a translation for the given msgid from the dictionary.
+	 * If no translation for this msgid exists, writes error to the log and returns an empty string.
+	 */
+	private static getTranslation(msgid: string): string {
+		const dictionary = Tr.translations.get(Tr.locale);
+		if (!dictionary) {
+			Tr.logger.error(`No translations for locale ${Tr.locale} found.`);
+			return "";
+		}
+		const translation = dictionary.get(msgid);
+		if (translation === undefined) {
+			Tr.logger.error(`No translation for msgid ${msgid} and locale ${Tr.locale} found.`);
+			return "";
+		}
+		return translation;
 	}
 }
