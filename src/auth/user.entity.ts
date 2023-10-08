@@ -5,7 +5,7 @@ import {Sync} from "../draco-ts/sync/sync.decorator.js";
 import {SyncFor} from "../draco-ts/sync/sync.typings.js";
 import {UserData} from "../draco-ts/util/validation.js";
 import {Vector2} from "../draco-ts/util/vector.js";
-import {Receiver} from "../draco-ts/ws.js";
+import WS, {Receiver} from "../draco-ts/ws.js";
 import Item from "../item/item.entity.js";
 import LightsGroup from "../magic/lights-group.entity.js";
 import Location from "../map/location.entity.js";
@@ -61,8 +61,8 @@ export default class User extends Entity implements Receiver {
 		const sockets = Session.getSocketsByUser(this);
 		if (sockets.size > 0) {
 			sockets.forEach(socket => socket.emit(event, data));
-		} else if (process.env.WS_DEBUG == "verbose") {
-			console.log(`User ${this.name} (ID=${this.id}) has no socket for event=${event} with data=${JSON.stringify(data)}`);
+		} else {
+			WS.logger.debug(`User ${this.name} (ID=${this.id}) has no socket for event=${event} with data=${JSON.stringify(data)}`);
 		}
 	}
 

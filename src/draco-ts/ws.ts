@@ -4,6 +4,7 @@ import _ from "lodash";
 import {EventEmitter} from "node:events";
 import uWS from "uWebSockets.js";
 import {EndOfRequest} from "./limit.js";
+import Logger from "./logger.js";
 import {ensure, Is, JSONData, UserData, WrongDataError} from "./util/validation.js";
 
 /** Anything you can emit events to (user, zone etc) */
@@ -33,6 +34,7 @@ interface WSData {
 /** This class starts WebSocket server and handles getting/sending data */
 export default class WS {
 	public static emitter = new EventEmitter;
+	public static logger = new Logger(WS);
 	private static app: uWS.TemplatedApp;
 	private static events: {
 		[key: string]: EventHandler;
@@ -55,9 +57,9 @@ export default class WS {
 			})
 			.listen(port, listenSocket => {
 				if (listenSocket) {
-					console.log(`Listening to port ${port}.`);
+					WS.logger.info(`Listening to port ${port}.`);
 				} else {
-					console.error(`Failed to listen to port ${port}.`);
+					WS.logger.error(`Failed to listen to port ${port}.`);
 				}
 			});
 	}
@@ -69,7 +71,9 @@ export default class WS {
 	/** Sends a message wrapped in the interface WSData to the given socket */
 	static emit(sck: uWS.WebSocket, event: string, data: UserData = {}): void {
 		const json = WS.prepareDataBeforeEmit(event, data);
-		console.assert(sck.send(json, false, true) == 1, `Event ${event} was not emitted to account=${sck.account?.id || 0}`);
+		if (sck.send(json, false, true) != 1) {
+			WS.logger.warn(`Event ${event} was not emitted to account=${sck.account?.id || 0}`);
+		}
 	}
 
 	/** Adds an event to the event list */
@@ -164,7 +168,7 @@ export default class WS {
 	private static async onMessage(sck: uWS.WebSocket, message: ArrayBuffer): Promise<void> {
 		const data = WS.bufferToWSData(message);
 		if (!data) {
-			return console.error("uWS JSON parsing error or false schema");
+			return WS.logger.error("uWS JSON parsing error or false schema");
 		}
 		await WS.route(sck as Socket, data);
 	}
@@ -203,8 +207,8 @@ export default class WS {
 	private static prepareDataBeforeEmit(event: string, data: UserData): string {
 		const dataToSend: WSData = {event, data: WS.convertKeysInData(data, _.snakeCase)};
 		const json = JSON.stringify(dataToSend);
-		if (process.env.WS_DEBUG == "true" && event != "pong") {
-			console.log(`Sends event ${event} with data ${JSON.stringify(data)}`);
+		if (event != "pong") {
+			WS.logger.info(`Sends event ${event} with data ${JSON.stringify(data)}`);
 		}
 		return json;
 	}
@@ -213,10 +217,11 @@ export default class WS {
 	private static async route(sck: Socket, json: WSData): Promise<void> {
 		const handleEvent = WS.events[json.event];
 		if (!handleEvent) {
-			return console.error(`Unknown event ${json.event} with data ${JSON.stringify(json.data)} from account=${sck.account?.id || 0}`);
+			WS.logger.error(`Unknown event ${json.event} with data ${JSON.stringify(json.data)} from account=${sck.account?.id || 0}`);
+			return;
 		}
-		if (process.env.WS_DEBUG == "true" && json.event != "ping") {
-			console.log(`Gets event ${json.event} with data ${JSON.stringify(json.data)}`);
+		if (json.event != "ping") {
+			WS.logger.info(`Gets event ${json.event} with data ${JSON.stringify(json.data)}`);
 		}
 
 		const raw = WS.convertKeysInData(json.data, _.camelCase);
@@ -224,9 +229,9 @@ export default class WS {
 		try {
 			await handleEvent({sck, raw} as GuestArgs);
 		} catch(e) {
-			if (!(e instanceof EndOfRequest) && (e as any)?.code != "ABORT_ERR") {
+			if (!(e instanceof Error) || !["AbortError", "EndOfRequest"].includes(e.name)) {
 				const isWrongData = (e instanceof WrongDataError || e instanceof assert.AssertionError);
-				console.error(e);
+				WS.logger.error(e);
 				WS.emitter.emit("error", sck, isWrongData);
 			}
 		}

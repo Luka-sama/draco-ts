@@ -4,12 +4,14 @@ import {po} from "gettext-parser";
 import {globSync} from "glob";
 import _ from "lodash";
 import Gettext from "node-gettext";
+import Logger from "./logger.js";
 
 /**
  * Class for string localization.
  * It is named the same as the function in Godot, which is an abbreviation of "translation". */
 export default class Tr {
 	private static LOCALE_DIR = "./locales";
+	private static logger = new Logger(Tr);
 	private static gt = new Gettext();
 
 	/** Initializes gettext */
@@ -21,7 +23,7 @@ export default class Tr {
 		}
 
 		Tr.gt.setLocale(process.env.LOCALE || "en_US");
-		Tr.gt.on("error", console.error);
+		Tr.gt.on("error", Tr.logger.error);
 	}
 
 	/** Returns translated string.

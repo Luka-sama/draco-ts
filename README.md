@@ -19,12 +19,14 @@ DB_USER=postgres
 DB_PASSWORD=YOUR_PASSWORD_HERE
 DB_DATABASE=enveltia
 WS_PORT=9001
-WS_DEBUG=false
 LOCALE=en_US
+LOG_DESTINATION=console
+DEFAULT_LOG_LEVEL=warn
 ```
-You can change the connection data, the debug options or the locale.
+You can change the connection data, the logger options or the locale.
 
-WS_DEBUG can also be `verbose`. In this case, the events for unconnected users are also logged.
+`LOG_DESTINATION` can be `console` or `file`. You can also specify the default log level (`debug`, `info`, `warn` or `error`) or the log level for a specific component, e.g. `WS_LOG_LEVEL=info` will log all communication between the server and the client.
+If you specify `WS_LOG_LEVEL=debug`, the events for unconnected users will also be logged.
 * Create database schema and seed database with `node dist/seeder`
 
 PhpStorm setup

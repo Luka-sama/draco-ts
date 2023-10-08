@@ -1,11 +1,10 @@
-/client/
-/coverage/
-/dist/
-/docs/
 .idea/dataSources/
 .idea/dataSources.xml
 .idea/dataSources.local.xml
-/mikroorm-cache/
+/coverage/
+/dist/
+/docs/
+/logs/*.txt
 /node_modules/
 /stryker-report/
 /stryker-tmp/

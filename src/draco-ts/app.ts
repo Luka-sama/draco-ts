@@ -1,7 +1,7 @@
-import "dotenv/config";
 import {glob} from "glob";
 import Cache from "./cache/cache.js";
 import GameLoop from "./game-loop.js";
+import Logger, {LogLevel} from "./logger.js";
 import ORM from "./orm/orm.js";
 import Synchronizer from "./sync/sync.js";
 import Tr from "./tr.js";
@@ -9,16 +9,20 @@ import WS from "./ws.js";
 
 /** App class */
 export default class App {
+	private static logger = new Logger(App);
 	private static started = false;
 
-	/** Initializes all core components (ORM, WS, GameLoop etc) */
+	/** Initializes all core components (ORM, WS, GameLoop, etc.) */
 	static async init(): Promise<void> {
 		if (App.started) {
 			return;
 		}
 		App.started = true;
+		App.logger.setLevel(LogLevel.Info);
+		Error.stackTraceLimit = 100;
+		process.on("uncaughtException", App.logger.error);
+		process.on("unhandledRejection", App.logger.error);
 
-		App.catchExceptions();
 		Tr.init();
 		ORM.init();
 		ORM.enableSync();
@@ -26,6 +30,8 @@ export default class App {
 		WS.init();
 		App.addGlobalTasks();
 		await App.autoimport();
+
+		App.logger.info("Started.");
 	}
 
 	/** Adds all core global tasks from different modules */
@@ -34,6 +40,7 @@ export default class App {
 		GameLoop.addTask(Synchronizer.synchronize, Synchronizer.FREQUENCY);
 		GameLoop.addTask(Synchronizer.syncNewZones);
 		GameLoop.addTask(ORM.flush, ORM.FLUSH_FREQUENCY);
+		GameLoop.addTask(Logger.flush, Logger.FLUSH_FREQUENCY);
 	}
 
 	/** Auto-import to make @OnlyLogged() and other decorators to work without explicit import */
@@ -44,18 +51,5 @@ export default class App {
 		];
 		const files = await glob("./**/*.js", {ignore, cwd: "./dist"});
 		await Promise.all(files.map(file => import(`../${file}`)));
-	}
-
-	/** Catches uncaught exceptions and unhandled rejections */
-	private static catchExceptions(): void {
-		Error.stackTraceLimit = 100;
-
-		process.on("uncaughtException", error => {
-			console.error(`Uncaught exception [${new Date()}]:\r\n${error.stack}`);
-		});
-
-		process.on("unhandledRejection", (error: Error) => {
-			console.error(`Unhandled rejection [${new Date()}]:\r\n${error?.stack ? error.stack : error}`);
-		});
 	}
 }

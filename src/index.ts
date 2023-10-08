@@ -1,3 +1,4 @@
+import "dotenv/config";
 import Session from "./auth/session.js";
 import Chat from "./chat/chat.js";
 import App from "./draco-ts/app.js";
@@ -11,6 +12,7 @@ class Index {
 		await App.init();
 		Session.init();
 		//Deploy.init();
+		Index.addGlobalTasks();
 	}
 
 	static addGlobalTasks() {
