@@ -124,7 +124,7 @@ export default class Magic {
 		if (!lightsGroup.targetMage) {
 			console.log("test");
 		}
-		const distanceToMage = lightsGroup.position.distanceSquaredTo(lightsGroup.targetMage.position);
+		const distanceToMage = lightsGroup.position.distanceSquaredTo(lightsGroup.targetMage.position, true);
 		const strictMinDistance = Math.pow(Magic.LIGHTS_STRICT_MIN_DISTANCE_TO_TARGET, 2);
 		const softMinDistance = Math.pow(Magic.LIGHTS_SOFT_MIN_DISTANCE_TO_TARGET, 2);
 		let farAway = false;
