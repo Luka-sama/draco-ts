@@ -11,10 +11,7 @@ export interface IVector2 {
 
 /** Vector2 class. Usually used to represent positions */
 export class Vector2 {
-	readonly x: number = 0;
-	readonly y: number = 0;
-
-	constructor(x: number, y: number) {
+	public constructor(public readonly x: number, public readonly y: number) {
 		this.x = x;
 		this.y = y;
 	}
@@ -70,7 +67,7 @@ export class Vector2 {
 	distanceSquaredTo(v: Vector2, staggeredMap = true): number {
 		const diffX = v.x - this.x;
 		const diffY = (v.y - this.y) / (staggeredMap ? 2 : 1);
-		return Math.pow(diffX, 2) + Math.pow(diffY, 2);
+		return diffX ** 2 + diffY ** 2;
 	}
 
 	/** Returns distance between two vectors */

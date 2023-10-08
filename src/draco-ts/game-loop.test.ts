@@ -24,7 +24,7 @@ test("single task with limited execution count", () => {
 test("slow and fast task in parallel", async () => {
 	const taskDuration = 1000;
 	let slowTaskCounter = 0, fastTaskCounter = 0, slowTaskInstanceCount = 0;
-	const slowTask = GameLoop.addTask(async () => {
+	const slowTask = GameLoop.addTask(() => {
 		slowTaskInstanceCount++;
 		return new Promise(resolve => {
 			setTimeout(() => {

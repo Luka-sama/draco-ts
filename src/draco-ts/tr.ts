@@ -58,7 +58,7 @@ export default class Tr {
 	public static get(msgid: string, placeholders?: {[key: string]: number | boolean | string}): string {
 		const notUsedKeys = Object.keys(placeholders || {});
 		let lastNumber = 0;
-		const replacer = (substring: string, placeholder: string, wordForms: string) => {
+		const replacer = (substring: string, placeholder: string, wordForms: string): string => {
 			assert(placeholders, `No placeholder data was provided for the string with msgid ${msgid}.`);
 
 			if (wordForms) {

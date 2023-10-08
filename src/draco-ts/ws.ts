@@ -3,7 +3,6 @@ import {Buffer} from "buffer";
 import _ from "lodash";
 import {EventEmitter} from "node:events";
 import uWS from "uWebSockets.js";
-import {EndOfRequest} from "./limit.js";
 import Logger from "./logger.js";
 import {ensure, Is, JSONData, UserData, WrongDataError} from "./util/validation.js";
 

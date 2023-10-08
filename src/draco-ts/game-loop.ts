@@ -8,7 +8,7 @@ export interface Task {
 	taskFunction: TaskFunction,
 	frequency: number,
 	lastExecution: number,
-	remainingExecutions?: number,
+	remainingExecutions: number,
 }
 
 /**
@@ -43,13 +43,13 @@ export default class GameLoop {
 	 * If `frequency` is not specified, the task is executed in each game loop iteration.
 	 * If `executionCount` is not specified, the task is executed infinitely. With `executionCount` 1 the task is a timeout.
 	 */
-	public static addTask(taskFunction: TaskFunction, frequency = 0, executionCount?: number): Task {
+	public static addTask(taskFunction: TaskFunction, frequency = 0, executionCount = Infinity): Task {
 		const task: Task = {taskFunction, frequency, lastExecution: Date.now(), remainingExecutions: executionCount};
 		GameLoop.tasks.push(task);
 		const name = taskFunction.name || "An anonymous function";
 		GameLoop.logger.info(
 			`${name} was added to tasks with frequency ${frequency}` +
-			(executionCount !== undefined ? ` and execution count ${executionCount}.` : ".")
+			(executionCount != Infinity ? ` and execution count ${executionCount}.` : ".")
 		);
 		return task;
 	}
@@ -73,6 +73,7 @@ export default class GameLoop {
 	}
 
 	/** Executes a task during a loop iteration */
+	/* eslint-disable require-await */
 	private static async execTask(task: Task): Promise<void> {
 		const now = Date.now();
 		const delta = now - task.lastExecution;
@@ -98,13 +99,10 @@ export default class GameLoop {
 	/** The function that is executed at the end of each task */
 	private static onTaskEnd(task: Task, now: number): void {
 		task.lastExecution = now;
-		GameLoop.logger.debug(`${task.taskFunction.name || "An anonymous function"} ends executing.`);
-
-		if (task.remainingExecutions !== undefined) {
-			task.remainingExecutions--;
-			if (task.remainingExecutions < 1) {
-				GameLoop.removeTask(task);
-			}
+		task.remainingExecutions--;
+		if (task.remainingExecutions < 1) {
+			GameLoop.removeTask(task);
 		}
+		GameLoop.logger.debug(`${task.taskFunction.name || "An anonymous function"} ends executing.`);
 	}
 }
