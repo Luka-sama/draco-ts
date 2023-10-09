@@ -1,5 +1,7 @@
 import assert from "assert/strict";
 import _ from "lodash";
+import util from "util";
+import Logger, {NotLoggableError} from "../logger.js";
 import {Vec2, Vec3, Vector2, Vector3} from "./vector.js";
 
 /** Return type of JSON.parse() without arrays and objects */
@@ -13,11 +15,14 @@ export type JSONDataExtended = JSONPrimitives | JSONDataExtended[] | JSONObjectE
 /** The same as {@link JSONObject} extended with vectors */
 export type JSONObjectExtended = {[key: string]: JSONDataExtended | undefined} | Vector2 | Vector3;
 
-/** Function {@link ensure} throws this error if the data is wrong (does not correspond to the given template) */
-export class WrongDataError extends Error {
+/** Function {@link ensure} throws this error if the data is wrong, i.e. does not correspond to the given template */
+export class WrongDataError extends NotLoggableError {
+	public static logger = new Logger("Validation");
+	public name = "WrongDataError";
+
 	public constructor(message: string) {
 		super(message);
-		this.name = "WrongDataError";
+		WrongDataError.logger.error(util.format(this));
 	}
 }
 
@@ -94,7 +99,7 @@ export function ensure<T extends JSONDataExtended>(
 		(rawType == "object" && shouldBeType == "vector2") || (rawType == "object" && shouldBeType == "vector3")
 	);
 	if (!canBeConvertedIn) {
-		throw new WrongDataError(`Wrong type (type ${rawType}, should be ${shouldBeType}).`);
+		throw new WrongDataError(`Wrong type (${rawType} instead of ${shouldBeType}).`);
 	} else if (!_.isObject(shouldBe)) {
 		return raw as T;
 	} else if (shouldBeType == "non-plain") {

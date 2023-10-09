@@ -1,12 +1,16 @@
 import assert from "assert/strict";
 import fs from "fs/promises";
 import _ from "lodash";
-import * as path from "path";
-import * as util from "util";
+import path from "path";
+import util from "util";
 import MapUtil from "./util/map-util.js";
 
 export enum LogDestination {Console, File}
 export enum LogLevel {Debug, Info, Warn, Error, Silent}
+
+export class NotLoggableError extends Error {
+	public name = "NotLoggableError";
+}
 
 /**
  * Logger class. It can be used to log any info or errors to the console or the files.
@@ -116,13 +120,13 @@ export default class Logger {
 	 * (e.g. `debug` will not be logged in the logger with level `warn`).
 	 * It logs also the datetime, the component name and the level of the message.
 	 *
-	 * `content` can be of any type. If it is an error of type AbortError or EndOfRequest, it will not be logged.
+	 * `content` can be of any type. If it is an error that extends NotLoggableError, it will not be logged.
 	 *
 	 * If {@link Logger.LOG_DESTINATION} is set to {@link LogDestination.Console}, it will write directly to the console,
 	 * otherwise the entries will be collected and periodically flushed to the files.
 	 */
 	public log(level: Exclude<LogLevel, LogLevel.Silent>, content: unknown): void {
-		if (level < this.level || content instanceof Error && ["AbortError", "EndOfRequest"].includes(content.name)) {
+		if (level < this.level || content instanceof NotLoggableError) {
 			return;
 		}
 

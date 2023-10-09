@@ -1,4 +1,5 @@
 import {setTimeout} from "timers/promises";
+import {NotLoggableError} from "./logger.js";
 import MapUtil from "./util/map-util.js";
 import {Receiver} from "./ws.js";
 
@@ -16,7 +17,7 @@ export type LastTimeMap = WeakMap<Receiver, number>;
 export type Timers = WeakMap<Receiver, AbortController>;
 
 /** This error can be thrown if the request should be ended. This will be handled not as en error, but as a normal end of execution */
-export class EndOfRequest extends Error {
+export class EndOfRequest extends NotLoggableError {
 	constructor() {
 		super();
 		this.name = "EndOfRequest";
