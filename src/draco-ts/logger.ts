@@ -21,8 +21,10 @@ export enum LogLevel {Debug, Info, Warn, Error, Silent}
  * Then you can call `YourClassName.logger.info("some info");`
  * or use it somewhere like `something.on("error", YourClassName.logger.error);`.
  *
- * The logger will read environment variable `LOG_DESTINATION` to determine whether it should write to the console or the files.
- * In the second case, a separate file for each component is created.
+ * The logger will read environment variable `LOG_DESTINATION` (possible values are `console` or `file`)
+ * to determine whether it should write to the console or the files. In the second case, a separate file for each component is created.
+ * You can specify their location with `LOG_DIR=logs/`.
+ *
  * You can also control the log levels with environment variables. An example how and what you can control in .env-file:
  * ```
  * LOG_DESTINATION=file
@@ -31,7 +33,11 @@ export enum LogLevel {Debug, Info, Warn, Error, Silent}
  * YOUR_CLASS_LOG_LEVEL=debug
  * ```
  *
- * The possible values are `console` or `file` for `LOG_DESTINATION` and `debug`, `info`, `warn`, `error` or `silent` for log levels.
+ * The possible values for log levels are `debug`, `info`, `warn`, `error` or `silent`.
+ * You can specify the default log level or the log level for a specific component (see also {@link Logger.constructor}),
+ * e.g. `WS_LOG_LEVEL=info` will log all communication between the server and the client.
+ * If you specify `WS_LOG_LEVEL=debug`, the events for unconnected users will also be logged.
+ * App log level is by default `info`, unless you change it with `APP_LOG_LEVEL`.
  */
 export default class Logger {
 	public static readonly FLUSH_FREQUENCY = 100;
@@ -63,16 +69,21 @@ export default class Logger {
 	 * Creates a logger for the given component.
 	 * The component can be a string or a function (incl. classes), in the second case the name of the function will be used.
 	 *
-	 * The constructor will also check process environment variables to determine the logger level.
+	 * The logger will use the first specified log level, based on this order:
+	 * - Environment variable THIS_COMPONENT_LOG_LEVEL. Use {@link Logger.setLevel}, if you want to override this
+	 * - Second constructor argument
+	 * - Environment variable DEFAULT_LOG_LEVEL
+	 * - Log level `warn`
 	 */
 	// eslint-disable-next-line @typescript-eslint/ban-types
 	public constructor(component: string | Function, level?: LogLevel) {
 		this.component = (typeof component == "string" ? component : component.name);
 		assert(this.component.length > 0);
 
-		const defaultLogLevel = (process.env.DEFAULT_LOG_LEVEL || "");
-		const levelStr = (process.env[_.snakeCase(this.component).toUpperCase() + "_LOG_LEVEL"] || defaultLogLevel).toLowerCase();
-		if (level) {
+		const defaultLogLevel = process.env.DEFAULT_LOG_LEVEL;
+		const customLevelStr = process.env[_.snakeCase(this.component).toUpperCase() + "_LOG_LEVEL"];
+		const levelStr = (customLevelStr || defaultLogLevel || "").toLowerCase();
+		if (level && !customLevelStr) {
 			this.level = level;
 		} else if (levelStr == "debug") {
 			this.level = LogLevel.Debug;
