@@ -15,7 +15,7 @@ export type JSONObjectExtended = {[key: string]: JSONDataExtended | undefined} |
 
 /** Function {@link ensure} throws this error if the data is wrong (does not correspond to the given template) */
 export class WrongDataError extends Error {
-	constructor(message: string) {
+	public constructor(message: string) {
 		super(message);
 		this.name = "WrongDataError";
 	}
@@ -98,7 +98,7 @@ export function ensure<T extends JSONDataExtended>(
 	} else if (!_.isObject(shouldBe)) {
 		return raw as T;
 	} else if (shouldBeType == "non-plain") {
-		throw new WrongDataError(`Wrong template (should be non-plain object).`);
+		throw new WrongDataError("Wrong template (non-plain object).");
 	}
 
 	// Vectors

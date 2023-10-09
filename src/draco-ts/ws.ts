@@ -69,7 +69,7 @@ export default class WS {
 		return WS.app;
 	}
 
-	static close() {
+	static close(): void {
 		uWS.us_listen_socket_close(WS.listenSocket);
 	}
 

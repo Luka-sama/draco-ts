@@ -33,7 +33,7 @@ test("getSet", () => {
 });
 
 test("getWeakMap", () => {
-	const map = new Map<string, WeakMap<Object, number>>;
+	const map = new Map<string, WeakMap<object, number>>;
 	const weakMap = MapUtil.getWeakMap(map, "key");
 	expect(weakMap).toEqual(new WeakMap);
 	weakMap.set(object, 123);
@@ -41,7 +41,7 @@ test("getWeakMap", () => {
 });
 
 test("getWeakSet", () => {
-	const map = new Map<string, WeakSet<Object>>;
+	const map = new Map<string, WeakSet<object>>;
 	const set = MapUtil.getWeakSet(map, "key");
 	expect(set).toEqual(new WeakSet);
 	expect(set.has(object)).toBeFalsy();

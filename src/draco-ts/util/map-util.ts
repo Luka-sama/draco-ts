@@ -11,8 +11,8 @@ export default class MapUtil {
 	}
 
 	/** Shortcut for `MapUtil.get(map, key, [])`. See {@link MapUtil.get} for details */
-	public static getArray<K, V extends Array<unknown>>(map: Map<K, V>, key: K): V {
-		return MapUtil.get(map, key, new Array as V);
+	public static getArray<K, V extends unknown[]>(map: Map<K, V>, key: K): V {
+		return MapUtil.get(map, key, [] as unknown as V);
 	}
 
 	/** Shortcut for `MapUtil.get(map, key, new Map)`. See {@link MapUtil.get} for details */
@@ -21,17 +21,17 @@ export default class MapUtil {
 	}
 
 	/** Shortcut for `MapUtil.get(map, key, new Set)`. See {@link MapUtil.get} for details */
-	public static getSet<K, T, V extends Set<unknown>>(map: Map<K, V>, key: K): V {
+	public static getSet<K, V extends Set<unknown>>(map: Map<K, V>, key: K): V {
 		return MapUtil.get(map, key, new Set as V);
 	}
 
 	/** Shortcut for `MapUtil.get(map, key, new WeakMap)`. See {@link MapUtil.get} for details */
-	public static getWeakMap<K, V extends WeakMap<Object, unknown>>(map: Map<K, V>, key: K): V {
+	public static getWeakMap<K, V extends WeakMap<object, unknown>>(map: Map<K, V>, key: K): V {
 		return MapUtil.get(map, key, new WeakMap as V);
 	}
 
 	/** Shortcut for `MapUtil.get(map, key, new WeakSet)`. See {@link MapUtil.get} for details */
-	public static getWeakSet<K, V extends WeakSet<Object>>(map: Map<K, V>, key: K): V {
+	public static getWeakSet<K, V extends WeakSet<object>>(map: Map<K, V>, key: K): V {
 		return MapUtil.get(map, key, new WeakSet as V);
 	}
 }
