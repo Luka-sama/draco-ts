@@ -8,7 +8,7 @@ import Entity from "../draco-ts/orm/entity.js";
 import ORM from "../draco-ts/orm/orm.js";
 import {EntityClass, IEntity} from "../draco-ts/orm/orm.typings.js";
 import {UserContainer} from "../draco-ts/sync/sync.typings.js";
-import {UserData} from "../draco-ts/util/validation.js";
+import {JSONObject} from "../draco-ts/util/validation.js";
 import {Vec2, Vector2} from "../draco-ts/util/vector.js";
 import {Receiver} from "../draco-ts/ws.js";
 import Item from "../item/item.entity.js";
@@ -105,7 +105,7 @@ export default class Subzone extends WeakCachedObject implements Receiver, UserC
 		return this.zonePosition;
 	}
 
-	emit(event: string, data: UserData = {}): void {
+	emit(event: string, data: JSONObject = {}): void {
 		for (const user of this.getUsers()) {
 			user.emit(event, data);
 		}

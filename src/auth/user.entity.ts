@@ -3,7 +3,7 @@ import Entity from "../draco-ts/orm/entity.js";
 import {Property} from "../draco-ts/orm/orm.decorator.js";
 import {Sync} from "../draco-ts/sync/sync.decorator.js";
 import {SyncFor} from "../draco-ts/sync/sync.typings.js";
-import {UserData} from "../draco-ts/util/validation.js";
+import {JSONObject} from "../draco-ts/util/validation.js";
 import {Vector2} from "../draco-ts/util/vector.js";
 import WS, {Receiver} from "../draco-ts/ws.js";
 import Item from "../item/item.entity.js";
@@ -57,7 +57,7 @@ export default class User extends Entity implements Receiver {
 		return this.getInstance();
 	}
 
-	emit(event: string, data?: UserData): void {
+	emit(event: string, data?: JSONObject): void {
 		const sockets = Session.getSocketsByUser(this);
 		if (sockets.size > 0) {
 			sockets.forEach(socket => socket.emit(event, data));

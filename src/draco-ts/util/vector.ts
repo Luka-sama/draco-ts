@@ -25,10 +25,10 @@ export interface IVector3 {
 
 /** Abstract basic class that can represent a vector with arbitrary number of components */
 export abstract class Vector {
-	private readonly components: number[];
+	readonly #components: number[]; // # (instead of TypeScript keyword "private") is used to hide this field when serializing a vector
 
 	protected constructor(...components: number[]) {
-		this.components = components;
+		this.#components = components;
 	}
 
 	/** Adds a vector to this vector */
@@ -79,9 +79,9 @@ export abstract class Vector {
 
 	/** Returns `true` if this vector and a given vector are equal */
 	public equals<T extends Vector>(this: T, v: T): boolean {
-		assert(this.components.length == v.components.length);
-		return this.components.every((component, index) => {
-			return Math.abs(component - v.components[index]) < 1e-5;
+		assert(this.#components.length == v.#components.length);
+		return this.#components.every((component, index) => {
+			return Math.abs(component - v.#components[index]) < 1e-5;
 		});
 	}
 
@@ -92,9 +92,9 @@ export abstract class Vector {
 
 	/** Returns squared distance between two vectors. If `staggeredMap` is true, divides the distance in Y-component by 2 */
 	public distanceSquaredTo<T extends Vector>(this: T, v: T, staggeredMap = false): number {
-		assert(this.components.length == v.components.length);
-		return this.components.reduce((accumulator, component, index) => {
-			return accumulator + ((component - v.components[index]) / (index == 1 && staggeredMap ? 2 : 1)) ** 2;
+		assert(this.#components.length == v.#components.length);
+		return this.#components.reduce((accumulator, component, index) => {
+			return accumulator + ((component - v.#components[index]) / (index == 1 && staggeredMap ? 2 : 1)) ** 2;
 		}, 0);
 	}
 
@@ -105,29 +105,29 @@ export abstract class Vector {
 
 	/** Returns this vector with the Y coordinate multiplied by 2 (adapted for staggered maps) */
 	public toStaggered<T extends Vector>(this: T): T {
-		return this.new(this.components.map((component, index) => {
+		return this.new(this.#components.map((component, index) => {
 			return (index == 1 ? component * 2 : component);
 		}));
 	}
 
 	/** Applies the given function to all components of this vector */
 	private applyTo1<T extends Vector>(this: T, func: (a: number) => number): T {
-		return this.new(this.components.map(component => {
+		return this.new(this.#components.map(component => {
 			return func(component);
 		}));
 	}
 
 	/** Applies the given function to all components of this vector and the given vector */
 	private applyTo2<T extends Vector>(this: T, v: T, func: (a: number, b: number) => number): T {
-		assert(this.components.length == v.components.length);
-		return this.new(this.components.map((component, index) => {
-			return func(component, v.components[index]);
+		assert(this.#components.length == v.#components.length);
+		return this.new(this.#components.map((component, index) => {
+			return func(component, v.#components[index]);
 		}));
 	}
 
 	/** Creates a new vector using the child constructor */
 	private new<T extends Vector>(this: T, components: number[]): T {
-		assert(this.components.length == components.length);
+		assert(this.#components.length == components.length);
 		return new (this.constructor as any)(...components);
 	}
 }

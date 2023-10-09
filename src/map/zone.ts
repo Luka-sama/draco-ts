@@ -6,7 +6,7 @@ import CachedObject from "../draco-ts/cache/cached-object.js";
 import Entity from "../draco-ts/orm/entity.js";
 import {IEntity} from "../draco-ts/orm/orm.typings.js";
 import SetUtil from "../draco-ts/util/set-util.js";
-import {UserData} from "../draco-ts/util/validation.js";
+import {JSONObject} from "../draco-ts/util/validation.js";
 import {Vec2, Vector2} from "../draco-ts/util/vector.js";
 import {Receiver} from "../draco-ts/ws.js";
 import Location from "./location.entity.js";
@@ -275,7 +275,7 @@ export default class Zone extends CachedObject implements Receiver {
 		return (this.centralSubzone ? this.centralSubzone : new Subzone(this.location, this.zonePosition));
 	}
 
-	emit(event: string, data: UserData = {}): void {
+	emit(event: string, data: JSONObject = {}): void {
 		for (const subzone of this.getSubzones()) {
 			subzone.emit(event, data);
 		}

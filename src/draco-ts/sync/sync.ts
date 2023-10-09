@@ -13,7 +13,7 @@ import ORM from "../orm/orm.js";
 import {ChangeSet, ChangeType, EntityClass, EntityData} from "../orm/orm.typings.js";
 import MapUtil from "../util/map-util.js";
 import SetUtil from "../util/set-util.js";
-import {JSONDataExtended, UserData} from "../util/validation.js";
+import {JSONDataExtended, JSONObject} from "../util/validation.js";
 import {Vec2, Vector2} from "../util/vector.js";
 import WS, {Receiver} from "../ws.js";
 import {toSync} from "./sync.decorator.js";
@@ -189,7 +189,7 @@ export default class Synchronizer {
 			return syncMap;
 		}
 
-		const collectedData = new Map<SyncForKey, UserData>;
+		const collectedData = new Map<SyncForKey, JSONObject>;
 		for (const property of propertiesToSync) {
 			for (const toSyncProperty of toSyncModel.get(property)!) {
 				const syncFor = toSyncProperty.for;
@@ -253,11 +253,11 @@ export default class Synchronizer {
 	}
 
 	/**
-	 * Converts an entity (with the given sync model) to a user data object that can be sent to the user (see {@link UserData}).
+	 * Converts an entity (with the given sync model) to a user data object that can be sent to the user (see {@link JSONObject}).
 	 * Only those properties will be used whose syncFor is equal to the given syncFor
 	 */
-	private static convertEntityToUserData(toSyncModel: SyncModel, entity: Entity, syncFor: SyncForCustom): UserData {
-		const convertedEntity: UserData = {id: entity.id};
+	private static convertEntityToUserData(toSyncModel: SyncModel, entity: Entity, syncFor: SyncForCustom): JSONObject {
+		const convertedEntity: JSONObject = {id: entity.id};
 		for (const [property, toSyncProperties] of toSyncModel) {
 			for (const toSyncProperty of toSyncProperties) {
 				if (_.isEqual(toSyncProperty.for, syncFor)) {
@@ -409,7 +409,7 @@ export default class Synchronizer {
 	}
 
 	/** Writes a property to an entity object that will be sent to the user */
-	private static writePropertyToData(toSyncProperty: SyncProperty, entity: Entity, convertedEntity: UserData, property: string): void {
+	private static writePropertyToData(toSyncProperty: SyncProperty, entity: Entity, convertedEntity: JSONObject, property: string): void {
 		let value = entity[property];
 		if (value === undefined || value === null) {
 			if ("default" in toSyncProperty) {

@@ -1,15 +1,19 @@
-import {Vec2, Vector2} from "./vector.js";
+import assert from "assert/strict";
+import _ from "lodash";
+import {Vec2, Vec3, Vector2, Vector3} from "./vector.js";
 
-/** This is the return type of JSON.parse() */
-export type JSONData = string | number | boolean | null | JSONData[] | UserData;
-/** This is the type that can be transformed to JSON */
-export type JSONDataExtended = string | number | boolean | null | Vector2 | JSONDataExtended[] | UserData;
-/** This is the type for the data that we can get from a user or send to a user */
-export type UserData = {[key: string]: JSONData | undefined};
-/** This is the type for the data that we can get from a user after we transform this data with {@link ensure} */
-export type UserDataExtended = {[key: string]: JSONData | undefined | Vector2 | Vector2[]} | Vector2;
+/** Return type of JSON.parse() without arrays and objects */
+export type JSONPrimitives = string | number | boolean | null;
+/** Type of an object that can return JSON.parse() */
+export type JSONObject = {[key: string]: JSONData | undefined};
+/** Return type of JSON.parse() */
+export type JSONData = JSONPrimitives | JSONData[] | JSONObject;
+/** The same as {@link JSONData} extended with vectors */
+export type JSONDataExtended = JSONPrimitives | JSONDataExtended[] | JSONObjectExtended;
+/** The same as {@link JSONObject} extended with vectors */
+export type JSONObjectExtended = {[key: string]: JSONDataExtended | undefined} | Vector2 | Vector3;
 
-/** Function {@link ensure} throws this error if user sent wrong data */
+/** Function {@link ensure} throws this error if the data is wrong (does not correspond to the given template) */
 export class WrongDataError extends Error {
 	constructor(message: string) {
 		super(message);
@@ -20,83 +24,121 @@ export class WrongDataError extends Error {
 /** Provides types for {@link ensure} */
 export const Is = {
 	string: "",
-	double: 0.5,
+	float: 0.5,
 	int: 0,
 	bool: true,
 	null: null,
-	vec2f: Vec2(0.5, 0.5),
+	vec2f: Vec2(0.5),
 	vec2i: Vec2(),
-	array<T>(values: T): T[] {
-		return [values] as T[];
-	}
+	vec3f: Vec3(0.5),
+	vec3i: Vec3(),
+	array: <T extends JSONDataExtended>(values: T): T[] => [values],
 };
 
 /** Provides types for {@link ensure} (for arrays) */
 export const Of = {
 	strings: Is.string,
-	doubles: Is.double,
+	floats: Is.float,
 	ints: Is.int,
 	bools: Is.bool,
 	nulls: Is.null,
 	vec2fs: Is.vec2f,
 	vec2is: Is.vec2i,
-	arrays: Is.array
+	vec3fs: Is.vec3f,
+	vec3is: Is.vec3i,
+	arrays: Is.array,
 };
 
+function getType(value: unknown): (
+	"undefined" | "object" | "boolean" | "number" | "string" | "function" | "symbol" | "bigint" |
+	"vector2" | "vector3" | "array" | "null" | "int" | "float" | "non-plain"
+	) {
+	if (value instanceof Vector2) {
+		return "vector2";
+	} else if (value instanceof Vector3) {
+		return "vector3";
+	} else if (value instanceof Array) {
+		return "array";
+	} else if (value === null) {
+		return "null";
+	} else if (typeof value == "number" && Number.isInteger(value)) {
+		return "int";
+	} else if (typeof value == "number") {
+		return "float";
+	} else if (typeof value == "object" && !_.isPlainObject(value)) {
+		return "non-plain";
+	}
+	return typeof value;
+}
+
 /**
- * Checks if user sent correct data
+ * Checks if the data correspond to the given template. The main purpose is to check if the user sent the correct data.
+ * So you can both prevent the cheating and get strict type checking.
  *
- * @param raw Raw user data
+ * Example of using:
+ * ```const {direction, run, someArray} = ensure(raw, {direction: Is.vec2i, run: Is.bool, someArray: Is.array(Of.ints)});```
+ *
+ * @param raw Raw data that should be checked
  * @param shouldBe Template to which the data should correspond
- * @param allowUnknownKeys Are unknown keys allowed?
+ * @param allowUnknownKeys Are keys allowed that are not present in `shouldBe`?
+ * @param clone Should the objects and the arrays be cloned? If `false`, the original data can be modified to use vectors
  */
-export function ensure<T extends UserDataExtended>(raw: UserDataExtended, shouldBe: T, allowUnknownKeys = false): T {
+export function ensure<T extends JSONDataExtended>(
+	raw: JSONDataExtended, shouldBe: T, allowUnknownKeys = false, clone = true
+): T {
+	// Primitives
+	const rawType = getType(raw);
+	const shouldBeType = getType(shouldBe);
+	const canBeConvertedIn = (
+		rawType == shouldBeType || (rawType == "int" && shouldBeType == "float") ||
+		(rawType == "object" && shouldBeType == "vector2") || (rawType == "object" && shouldBeType == "vector3")
+	);
+	if (!canBeConvertedIn) {
+		throw new WrongDataError(`Wrong type (type ${rawType}, should be ${shouldBeType}).`);
+	} else if (!_.isObject(shouldBe)) {
+		return raw as T;
+	} else if (shouldBeType == "non-plain") {
+		throw new WrongDataError(`Wrong template (should be non-plain object).`);
+	}
+
+	// Vectors
+	if (shouldBe instanceof Vector2) {
+		return (raw instanceof Vector2 ? raw : Vec2(ensure(raw, {x: shouldBe.x, y: shouldBe.y}))) as T;
+	} else if (shouldBe instanceof Vector3) {
+		return (raw instanceof Vector3 ? raw : Vec3(ensure(raw, {x: shouldBe.x, y: shouldBe.y, z: shouldBe.z}))) as T;
+	}
+
+	// Arrays
+	if (shouldBe instanceof Array) {
+		assert(raw instanceof Array);
+		if (!clone) {
+			raw.forEach((el, index) => {
+				raw[index] = ensure(el, shouldBe[0], allowUnknownKeys, clone);
+			});
+			return raw as T;
+		}
+		return raw.map(el => ensure(el, shouldBe[0], allowUnknownKeys, clone)) as T;
+	}
+
+	// Objects
 	if (!allowUnknownKeys) {
-		for (const key in raw) {
-			if (!(key in shouldBe)) {
-				throw new WrongDataError(`unknown key ${key}`);
-			}
+		const unknownKeys = Object.keys(raw || {}).filter(key => !(key in shouldBe));
+		if (unknownKeys.length > 0) {
+			throw new WrongDataError(`Unknown key${unknownKeys.length > 1 ? "s" : ""} ${unknownKeys.join(", ")}.`);
 		}
 	}
 
-	const result = raw as UserDataExtended;
-	if (shouldBe instanceof Vector2 && raw instanceof Vector2) {
-		return raw as T;
-	} else if (shouldBe instanceof Vector2) {
-		if (typeof raw == "object" && raw && !(raw instanceof Array)) {
-			return Vec2(ensure(raw, {x: shouldBe.x, y: shouldBe.y}, allowUnknownKeys)) as T;
-		} else {
-			throw new WrongDataError(`Wrong type of data (type ${typeof raw}, should be Vector2)`);
-		}
-	} else if (raw instanceof Vector2) {
-		throw new WrongDataError(`Wrong type of data (type ${typeof raw}, should not be Vector2)`);
-	}
+	assert(raw && typeof raw == "object" && !(raw instanceof Array) && !(raw instanceof Vector2) && !(raw instanceof Vector3));
+	const result: Exclude<JSONObjectExtended, Vector2 | Vector3> = (clone ? {} : raw);
 	for (const key in shouldBe) {
-		const val = raw[key];
-		const toBe = shouldBe[key];
-		const dataType = typeof val;
-		const shouldBeType = typeof toBe;
-		const dataIsArray = val instanceof Array;
-		const shouldBeArray = toBe instanceof Array;
-		const isInt = ( dataType == "number" && Number.isInteger(val) );
-		const shouldBeInt = ( shouldBeType == "number" && Number.isInteger(toBe) );
-		if (dataType != shouldBeType || dataIsArray != shouldBeArray) {
-			throw new WrongDataError(`Wrong type of ${key} (type ${dataType}, should be ${shouldBeType})`);
-		} else if (shouldBeInt && !isInt) {
-			throw new WrongDataError(`Wrong type of ${key} (type double, should be int)`);
+		const rawValue = raw[key];
+		const shouldBeValue = shouldBe[key];
+		if (rawValue === undefined) {
+			throw new WrongDataError(`Key ${key} not found.`);
+		} else if (shouldBeValue == undefined) {
+			throw new WrongDataError(`Wrong template (key ${key} is undefined).`);
 		}
-		if (dataIsArray && shouldBeArray && toBe.length > 0) {
-			for (let i = 0; i < val.length; i++) {
-				val[i] = ensure({test: val[i]}, {test: toBe[0]}, allowUnknownKeys).test;
-			}
-		} else if (typeof val == "object" && val && !dataIsArray
-				&& typeof toBe == "object" && toBe && !shouldBeArray && !(result instanceof Vector2)) {
-			if (toBe instanceof Vector2) {
-				result[key] = ensure(val, toBe, allowUnknownKeys);
-			} else if (toBe) {
-				ensure(val, toBe as any, allowUnknownKeys);
-			}
-		}
+		result[key] = ensure(rawValue, shouldBeValue, allowUnknownKeys, clone);
 	}
 	return result as T;
 }

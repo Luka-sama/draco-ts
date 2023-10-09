@@ -4,12 +4,12 @@ import _ from "lodash";
 import {EventEmitter} from "node:events";
 import uWS from "uWebSockets.js";
 import Logger from "./logger.js";
-import {ensure, Is, JSONData, UserData, WrongDataError} from "./util/validation.js";
+import {ensure, Is, JSONData, JSONObject, WrongDataError} from "./util/validation.js";
 
 /** Anything you can emit events to (user, zone etc) */
 export interface Receiver {
 	/** Sends a message wrapped in the interface WSData */
-	emit(event: string, data?: UserData): void;
+	emit(event: string, data?: JSONObject): void;
 }
 
 /** WebSocket with additional properties */
@@ -21,13 +21,13 @@ export type EventHandler = (args: GuestArgs) => Promise<void> | Promise<boolean>
 /** Event arguments for guests and logged only into account */
 export interface GuestArgs {
 	sck: Socket;
-	raw: UserData;
+	raw: JSONObject;
 }
 
 /** Data which we get from a user or send to a user with event name */
 interface WSData {
 	event: string;
-	data: UserData;
+	data: JSONObject;
 }
 
 /** This class starts WebSocket server and handles getting/sending data */
@@ -74,7 +74,7 @@ export default class WS {
 	}
 
 	/** Sends a message wrapped in the interface WSData to the given socket */
-	static emit(sck: uWS.WebSocket, event: string, data: UserData = {}): void {
+	static emit(sck: uWS.WebSocket, event: string, data: JSONObject = {}): void {
 		const json = WS.prepareDataBeforeEmit(event, data);
 		if (sck.send(json, false, true) != 1) {
 			WS.logger.warn(`Event ${event} was not emitted to account=${sck.account?.id || 0}`);
@@ -92,7 +92,7 @@ export default class WS {
 	 * If property is not JSONData, tries to apply method toPlain(). If it fails, throws an error.
 	 * If no keys provided, it picks all existing keys (i.e. it simply converts object to user data).
 	 **/
-	static prepare<T>(list: T, keys?: string[]): T extends unknown[] ? UserData[] : UserData {
+	static prepare<T>(list: T, keys?: string[]): T extends unknown[] ? JSONObject[] : JSONObject {
 		if (list instanceof Set) {
 			return WS.prepareArray(Array.from(list), keys) as any;
 		}
@@ -100,7 +100,7 @@ export default class WS {
 	}
 
 	/** A helper method for {@link prepare} */
-	private static prepareArray(list: any[], keys?: string[]): UserData[] {
+	private static prepareArray(list: any[], keys?: string[]): JSONObject[] {
 		return list.map(object => {
 			if (object instanceof Array) {
 				throw new Error(`Tried to send wrong data to user (${object}, is array)`);
@@ -110,7 +110,7 @@ export default class WS {
 	}
 
 	/** A helper method for {@link prepare} */
-	private static prepareOne(object: any, keys?: string[]): UserData {
+	private static prepareOne(object: any, keys?: string[]): JSONObject {
 		if (typeof object != "object") {
 			throw new Error(`Tried to send wrong data to user (${object}, typeof=${typeof object})`);
 		}
@@ -158,7 +158,7 @@ export default class WS {
 
 	/** Handles socket connection. Converts uWS.WebSocket to Socket */
 	private static onOpen(sck: uWS.WebSocket): void {
-		sck.emit = function(event: string, data?: UserData): void {
+		sck.emit = function(event: string, data?: JSONObject): void {
 			WS.emit(sck, event, data);
 		};
 		WS.emitter.emit("open", sck as Socket);
@@ -179,8 +179,8 @@ export default class WS {
 	}
 
 	/** Converts all property names in UserData from snake_case to camelCase */
-	private static convertKeysInData(data: UserData, func: (str: string) => string): UserData {
-		const result: UserData = {};
+	private static convertKeysInData(data: JSONObject, func: (str: string) => string): JSONObject {
+		const result: JSONObject = {};
 		for (const key in data) {
 			const val = data[key];
 			const newKey = func(key);
@@ -209,7 +209,7 @@ export default class WS {
 	}
 
 	/** Converts data to JSON with snake case */
-	private static prepareDataBeforeEmit(event: string, data: UserData): string {
+	private static prepareDataBeforeEmit(event: string, data: JSONObject): string {
 		const dataToSend: WSData = {event, data: WS.convertKeysInData(data, _.snakeCase)};
 		const json = JSON.stringify(dataToSend);
 		if (event != "pong") {

@@ -1,7 +1,7 @@
 import assert from "assert/strict";
 import User from "../auth/user.entity.js";
 import {UserContainer} from "../draco-ts/sync/sync.typings.js";
-import {UserData} from "../draco-ts/util/validation.js";
+import {JSONObject} from "../draco-ts/util/validation.js";
 import {Vec2, Vector2} from "../draco-ts/util/vector.js";
 import {Receiver} from "../draco-ts/ws.js";
 import Location from "./location.entity.js";
@@ -69,7 +69,7 @@ export abstract class Area implements Receiver, UserContainer {
 		return users;
 	}
 
-	emit(event: string, data?: UserData): void {
+	emit(event: string, data?: JSONObject): void {
 		const users = this.getUsers();
 		for (const user of users) {
 			user.emit(event, data);
