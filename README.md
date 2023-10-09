@@ -25,7 +25,9 @@ DEFAULT_LOG_LEVEL=warn
 ```
 You can change the connection data, the logger options or the locale.
 
-`LOG_DESTINATION` can be `console` or `file`. You can also specify the default log level (`debug`, `info`, `warn` or `error`) or the log level for a specific component, e.g. `WS_LOG_LEVEL=info` will log all communication between the server and the client.
+`LOG_DESTINATION` can be `console` or `file`. For files, you can specify their location with `LOG_DIR=logs/`.
+
+You can also specify the default log level (`debug`, `info`, `warn`, `error` or `silent`) or the log level for a specific component, e.g. `WS_LOG_LEVEL=info` will log all communication between the server and the client.
 If you specify `WS_LOG_LEVEL=debug`, the events for unconnected users will also be logged.
 * Create database schema and seed database with `node dist/seeder`
 

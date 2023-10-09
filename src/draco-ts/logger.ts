@@ -1,6 +1,7 @@
 import assert from "assert/strict";
 import fs from "fs/promises";
 import _ from "lodash";
+import * as path from "path";
 import * as util from "util";
 import MapUtil from "./util/map-util.js";
 
@@ -20,19 +21,21 @@ export enum LogLevel {Debug, Info, Warn, Error, Silent}
  * Then you can call `YourClassName.logger.info("some info");`
  * or use it somewhere like `something.on("error", YourClassName.logger.error);`.
  *
- * The logger will read environment variable LOG_DESTINATION to determine whether it should write to the console or the files.
+ * The logger will read environment variable `LOG_DESTINATION` to determine whether it should write to the console or the files.
  * In the second case, a separate file for each component is created.
- * You can also control the log levels with environment variables.
- * An example how you can control this in .env-file:
+ * You can also control the log levels with environment variables. An example how and what you can control in .env-file:
  * ```
  * LOG_DESTINATION=file
+ * LOG_DIR=logs/
  * DEFAULT_LOG_LEVEL=warn
  * YOUR_CLASS_LOG_LEVEL=debug
  * ```
- * */
+ *
+ * The possible values are `console` or `file` for `LOG_DESTINATION` and `debug`, `info`, `warn`, `error` or `silent` for log levels.
+ */
 export default class Logger {
 	public static readonly FLUSH_FREQUENCY = 100;
-	private static readonly LOG_DIR = "./logs";
+	private static readonly LOG_DIR = (process.env.LOG_DIR ? process.env.LOG_DIR : "logs/");
 	private static LOG_DESTINATION = (process.env.LOG_DESTINATION == "file" ? LogDestination.File : LogDestination.Console);
 	private static entries = new Map<string, string[]>;
 	private readonly component: string;
@@ -51,7 +54,7 @@ export default class Logger {
 
 		for (const [component, texts] of Logger.entries) {
 			const text = texts.join("\n") + "\n";
-			await fs.appendFile(`${Logger.LOG_DIR}/${_.snakeCase(component)}.txt`, text);
+			await fs.appendFile(path.join(Logger.LOG_DIR, `${_.snakeCase(component)}.txt`), text);
 		}
 		Logger.entries.clear();
 	}
@@ -107,7 +110,7 @@ export default class Logger {
 	 * If {@link Logger.LOG_DESTINATION} is set to {@link LogDestination.Console}, it will write directly to the console,
 	 * otherwise the entries will be collected and periodically flushed to the files.
 	 */
-	public log(level: LogLevel, content: unknown): void {
+	public log(level: Exclude<LogLevel, LogLevel.Silent>, content: unknown): void {
 		if (level < this.level || content instanceof Error && ["AbortError", "EndOfRequest"].includes(content.name)) {
 			return;
 		}

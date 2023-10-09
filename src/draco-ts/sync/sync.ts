@@ -272,7 +272,7 @@ export default class Synchronizer {
 	 * Returns a list with names of those properties that should be synced.
 	 * For the creation and the deletion it returns all properties that are in the given sync model.
 	 * For the updation it returns a list with names of those changed properties that are in sync model.
-	 * */
+	 */
 	private static getPropertiesToSync(model: EntityClass, entity: Entity, type: ChangeType, payload: EntityData): string[] {
 		const toSyncModel = toSync.get(model);
 		if (!toSyncModel) {

@@ -31,7 +31,7 @@ class Index {
 			"seeder.js", "jest-setup.js"
 		];
 		const files = await glob("./**/*.js", {ignore, cwd: "./dist"});
-		await Promise.all(files.map(file => import(`../${file}`)));
+		await Promise.all(files.map(file => import(`./${file}`)));
 	}
 }
 
