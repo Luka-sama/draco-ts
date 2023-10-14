@@ -38,33 +38,35 @@ export class NotLoggableError extends Error {
  * ```
  *
  * The possible values for log levels are `debug`, `info`, `warn`, `error` or `silent`.
- * You can specify the default log level or the log level for a specific component (see also {@link Logger.constructor}),
+ * You can specify the default log level or the log level for a specific component,
  * e.g. `WS_LOG_LEVEL=info` will log all communication between the server and the client.
  * If you specify `WS_LOG_LEVEL=debug`, the events for unconnected users will also be logged.
- * App log level is by default `info`, unless you change it with `APP_LOG_LEVEL`.
+ *
+ * The logger will use the first specified log level, based on this order:
+ * - Environment variable THIS_COMPONENT_LOG_LEVEL
+ * - Second constructor argument
+ * - Environment variable DEFAULT_LOG_LEVEL
+ * - Log level `warn`
+ * You can also update the environment variables at runtime to change the log level on the fly.
  */
 export default class Logger {
 	public static readonly FLUSH_FREQUENCY = 100;
-	private static readonly LOG_DIR = (process.env.LOG_DIR ? process.env.LOG_DIR : "logs/");
-	private static LOG_DESTINATION = (process.env.LOG_DESTINATION == "file" ? LogDestination.File : LogDestination.Console);
 	private static entries = new Map<string, string[]>;
 	private readonly component: string;
-	private level = LogLevel.Warn;
+	private level?: LogLevel;
 
-	/** Sets log destination. See {@link LogDestination} */
-	public static setDestination(destination: LogDestination): void {
-		Logger.LOG_DESTINATION = destination;
-	}
-
-	/** Flushes all log entries to the files, if {@link Logger.LOG_DESTINATION} is set to {@link LogDestination.File} */
+	/** Flushes all log entries to the files, if `LOG_DESTINATION` is set to `file` */
 	public static async flush(): Promise<void> {
-		if (Logger.LOG_DESTINATION != LogDestination.File) {
+		if (Logger.entries.size < 1) {
 			return;
 		}
 
+		const logDir = (process.env.LOG_DIR ? process.env.LOG_DIR : "logs/");
+		await fs.mkdir(logDir, {recursive: true});
+
 		for (const [component, texts] of Logger.entries) {
 			const text = texts.join("\n") + "\n";
-			await fs.appendFile(path.join(Logger.LOG_DIR, `${_.snakeCase(component)}.txt`), text);
+			await fs.appendFile(path.join(logDir, `${_.snakeCase(component)}.txt`), text);
 		}
 		Logger.entries.clear();
 	}
@@ -72,33 +74,12 @@ export default class Logger {
 	/**
 	 * Creates a logger for the given component.
 	 * The component can be a string or a function (incl. classes), in the second case the name of the function will be used.
-	 *
-	 * The logger will use the first specified log level, based on this order:
-	 * - Environment variable THIS_COMPONENT_LOG_LEVEL. Use {@link Logger.setLevel}, if you want to override this
-	 * - Second constructor argument
-	 * - Environment variable DEFAULT_LOG_LEVEL
-	 * - Log level `warn`
 	 */
 	// eslint-disable-next-line @typescript-eslint/ban-types
 	public constructor(component: string | Function, level?: LogLevel) {
 		this.component = (typeof component == "string" ? component : component.name);
 		assert(this.component.length > 0);
-
-		const defaultLogLevel = process.env.DEFAULT_LOG_LEVEL;
-		const customLevelStr = process.env[_.snakeCase(this.component).toUpperCase() + "_LOG_LEVEL"];
-		const levelStr = (customLevelStr || defaultLogLevel || "").toLowerCase();
-		if (level && !customLevelStr) {
-			this.level = level;
-		} else if (levelStr == "debug") {
-			this.level = LogLevel.Debug;
-		} else if (levelStr == "info") {
-			this.level = LogLevel.Info;
-		} else if (levelStr == "warn") {
-			this.level = LogLevel.Warn;
-		} else if (levelStr == "error") {
-			this.level = LogLevel.Error;
-		}
-
+		this.level = level;
 		this.debug = this.debug.bind(this);
 		this.info = this.info.bind(this);
 		this.warn = this.warn.bind(this);
@@ -107,10 +88,19 @@ export default class Logger {
 
 	/** Gets the logger level */
 	public getLevel(): LogLevel {
-		return this.level;
+		const envLevelStr = (process.env[_.snakeCase(this.component).toUpperCase() + "_LOG_LEVEL"] || "").toLowerCase();
+		const defaultLogLevel = (process.env.DEFAULT_LOG_LEVEL || "").toLowerCase();
+		if (envLevelStr) {
+			return Logger.strToLevel(envLevelStr);
+		} else if (this.level) {
+			return this.level;
+		} else if (defaultLogLevel) {
+			return Logger.strToLevel(defaultLogLevel);
+		}
+		return LogLevel.Warn;
 	}
 
-	/** Sets the logger level */
+	/** Sets the logger level. If process environment variable for this component is specified, this method will have no visible effect */
 	public setLevel(level: LogLevel): void {
 		this.level = level;
 	}
@@ -122,11 +112,11 @@ export default class Logger {
 	 *
 	 * `content` can be of any type. If it is an error that extends NotLoggableError, it will not be logged.
 	 *
-	 * If {@link Logger.LOG_DESTINATION} is set to {@link LogDestination.Console}, it will write directly to the console,
+	 * If `LOG_DESTINATION` is set to `console` (by default), it will write directly to the console,
 	 * otherwise the entries will be collected and periodically flushed to the files.
 	 */
 	public log(level: Exclude<LogLevel, LogLevel.Silent>, content: unknown): void {
-		if (level < this.level || content instanceof NotLoggableError) {
+		if (level < this.getLevel() || content instanceof NotLoggableError) {
 			return;
 		}
 
@@ -134,10 +124,10 @@ export default class Logger {
 		const levelString = ["DEBUG", "INFO", "WARN", "ERROR"][level];
 		const contentString = util.format(content);
 		const text = `[${datetime}] ${this.component} ${levelString}: ${contentString}`;
-		if (Logger.LOG_DESTINATION == LogDestination.Console) {
-			Logger.logToConsole(level, text);
-		} else {
+		if (process.env.LOG_DESTINATION == "file") {
 			MapUtil.getArray(Logger.entries, this.component).push(text);
+		} else {
+			Logger.logToConsole(level, text);
 		}
 	}
 
@@ -181,5 +171,21 @@ export default class Logger {
 		} else if (level == LogLevel.Warn || level == LogLevel.Error) {
 			console.error(message);
 		}
+	}
+
+	/** Convert a string to enum {@link LogLevel}, e.g. "debug" to {@link LogLevel.Debug} */
+	private static strToLevel(levelStr: string): LogLevel {
+		if (levelStr == "debug") {
+			return LogLevel.Debug;
+		} else if (levelStr == "info") {
+			return LogLevel.Info;
+		} else if (levelStr == "warn") {
+			return LogLevel.Warn;
+		} else if (levelStr == "error") {
+			return LogLevel.Error;
+		} else if (levelStr == "silent") {
+			return LogLevel.Silent;
+		}
+		throw new Error(`Unexpected level string ${levelStr}.`);
 	}
 }

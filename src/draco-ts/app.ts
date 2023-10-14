@@ -7,7 +7,7 @@ import Synchronizer from "./sync/sync.js";
 import Tr from "./tr.js";
 import WS from "./ws.js";
 
-/** App class */
+/** App class. App log level is by default `info`, unless you change it with `APP_LOG_LEVEL`, see {@link Logger} */
 export default class App {
 	private static logger = new Logger(App, LogLevel.Info);
 	private static starting = false;
