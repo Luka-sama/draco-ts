@@ -77,6 +77,11 @@ export abstract class Vector {
 		return this.applyTo1(Math.abs);
 	}
 
+	/** Returns `true` if the components of this vector are integers (i.e. numbers without fractal part) */
+	public isInt<T extends Vector>(this: T): boolean {
+		return this.#components.every(Number.isInteger);
+	}
+
 	/** Returns `true` if this vector and a given vector are equal */
 	public equals<T extends Vector>(this: T, v: T): boolean {
 		assert(this.#components.length == v.#components.length);
@@ -90,17 +95,26 @@ export abstract class Vector {
 		return vectors.some(vector => this.equals(vector));
 	}
 
+	/** Returns squared length of this vector. If `staggeredMap` is true, divides the Y-component by 2 before calculating the length */
+	public lengthSquared<T extends Vector>(this: T, staggeredMap = false): number {
+		return this.#components.reduce((accumulator, component, index) => {
+			return accumulator + (component / (index == 1 && staggeredMap ? 2 : 1)) ** 2;
+		}, 0);
+	}
+
+	/** Returns length of this vector. If `staggeredMap` is true, divides the Y-component by 2 before calculating the length */
+	public length<T extends Vector>(this: T, staggeredMap = false): number {
+		return Math.sqrt(this.lengthSquared(staggeredMap));
+	}
+
 	/** Returns squared distance between two vectors. If `staggeredMap` is true, divides the distance in Y-component by 2 */
 	public distanceSquaredTo<T extends Vector>(this: T, v: T, staggeredMap = false): number {
-		assert(this.#components.length == v.#components.length);
-		return this.#components.reduce((accumulator, component, index) => {
-			return accumulator + ((component - v.#components[index]) / (index == 1 && staggeredMap ? 2 : 1)) ** 2;
-		}, 0);
+		return this.sub(v).lengthSquared(staggeredMap);
 	}
 
 	/** Returns distance between two vectors. If `staggeredMap` is true, divides the distance in Y-component by 2 */
 	public distanceTo<T extends Vector>(this: T, v: T, staggeredMap = false): number {
-		return Math.sqrt(this.distanceSquaredTo(v, staggeredMap));
+		return this.sub(v).length(staggeredMap);
 	}
 
 	/** Returns this vector with the Y coordinate multiplied by 2 (adapted for staggered maps) */
@@ -108,6 +122,12 @@ export abstract class Vector {
 		return this.new(this.#components.map((component, index) => {
 			return (index == 1 ? component * 2 : component);
 		}));
+	}
+
+	/** Returns the components of this vector as a string, e.g. "(1, 2, 3)" */
+	public toString<T extends Vector>(this: T): string {
+		const components = this.#components.map(component => component.toFixed(5));
+		return `(${components.join(", ")})`;
 	}
 
 	/** Applies the given function to all components of this vector */
@@ -134,6 +154,9 @@ export abstract class Vector {
 
 /** Vector2 class. Usually used to represent positions */
 export class Vector2 extends Vector {
+	static Zero = new Vector2(0, 0);
+	static One = new Vector2(1, 1);
+
 	/** Creates a vector with the given coordinates */
 	public constructor(public readonly x: number, public readonly y: number) {
 		super(x, y);
@@ -152,6 +175,9 @@ export class Vector2 extends Vector {
 
 /** Vector3 class */
 export class Vector3 extends Vector {
+	static Zero = new Vector3(0, 0, 0);
+	static One = new Vector3(1, 1, 1);
+
 	/** Creates a vector with the given coordinates */
 	public constructor(public readonly x: number, public readonly y: number, public readonly z: number) {
 		super(x, y, z);

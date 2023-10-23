@@ -72,6 +72,11 @@ describe("Vector2", () => {
 		expect(c.y).toBe(15);
 	});
 
+	test("isInt", () => {
+		expect(a.isInt()).toBeTruthy();
+		expect(a2.isInt()).toBeFalsy();
+	});
+
 	test("equals", () => {
 		expect(a.equals(b)).toBeFalsy();
 		expect(a.equals(a2)).toBeTruthy();
@@ -81,6 +86,14 @@ describe("Vector2", () => {
 		const array = [a, b];
 		expect(a2.isElementOf(array)).toBeTruthy();
 		expect(n.isElementOf(array)).toBeFalsy();
+	});
+
+	test("lengthSquared", () => {
+		expect(a.lengthSquared()).toBe(1 ** 2 + 2 ** 2);
+	});
+
+	test("length", () => {
+		expect(a.length()).toBeCloseTo(Math.sqrt(1 ** 2 + 2 ** 2));
 	});
 
 	test("distanceSquaredTo", () => {
@@ -99,6 +112,10 @@ describe("Vector2", () => {
 		const c = a.toStaggered();
 		expect(c.x).toBe(1);
 		expect(c.y).toBe(4);
+	});
+
+	test("toString", () => {
+		expect(`${a}`).toBe("(1, 2)");
 	});
 
 	test("toPlain", () => {

@@ -7,16 +7,17 @@ import Logger from "./logger.js";
 
 /**
  * Class for string localization.
- * It is named the same as the function in Godot, which is an abbreviation of "translation". */
+ * It is named the same as the function in Godot, which is an abbreviation of "translation".
+ */
 export default class Tr {
-	private static LOCALE_DIR = "./locales";
 	private static logger = new Logger(Tr);
 	private static locale = process.env.LOCALE || "en_US";
 	private static translations = new Map<string, Map<string, string>>;
 
 	/** Initializes gettext */
 	public static init(): void {
-		const files = globSync("*.po", {cwd: Tr.LOCALE_DIR, absolute: true});
+		assert(process.env.LOCALE_DIR, "You should specify the environment variable LOCALE_DIR.");
+		const files = globSync("*.po", {cwd: process.env.LOCALE_DIR, absolute: true});
 		for (const file of files) {
 			const parsed = po.parse(fs.readFileSync(file));
 			const language = parsed.headers.Language;

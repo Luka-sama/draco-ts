@@ -1,5 +1,5 @@
 import _ from "lodash";
-import Logger from "./logger.js";
+import Logger from "./util/logger.js";
 
 /** A function that can be a task in game loop */
 export type TaskFunction = (delta: number) => void | Promise<void>;
@@ -17,15 +17,15 @@ export interface Task {
  */
 export default class GameLoop {
 	/** How often the game loop is executed */
-	private static readonly FREQUENCY = 16;
 	private static readonly logger = new Logger(GameLoop);
 	private static readonly tasks: Task[] = [];
+	private static tick = 0;
 	private static interval?: NodeJS.Timer;
 
 	/** Initializes the game loop */
-	public static init(): void {
+	public static init(frequency: number): void {
 		if (!GameLoop.interval) {
-			GameLoop.interval = setInterval(GameLoop.execAllTasks, GameLoop.FREQUENCY);
+			GameLoop.interval = setInterval(GameLoop.execAllTasks, frequency);
 		}
 	}
 
@@ -36,6 +36,12 @@ export default class GameLoop {
 			delete GameLoop.interval;
 		}
 		GameLoop.tasks.length = 0;
+		GameLoop.tick = 0;
+	}
+
+	/** Returns how many ticks have passed since start, e.g. 2 ticks mean that all tasks were executed twice */
+	public static getTick(): number {
+		return GameLoop.tick;
 	}
 
 	/**
@@ -67,6 +73,7 @@ export default class GameLoop {
 
 	/** Executes all tasks during a loop iteration */
 	private static async execAllTasks(): Promise<void> {
+		GameLoop.tick++;
 		await Promise.allSettled(
 			GameLoop.tasks.map(GameLoop.execTask)
 		);

@@ -3,7 +3,7 @@ import {Buffer} from "buffer";
 import _ from "lodash";
 import {EventEmitter} from "node:events";
 import uWS from "uWebSockets.js";
-import Logger from "./logger.js";
+import Logger from "./util/logger.js";
 import {ensure, Is, JSONData, JSONObject, WrongDataError} from "./util/validation.js";
 
 /** Anything you can emit events to (user, zone etc) */
@@ -16,7 +16,7 @@ export interface Receiver {
 export interface Socket extends uWS.WebSocket, Receiver {}
 
 /** Type for an event handler */
-export type EventHandler = (args: GuestArgs) => Promise<void> | Promise<boolean>;
+export type EventHandler = (args: GuestArgs) => void | Promise<void>;
 
 /** Event arguments for guests and logged only into account */
 export interface GuestArgs {
@@ -36,9 +36,7 @@ export default class WS {
 	public static logger = new Logger(WS);
 	private static app: uWS.TemplatedApp;
 	private static listenSocket: uWS.WebSocket;
-	private static events: {
-		[key: string]: EventHandler;
-	} = {};
+	private static events = new Map<string, EventHandler>;
 
 	/** Initializes WebSocket server */
 	static init(): void {
@@ -55,7 +53,7 @@ export default class WS {
 				message: WS.onMessage,
 				close: WS.onClose
 			})
-			.listen(port, listenSocket => {
+			.listen(port, (listenSocket: uWS.WebSocket | false) => {
 				if (listenSocket) {
 					WS.listenSocket = listenSocket;
 					WS.logger.info(`Listening to port ${port}.`);
@@ -83,7 +81,7 @@ export default class WS {
 
 	/** Adds an event to the event list */
 	static addEvent(event: string, func: EventHandler): void {
-		WS.events[event] = func;
+		WS.events.set(event, func);
 	}
 
 	/**
@@ -150,7 +148,7 @@ export default class WS {
 			if (!json || typeof json != "object" || json instanceof Array) {
 				return null;
 			}
-			return ensure(json, {event: Is.string, data: {}}, true);
+			return ensure(json, {event: Is.string, data: {}}, true, false);
 		} catch(e) {
 			return null;
 		}
@@ -220,7 +218,7 @@ export default class WS {
 
 	/** Calls a function which is defined for this event */
 	private static async route(sck: Socket, json: WSData): Promise<void> {
-		const handleEvent = WS.events[json.event];
+		const handleEvent = WS.events.get(json.event);
 		if (!handleEvent) {
 			WS.logger.error(`Unknown event ${json.event} with data ${JSON.stringify(json.data)} from account=${sck.account?.id || 0}`);
 			return;

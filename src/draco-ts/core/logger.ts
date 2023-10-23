@@ -3,7 +3,7 @@ import fs from "fs/promises";
 import _ from "lodash";
 import path from "path";
 import util from "util";
-import MapUtil from "./util/map-util.js";
+import MapUtil from "./map-util.js";
 
 export enum LogDestination {Console, File}
 export enum LogLevel {Debug, Info, Warn, Error, Silent}
@@ -50,7 +50,6 @@ export class NotLoggableError extends Error {
  * You can also update the environment variables at runtime to change the log level on the fly.
  */
 export default class Logger {
-	public static readonly FLUSH_FREQUENCY = 100;
 	private static entries = new Map<string, string[]>;
 	private readonly component: string;
 	private level?: LogLevel;

@@ -1,7 +1,7 @@
 import assert from "assert/strict";
 import _ from "lodash";
 import util from "util";
-import Logger, {NotLoggableError} from "../logger.js";
+import Logger, {NotLoggableError} from "./logger.js";
 import {Vec2, Vec3, Vector2, Vector3} from "./vector.js";
 
 /** Return type of JSON.parse() without arrays and objects */
