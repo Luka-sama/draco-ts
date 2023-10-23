@@ -43,6 +43,8 @@
     "glob": "^10.2.6",
     "lodash": "^4.17.21",
     "pg": "^8.11.0",
+    "protobufjs": "~7.2.5",
+    "ts-morph": "^20.0.0",
     "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.15.0"
   }
 }
