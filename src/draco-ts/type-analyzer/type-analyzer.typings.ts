@@ -1,6 +1,10 @@
 import {ExportableNode, NameableNode, NamedNode, Node} from "ts-morph";
 
-/** An enum to distinguish between different types */
+/**
+ * An enum to distinguish between different types.
+ * {@link Kind.Unidentified} means that the type analyzer doesn't know this type.
+ * See also {@link PropertyType} for details
+ */
 export enum Kind {
 	Null = "null",
 	Undefined = "undefined",
@@ -32,9 +36,15 @@ export enum Kind {
 	Never = "never",
 	Any = "any",
 	Unknown = "unknown",
+	Unidentified = "unidentified",
 }
 
-/** An interface with information about a type */
+/**
+ * An interface with information about a type. It's not always obvious what the properties can contain,
+ * so it would be the best option to explore the tests for {@link ClassInfo} as they contain a lot of examples.
+ * As a rule of thumb, `name` only contains what the code also contains.
+ * So if you write `number[]`, `name` will be an empty string. If you write `Array<number>`, `name` will be `Array`.
+ */
 export interface PropertyType {
 	name: string;
 	fullName: string;

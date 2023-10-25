@@ -29,7 +29,7 @@ export default class BaseTypeInfo {
 
 	/** Returns kind of this type. Not as property to avoid cyclic references */
 	public static getKind() {
-		return Kind.Unknown;
+		return Kind.Unidentified;
 	}
 
 	/** Returns all nodes of this type */
@@ -125,11 +125,11 @@ export default class BaseTypeInfo {
 			return {name: typeString, fullName: typeString, kind: Kind.Null, subtypes: []};
 		}
 
-		if (literal.isKind(SyntaxKind.NeverKeyword)) {
+		if (typeNode.isKind(SyntaxKind.NeverKeyword)) {
 			return {name: typeString, fullName: typeString, kind: Kind.Never, subtypes: []};
 		}
 
-		if (literal.isKind(SyntaxKind.SymbolKeyword)) {
+		if (typeNode.isKind(SyntaxKind.SymbolKeyword)) {
 			return {name: typeString, fullName: typeString, kind: Kind.Symbol, subtypes: []};
 		}
 
@@ -183,11 +183,11 @@ export default class BaseTypeInfo {
 				"ThisParameterType", "OmitThisParameter", "ThisType",
 				"Uppercase", "Lowercase", "Capitalize", "Uncapitalize",
 			];
-			let kind = Kind.Unknown;
+			let kind = Kind.Unidentified;
 			if (typeParameters.includes(name)) {
 				kind = Kind.TypeParameter;
 			} else if (name != fullName) {
-				kind = this.kindByUrlMap.get(fullName) ?? Kind.Unknown;
+				kind = this.kindByUrlMap.get(fullName) ?? Kind.Unidentified;
 			} else if (name == "Array") {
 				kind = Kind.Array;
 			} else if (builtInClasses.includes(name)) {
@@ -200,8 +200,8 @@ export default class BaseTypeInfo {
 				.getChildrenOfKind(SyntaxKind.SyntaxList)[0]?.getChildren()
 				.filter(node => !node.isKind(SyntaxKind.CommaToken))
 				.map(node => this.getPropertyType(node, typeParameters)) || [];
-			if (kind == Kind.Unknown) {
-				BaseTypeInfo.logger.debug(`Unknown type reference ${typeString}.`);
+			if (kind == Kind.Unidentified) {
+				BaseTypeInfo.logger.debug(`Unidentified type reference ${typeString}.`);
 			}
 			return {name, fullName, kind, subtypes};
 		}
@@ -268,7 +268,7 @@ export default class BaseTypeInfo {
 			const name = typeNode.getExprName().getText();
 			const fullName = this.getFullNameUsingMapping(name);
 			if (name != fullName) {
-				const kind = this.kindByUrlMap.get(fullName) ?? Kind.Unknown;
+				const kind = this.kindByUrlMap.get(fullName) ?? Kind.Unidentified;
 				const subtypes: PropertyType[] = typeNode
 					.getChildrenOfKind(SyntaxKind.SyntaxList)[0]?.getChildren()
 					.filter(node => !node.isKind(SyntaxKind.CommaToken))
@@ -289,15 +289,22 @@ export default class BaseTypeInfo {
 			return {name, fullName: name, kind: Kind.TypeOperator, subtypes: [type]};
 		}
 
+		// A hack, as TypeScript behaves very strangely with type narrowing
+		const typeNode2 = typeNode, typeNode3 = typeNode;
+
 		if (literal.isKind(SyntaxKind.BigIntLiteral) || typeNode.isKind(SyntaxKind.BigIntKeyword)) {
 			return {name: typeString, fullName: typeString, kind: Kind.BigInt, subtypes: []};
 		}
 
-		if (literal.isKind(SyntaxKind.UndefinedKeyword) || literal.isKind(SyntaxKind.VoidKeyword)) {
+		if (typeNode2.isKind(SyntaxKind.UnknownKeyword)) {
+			return {name: typeString, fullName: typeString, kind: Kind.Unknown, subtypes: []};
+		}
+
+		if (typeNode3.isKind(SyntaxKind.UndefinedKeyword) || typeNode3.isKind(SyntaxKind.VoidKeyword)) {
 			return {name: typeString, fullName: typeString, kind: Kind.Undefined, subtypes: []};
 		}
 
-		BaseTypeInfo.logger.debug(`Unknown type ${typeString}.`);
-		return {name: typeString, fullName: typeString, kind: Kind.Unknown, subtypes: []};
+		BaseTypeInfo.logger.debug(`Unidentified type ${typeString}.`);
+		return {name: typeString, fullName: typeString, kind: Kind.Unidentified, subtypes: []};
 	}
 }

@@ -35,6 +35,7 @@ class ClassInfoTest<T extends string | number> {
 	public bigInt = 123n;
 	public template!: Required<T>;
 	public mapped!: {[K in keyof T]: never};
+	public something?: unknown;
 	protected hidden?: true;
 	private alsoHidden!: true;
 }
@@ -180,7 +181,11 @@ test("properties of classInfo", () => {
 				]},
 				{name: "never", fullName: "never", kind: Kind.Never, subtypes: []}
 			]}
-		}
+		},
+		{
+			name: "something", optional: true, static: false,
+			type: {name: "unknown", fullName: "unknown", kind: Kind.Unknown, subtypes: []}
+		},
 	];
 
 	expect(classInfo.name).toBe("ClassInfoTest");
