@@ -1,6 +1,6 @@
 import assert from "assert/strict";
 import _ from "lodash";
-import MapUtil from "../util/map-util.js";
+import MapUtil from "../collection-utils/map-util.js";
 import {ModelMap} from "./orm.decorator.js";
 import ORM from "./orm.js";
 import {EntityData, EntityHelper, IEntity} from "./orm.typings.js";

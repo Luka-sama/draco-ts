@@ -1,7 +1,7 @@
 import assert from "assert/strict";
 import _ from "lodash";
+import MapUtil from "../collection-utils/map-util.js";
 import {EntityClass} from "../orm/orm.typings.js";
-import MapUtil from "../util/map-util.js";
 import {SyncFor, SyncModel, SyncProperty} from "./sync.typings.js";
 
 /** The information about which properties in which models and how should be synced (see {@link SyncModel}) */

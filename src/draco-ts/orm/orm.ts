@@ -1,7 +1,7 @@
 import assert from "assert/strict";
 import _ from "lodash";
-import MapUtil from "../util/map-util.js";
-import {Vec2} from "../util/vector.js";
+import MapUtil from "../collection-utils/map-util.js";
+import {Vec2f} from "../math/vector.js";
 import Collection from "./collection.js";
 import DB from "./db.js";
 import Entity from "./entity.js";
@@ -10,7 +10,6 @@ import {ChangeSet, ChangeType, EntityClass, EntityData, IEntity} from "./orm.typ
 
 export default class ORM {
 	/** Flushes all entity changes to the database at least every .. ms */
-	public static readonly FLUSH_FREQUENCY = 100;
 	public static cachedEntries = new Map<EntityClass, Map<number, Entity>>;
 
 	private static toInsertFlush = new Set<Entity>;
@@ -19,7 +18,6 @@ export default class ORM {
 
 	private static shouldSync = false;
 	private static changeSets: ChangeSet[] = [];
-	private static toUpdateSync = new Map<Entity, Set<string>>;
 
 	/** Clears cache and flush/sync queue */
 	static clear(): void {
@@ -27,7 +25,6 @@ export default class ORM {
 		ORM.toInsertFlush.clear();
 		ORM.toDeleteFlush.clear();
 		ORM.toUpdateFlush.clear();
-		ORM.toUpdateSync.clear();
 		ORM.changeSets.length = 0;
 	}
 
@@ -37,7 +34,6 @@ export default class ORM {
 
 	static disableSync(): void {
 		ORM.shouldSync = false;
-		ORM.toUpdateSync.clear();
 		ORM.changeSets.length = 0;
 	}
 
@@ -68,7 +64,7 @@ export default class ORM {
 			let dbProperty = _.snakeCase(property);
 			if (options.vector) {
 				dbProperty = (dbProperty == "position" ? "" : `${dbProperty}_`);
-				entity[property] = Vec2(raw[`${dbProperty}x`], raw[`${dbProperty}y`]);
+				entity[property] = Vec2f(raw[`${dbProperty}x`], raw[`${dbProperty}y`]);
 			} else if (options.manyToOne) {
 				dbProperty += "_id";
 				if (raw[dbProperty]) {
@@ -167,14 +163,8 @@ export default class ORM {
 	}
 
 	static sync(): ChangeSet[] {
-		for (const [entity, entityChanges] of ORM.toUpdateSync) {
-			const payload = _.pick(entity, Array.from(entityChanges));
-			ORM.createChangeSet(entity, ChangeType.Update, payload);
-		}
-
 		const changeSets = ORM.changeSets;
 		ORM.changeSets = [];
-		ORM.toUpdateSync = new Map;
 		return changeSets;
 	}
 
@@ -227,9 +217,7 @@ export default class ORM {
 			return;
 		}
 		MapUtil.getSet(ORM.toUpdateFlush, entity).add(property);
-		if (ORM.shouldSync) {
-			MapUtil.getSet(ORM.toUpdateSync, entity).add(property);
-		}
+		ORM.createChangeSet(entity, ChangeType.Update, {[property]: entity[property]});
 	}
 
 	static remove(entity: Entity): void {

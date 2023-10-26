@@ -3,7 +3,7 @@ import fs from "fs/promises";
 import _ from "lodash";
 import path from "path";
 import util from "util";
-import MapUtil from "./map-util.js";
+import MapUtil from "../collection-utils/map-util.js";
 
 export enum LogDestination {Console, File}
 export enum LogLevel {Debug, Info, Warn, Error, Silent}
@@ -91,7 +91,7 @@ export default class Logger {
 		const defaultLogLevel = (process.env.DEFAULT_LOG_LEVEL || "").toLowerCase();
 		if (envLevelStr) {
 			return Logger.strToLevel(envLevelStr);
-		} else if (this.level) {
+		} else if (this.level !== undefined) {
 			return this.level;
 		} else if (defaultLogLevel) {
 			return Logger.strToLevel(defaultLogLevel);

@@ -1,5 +1,5 @@
 import assert from "assert/strict";
-import MapUtil from "../util/map-util.js";
+import MapUtil from "../collection-utils/map-util.js";
 import {DBProperty, EntityClass, Model} from "./orm.typings.js";
 
 export const ModelMap = new Map<EntityClass, Model>();

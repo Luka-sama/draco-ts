@@ -1,8 +1,8 @@
 import assert from "assert/strict";
 import _ from "lodash";
 import util from "util";
-import Logger, {NotLoggableError} from "./logger.js";
-import {Vec2, Vec3, Vector2, Vector3} from "./vector.js";
+import Logger, {NotLoggableError} from "../core/logger.js";
+import {Vec2f, Vec2i, Vec3f, Vec3i, Vector2f, Vector2i, Vector3f, Vector3i} from "../math/vector.js";
 
 /** Return type of JSON.parse() without arrays and objects */
 export type JSONPrimitives = string | number | boolean | null;
@@ -13,7 +13,7 @@ export type JSONData = JSONPrimitives | JSONData[] | JSONObject;
 /** The same as {@link JSONData} extended with vectors */
 export type JSONDataExtended = JSONPrimitives | JSONDataExtended[] | JSONObjectExtended;
 /** The same as {@link JSONObject} extended with vectors */
-export type JSONObjectExtended = {[key: string]: JSONDataExtended | undefined} | Vector2 | Vector3;
+export type JSONObjectExtended = {[key: string]: JSONDataExtended | undefined} | Vector2f | Vector2i | Vector3f | Vector3i;
 
 /** Function {@link ensure} throws this error if the data is wrong, i.e. does not correspond to the given template */
 export class WrongDataError extends NotLoggableError {
@@ -33,10 +33,10 @@ export const Is = {
 	int: 0,
 	bool: true,
 	null: null,
-	vec2f: Vec2(0.5),
-	vec2i: Vec2(),
-	vec3f: Vec3(0.5),
-	vec3i: Vec3(),
+	vec2f: Vector2f.Zero,
+	vec2i: Vector2i.Zero,
+	vec3f: Vector3f.Zero,
+	vec3i: Vector3i.Zero,
 	array: <T extends JSONDataExtended>(values: T): T[] => [values],
 };
 
@@ -56,17 +56,21 @@ export const Of = {
 
 function getType(value: unknown): (
 	"undefined" | "object" | "boolean" | "number" | "string" | "function" | "symbol" | "bigint" |
-	"vector2" | "vector3" | "array" | "null" | "int" | "float" | "non-plain"
+	"vector2f" | "vector2i" | "vector3f" | "vector3i" | "array" | "null" | "int" | "float" | "non-plain"
 	) {
-	if (value instanceof Vector2) {
-		return "vector2";
-	} else if (value instanceof Vector3) {
-		return "vector3";
+	if (value instanceof Vector2f) {
+		return "vector2f";
+	} else if (value instanceof Vector2i) {
+		return "vector2i";
+	} else if (value instanceof Vector3f) {
+		return "vector3f";
+	} else if (value instanceof Vector3i) {
+		return "vector3i"
 	} else if (value instanceof Array) {
 		return "array";
 	} else if (value === null) {
 		return "null";
-	} else if (typeof value == "number" && Number.isInteger(value)) {
+	} else if (Number.isInteger(value)) {
 		return "int";
 	} else if (typeof value == "number") {
 		return "float";
@@ -96,7 +100,7 @@ export function ensure<T extends JSONDataExtended>(
 	const shouldBeType = getType(shouldBe);
 	const canBeConvertedIn = (
 		rawType == shouldBeType || (rawType == "int" && shouldBeType == "float") ||
-		(rawType == "object" && shouldBeType == "vector2") || (rawType == "object" && shouldBeType == "vector3")
+		(rawType == "object" && ["vector2f", "vector2i", "vector3f", "vector3i"].includes(shouldBeType))
 	);
 	if (!canBeConvertedIn) {
 		throw new WrongDataError(`Wrong type (${rawType} instead of ${shouldBeType}).`);
@@ -107,10 +111,14 @@ export function ensure<T extends JSONDataExtended>(
 	}
 
 	// Vectors
-	if (shouldBe instanceof Vector2) {
-		return (raw instanceof Vector2 ? raw : Vec2(ensure(raw, {x: shouldBe.x, y: shouldBe.y}))) as T;
-	} else if (shouldBe instanceof Vector3) {
-		return (raw instanceof Vector3 ? raw : Vec3(ensure(raw, {x: shouldBe.x, y: shouldBe.y, z: shouldBe.z}))) as T;
+	if (shouldBe instanceof Vector2f) {
+		return (raw instanceof Vector2f ? raw : Vec2f(ensure(raw, {x: Is.float, y: Is.float}))) as T;
+	} else if (shouldBe instanceof Vector2i) {
+		return (raw instanceof Vector2i ? raw : Vec2i(ensure(raw, {x: Is.int, y: Is.int}))) as T;
+	} else if (shouldBe instanceof Vector3f) {
+		return (raw instanceof Vector3f ? raw : Vec3f(ensure(raw, {x: Is.float, y: Is.float, z: Is.float}))) as T;
+	} else if (shouldBe instanceof Vector3i) {
+		return (raw instanceof Vector3i ? raw : Vec3i(ensure(raw, {x: Is.int, y: Is.int, z: Is.int}))) as T;
 	}
 
 	// Arrays
@@ -133,8 +141,12 @@ export function ensure<T extends JSONDataExtended>(
 		}
 	}
 
-	assert(raw && typeof raw == "object" && !(raw instanceof Array) && !(raw instanceof Vector2) && !(raw instanceof Vector3));
-	const result: Exclude<JSONObjectExtended, Vector2 | Vector3> = (clone ? {} : raw);
+	assert(
+		raw && typeof raw == "object" && !(raw instanceof Array) &&
+		!(raw instanceof Vector2f) && !(raw instanceof Vector2i) &&
+		!(raw instanceof Vector3f) && !(raw instanceof Vector3i)
+	);
+	const result: Exclude<JSONObjectExtended, Vector2f | Vector2i | Vector3f | Vector3i> = (clone ? {} : raw);
 	for (const key in shouldBe) {
 		const rawValue = raw[key];
 		const shouldBeValue = shouldBe[key];

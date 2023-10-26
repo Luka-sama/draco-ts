@@ -1,4 +1,5 @@
 import assert from "assert/strict";
+import {Vec2f, Vector2f} from "../math/vector.js";
 import {
 	ensure,
 	Is,
@@ -9,7 +10,6 @@ import {
 	Of,
 	WrongDataError
 } from "./validation.js";
-import {Vec2, Vector2} from "./vector.js";
 
 describe("ensure", () => {
 	function check<T extends JSONDataExtended>(
@@ -67,8 +67,8 @@ describe("ensure", () => {
 	});
 
 	test.each([
-		[{diffs: [{x: 7, y: 4}, {x: 10, y: 5}]}, true, {diffs: [Vec2(7, 4), Vec2(10, 5)]}],
-		[{diffs: [{x: 7, y: 4}, {x: 10, y: 5.5}]}, true, {diffs: [Vec2(7, 4), Vec2(10, 5.5)]}],
+		[{diffs: [{x: 7, y: 4}, {x: 10, y: 5}]}, true, {diffs: [Vec2f(7, 4), Vec2f(10, 5)]}],
+		[{diffs: [{x: 7, y: 4}, {x: 10, y: 5.5}]}, true, {diffs: [Vec2f(7, 4), Vec2f(10, 5.5)]}],
 		[{diffs: [{x: 7, y: 4}, {x: 10, z: 5}]}, false, undefined],
 	])("vectors", (raw: JSONObject, shouldPass: boolean, resultShouldBe?: JSONObjectExtended) => {
 		const shouldBe = {diffs: Is.array(Of.vec2fs)};
@@ -77,14 +77,14 @@ describe("ensure", () => {
 		if (shouldPass) {
 			assert(result);
 			const first = result.diffs[0];
-			expect(first instanceof Vector2).toBeTruthy();
+			expect(first instanceof Vector2f).toBeTruthy();
 			expect(first.x).toBe(7);
 			expect(first.y).toBe(4);
 		}
 	});
 
 	test.each([
-		[{diffs: [{x: 7, y: 4}, {x: 10, y: 5}]}, true, {diffs: [Vec2(7, 4), Vec2(10, 5)]}],
+		[{diffs: [{x: 7, y: 4}, {x: 10, y: 5}]}, true, {diffs: [Vec2f(7, 4), Vec2f(10, 5)]}],
 		[{diffs: [{x: 7, y: 4}, {x: 10, y: 5.5}]}, false, undefined],
 		[{diffs: [{x: 7, y: 4}, {x: 10, z: 5}]}, false, undefined],
 	])("int vectors", (raw: JSONObject, shouldPass: boolean, resultShouldBe?: JSONObjectExtended) => {
@@ -94,7 +94,7 @@ describe("ensure", () => {
 		if (shouldPass) {
 			assert(result);
 			const second = result.diffs[1];
-			expect(second instanceof Vector2).toBeTruthy();
+			expect(second instanceof Vector2f).toBeTruthy();
 			expect(second.x).toBe(10);
 			expect(second.y).toBe(5);
 		}
@@ -104,16 +104,16 @@ describe("ensure", () => {
 		const shouldBe = Is.vec2i;
 		const raw = {x: 2, y: 3};
 		const val = ensure(raw, shouldBe);
-		expect(val).toBeInstanceOf(Vector2);
+		expect(val).toBeInstanceOf(Vector2f);
 		expect(val.x).toBe(2);
 		expect(val.y).toEqual(3);
 	});
 
 	test("raw data is already vector", () => {
 		const shouldBe = Is.vec2i;
-		const raw = Vec2(2, 3);
+		const raw = Vec2f(2, 3);
 		const val = ensure(raw, shouldBe);
-		expect(val).toBeInstanceOf(Vector2);
+		expect(val).toBeInstanceOf(Vector2f);
 		expect(val.x).toBe(2);
 		expect(val.y).toEqual(3);
 	});

@@ -1,7 +1,7 @@
 import User from "../../auth/user.entity.js";
 import {Area} from "../../map/area.js";
 import {ChangeType} from "../orm/orm.typings.js";
-import {JSONDataExtended, JSONObject} from "../util/validation.js";
+import {JSONDataExtended, JSONObject} from "../net/validation.js";
 
 /** Synchronization options for a single property (how this property should be synced) */
 export interface SyncProperty {

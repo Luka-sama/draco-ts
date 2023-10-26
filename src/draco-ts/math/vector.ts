@@ -1,4 +1,5 @@
 import assert from "assert/strict";
+import _ from "lodash";
 
 /**
  * Vector2 interface
@@ -28,6 +29,7 @@ export abstract class Vector {
 	readonly #components: number[]; // # (instead of TypeScript keyword "private") is used to hide this field when serializing a vector
 
 	protected constructor(...components: number[]) {
+		assert(!components.some(component => isNaN(component)));
 		this.#components = components;
 	}
 
@@ -84,10 +86,7 @@ export abstract class Vector {
 
 	/** Returns `true` if this vector and a given vector are equal */
 	public equals<T extends Vector>(this: T, v: T): boolean {
-		assert(this.#components.length == v.#components.length);
-		return this.#components.every((component, index) => {
-			return Math.abs(component - v.#components[index]) < 1e-5;
-		});
+		return this.sub(v).#components.every(component => Math.abs(component) < 1e-5);
 	}
 
 	/** Returns `true` if the given array contains this vector */
@@ -126,7 +125,7 @@ export abstract class Vector {
 
 	/** Returns the components of this vector as a string, e.g. "(1, 2, 3)" */
 	public toString<T extends Vector>(this: T): string {
-		const components = this.#components.map(component => component.toFixed(5));
+		const components = this.#components.map(component => _.round(component, 5));
 		return `(${components.join(", ")})`;
 	}
 
@@ -153,9 +152,9 @@ export abstract class Vector {
 }
 
 /** Vector2 class. Usually used to represent positions */
-export class Vector2 extends Vector {
-	static Zero = new Vector2(0, 0);
-	static One = new Vector2(1, 1);
+export class Vector2f extends Vector {
+	public static Zero = new Vector2f(0, 0);
+	public static One = new Vector2f(1, 1);
 
 	/** Creates a vector with the given coordinates */
 	public constructor(public readonly x: number, public readonly y: number) {
@@ -167,16 +166,47 @@ export class Vector2 extends Vector {
 		return {x: this.x, y: this.y};
 	}
 
+	public toVector2i(): Vector2i {
+		return new Vector2i(this.x, this.y);
+	}
+
 	/** Converts to Vector3 with the given Z component */
-	public toVector3(z = 0): Vector3 {
-		return new Vector3(this.x, this.y, z);
+	public toVector3(z = 0): Vector3f {
+		return new Vector3f(this.x, this.y, z);
+	}
+}
+
+/** Vector2 class. Usually used to represent positions */
+export class Vector2i extends Vector {
+	public static Zero = new Vector2i(0, 0);
+	public static One = new Vector2i(1, 1);
+
+	/** Creates a vector with the given coordinates */
+	public constructor(public readonly x: number, public readonly y: number) {
+		assert(Number.isInteger(x) && Number.isInteger(y));
+		super(x, y);
+	}
+
+	/** Converts this vector to a plain object */
+	public toPlain(): IVector2 {
+		return {x: this.x, y: this.y};
+	}
+
+	public toVector2f(): Vector2f {
+		return new Vector2f(this.x, this.y);
+	}
+
+	/** Converts to Vector3 with the given Z component */
+	public toVector3(z = 0): Vector3f {
+		assert(Number.isInteger(z));
+		return new Vector3f(this.x, this.y, z);
 	}
 }
 
 /** Vector3 class */
-export class Vector3 extends Vector {
-	static Zero = new Vector3(0, 0, 0);
-	static One = new Vector3(1, 1, 1);
+export class Vector3f extends Vector {
+	public static Zero = new Vector3f(0, 0, 0);
+	public static One = new Vector3f(1, 1, 1);
 
 	/** Creates a vector with the given coordinates */
 	public constructor(public readonly x: number, public readonly y: number, public readonly z: number) {
@@ -188,56 +218,109 @@ export class Vector3 extends Vector {
 		return {x: this.x, y: this.y, z: this.z};
 	}
 
+	public toVector3i(): Vector3i {
+		return new Vector3i(this.x, this.y, this.z);
+	}
+
 	/** Converts to Vector2 losing Z component */
-	public toVector2(): Vector2 {
-		return new Vector2(this.x, this.y);
+	public toVector2(): Vector2f {
+		return new Vector2f(this.x, this.y);
 	}
 }
 
-export function Vec2(x?: never, y?: never): Vector2;
-export function Vec2(x: IVector2, y?: never): Vector2;
-export function Vec2(x: number, y?: never): Vector2;
-export function Vec2(x: number, y: number): Vector2;
+/** Vector3 class */
+export class Vector3i extends Vector {
+	public static Zero = new Vector3i(0, 0, 0);
+	public static One = new Vector3i(1, 1, 1);
+
+	/** Creates a vector with the given coordinates */
+	public constructor(public readonly x: number, public readonly y: number, public readonly z: number) {
+		assert(Number.isInteger(x) && Number.isInteger(y) && Number.isInteger(z));
+		super(x, y, z);
+	}
+
+	/** Converts this vector to a plain object */
+	public toPlain(): IVector3 {
+		return {x: this.x, y: this.y, z: this.z};
+	}
+
+	public toVector3f(): Vector3f {
+		return new Vector3f(this.x, this.y, this.z);
+	}
+
+	/** Converts to Vector2 losing Z component */
+	public toVector2(): Vector2f {
+		return new Vector2f(this.x, this.y);
+	}
+}
+
+export function Vec2f(x: IVector2, y?: never): Vector2f;
+export function Vec2f(x: number, y: number): Vector2f;
 
 /**
  * Function to create vectors
  *
  * This is the short form instead of constructor using.
- * You can write `Vec2(1, 1)` or even `Vec2(1)` instead of `new Vector2(1, 1)`. `Vec2({x: 1, y: 1})` is also possible.
+ * You can write `Vec2(1, 1)` instead of `new Vector2(1, 1)`. `Vec2({x: 1, y: 1})` is also possible.
  */
-export function Vec2(x?: number | IVector2, y?: number): Vector2 {
+export function Vec2f(x: number | IVector2, y?: number): Vector2f {
 	if (typeof x == "object") {
-		return Vec2(x.x, x.y);
-	} else if (typeof x == "number" && !isNaN(x) && y === undefined) {
-		return new Vector2(x, x);
-	} else if (x === undefined && y === undefined) {
-		return new Vector2(0, 0);
-	} else if (typeof x == "number" && typeof y == "number" && !isNaN(x) && !isNaN(y)) {
-		return new Vector2(x, y);
+		return Vec2f(x.x, x.y);
+	} else if (typeof y == "number") {
+		return new Vector2f(x, y);
 	}
-	throw new Error(`Incorrect arguments for Vec2: x=${x} (typeof x=${typeof x}), y=${y} (typeof y=${typeof y}).`);
+	throw new Error(`Incorrect arguments for Vec2f: x=${x} (typeof x=${typeof x}), y=${y} (typeof y=${typeof y}).`);
 }
 
-export function Vec3(x?: never, y?: never, z?: never): Vector3;
-export function Vec3(x: IVector3, y?: never, z?: never): Vector3;
-export function Vec3(x: number, y?: never, z?: never): Vector3;
-export function Vec3(x: number, y: number, z: number): Vector3;
+export function Vec2i(x: IVector2, y?: never): Vector2i;
+export function Vec2i(x: number, y: number): Vector2i;
 
 /**
  * Function to create vectors
  *
  * This is the short form instead of constructor using.
- * You can write `Vec3(1, 1, 1)` or even `Vec3(1)` instead of `new Vector3(1, 1, 1)`. `Vec3({x: 1, y: 1, z: 1})` is also possible.
+ * You can write `Vec2i(1, 1)` or even `Vec2i(1)` instead of `new Vector2i(1, 1)`. `Vec2i({x: 1, y: 1})` is also possible.
  */
-export function Vec3(x?: number | IVector3, y?: number, z?: number): Vector3 {
+export function Vec2i(x?: number | IVector2, y?: number): Vector2i {
 	if (typeof x == "object") {
-		return Vec3(x.x, x.y, x.z);
-	} else if (typeof x == "number" && !isNaN(x) && y === undefined && z === undefined) {
-		return new Vector3(x, x, x);
-	} else if (x === undefined && y === undefined && z === undefined) {
-		return new Vector3(0, 0, 0);
-	} else if (typeof x == "number" && typeof y == "number" && typeof z == "number" && !isNaN(x) && !isNaN(y) && !isNaN(z)) {
-		return new Vector3(x, y, z);
+		return Vec2i(x.x, x.y);
+	} else if (typeof x == "number" && typeof y == "number") {
+		return new Vector2i(x, y);
+	}
+	throw new Error(`Incorrect arguments for Vec2f: x=${x} (typeof x=${typeof x}), y=${y} (typeof y=${typeof y}).`);
+}
+
+export function Vec3f(x: IVector3, y?: never, z?: never): Vector3f;
+export function Vec3f(x: number, y: number, z: number): Vector3f;
+
+/**
+ * Function to create vectors
+ *
+ * This is the short form instead of constructor using.
+ * You can write `Vec3(1, 1, 1)` instead of `new Vector3(1, 1, 1)`. `Vec3({x: 1, y: 1, z: 1})` is also possible.
+ */
+export function Vec3f(x: number | IVector3, y?: number, z?: number): Vector3f {
+	if (typeof x == "object") {
+		return Vec3f(x.x, x.y, x.z);
+	} else if (typeof y == "number" && typeof z == "number") {
+		return new Vector3f(x, y, z);
+	}
+	throw new Error(
+		`Incorrect arguments for Vec3: x=${x} (typeof x=${typeof x}), y=${y} (typeof y=${typeof y}), z=${z} (typeof z=${typeof z}).`
+	);
+}
+
+/**
+ * Function to create vectors
+ *
+ * This is the short form instead of constructor using.
+ * You can write `Vec3(1, 1, 1)` instead of `new Vector3(1, 1, 1)`. `Vec3({x: 1, y: 1, z: 1})` is also possible.
+ */
+export function Vec3i(x: number | IVector3, y?: number, z?: number): Vector3i {
+	if (typeof x == "object") {
+		return Vec3i(x.x, x.y, x.z);
+	} else if (typeof y == "number" && typeof z == "number") {
+		return new Vector3i(x, y, z);
 	}
 	throw new Error(
 		`Incorrect arguments for Vec3: x=${x} (typeof x=${typeof x}), y=${y} (typeof y=${typeof y}), z=${z} (typeof z=${typeof z}).`

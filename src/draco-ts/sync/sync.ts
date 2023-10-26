@@ -7,15 +7,15 @@ import Location from "../../map/location.entity.js";
 import Subzone from "../../map/subzone.js";
 import ZoneEntities from "../../map/zone-entities.js";
 import Zone from "../../map/zone.js";
+import MapUtil from "../collection-utils/map-util.js";
+import SetUtil from "../collection-utils/set-util.js";
+import {Vec2f, Vector2f} from "../math/vector.js";
+import {JSONDataExtended, JSONObject} from "../net/validation.js";
+import WS, {Receiver} from "../net/ws.js";
 import Collection from "../orm/collection.js";
 import Entity from "../orm/entity.js";
 import ORM from "../orm/orm.js";
 import {ChangeSet, ChangeType, EntityClass, EntityData} from "../orm/orm.typings.js";
-import MapUtil from "../util/map-util.js";
-import SetUtil from "../util/set-util.js";
-import {JSONDataExtended, JSONObject} from "../util/validation.js";
-import {Vec2, Vector2} from "../util/vector.js";
-import WS, {Receiver} from "../ws.js";
 import {toSync} from "./sync.decorator.js";
 import {
 	AreaType,
@@ -37,8 +37,6 @@ import {
  * Every few milliseconds all accumulated syncs are emitted and the sync map is cleared.
  */
 export default class Synchronizer {
-	/** Sync all updates with clients every .. ms. It makes no sense to set this value lower than GAME_LOOP_FREQUENCY_MS */
-	public static readonly FREQUENCY = 16;
 	/** The accumulated changes to sync */
 	private static syncMap: SyncMap = new Map;
 	private static created: number[] = [];
@@ -320,7 +318,7 @@ export default class Synchronizer {
 
 			const oldLocation = Location.getIfCached(original[locationField]);
 			assert(oldLocation);
-			const oldPosition = Vec2(original[xField], original[yField]);
+			const oldPosition = Vec2f(original[xField], original[yField]);
 			const oldPositions = (entity.getPositions ? entity.getPositions(oldPosition) : [oldPosition]);
 			const oldZones = Zone.getByPositionsFromMemory(oldLocation, oldPositions);
 			return Synchronizer.changeZone(oldZones, currZones, entity, model, updateList);
@@ -391,7 +389,7 @@ export default class Synchronizer {
 			assert(typeof entity.emit == "function");
 			return entity as unknown as Receiver;
 		} else if (syncFor == SyncFor.Zone) {
-			assert(entity.location instanceof Location && entity.position instanceof Vector2);
+			assert(entity.location instanceof Location && entity.position instanceof Vector2f);
 			const positions = (entity.getPositions ? entity.getPositions() : [entity.position]);
 			return Zone.getByPositionsFromMemory(entity.location, positions);
 		} else if (typeof syncFor == "string") {
@@ -401,7 +399,7 @@ export default class Synchronizer {
 		} else if (syncFor.location && syncFor.position) {
 			const location = entity[syncFor.location];
 			const position = entity[syncFor.position];
-			assert(location instanceof Location && position instanceof Vector2);
+			assert(location instanceof Location && position instanceof Vector2f);
 			const positions = (entity.getPositions ? entity.getPositions(position) : [position]);
 			return Zone.getByPositionsFromMemory(location, positions);
 		}

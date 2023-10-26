@@ -1,4 +1,4 @@
-import SetUtil from "../util/set-util.js";
+import SetUtil from "../collection-utils/set-util.js";
 import Entity from "./entity.js";
 import {CollectionHelper} from "./orm.typings.js";
 

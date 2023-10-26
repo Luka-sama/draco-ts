@@ -13,15 +13,20 @@ Installation
 * Create .env-file with the content:
 ```
 NODE_ENV=development
+
 DB_HOST=localhost
 DB_PORT=5432
 DB_USER=postgres
 DB_PASSWORD=YOUR_PASSWORD_HERE
 DB_DATABASE=enveltia
-WS_PORT=9001
+
 LOCALE=en_US
-LOG_DESTINATION=console
+LOCALE_DIR=./locales
+
+WS_PORT=9001
+
 DEFAULT_LOG_LEVEL=warn
+LOG_DESTINATION=console
 ```
 You can change the connection data, the logger options (see the logger documentation for details) or the locale.
 

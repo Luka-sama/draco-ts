@@ -3,8 +3,8 @@ import {Buffer} from "buffer";
 import _ from "lodash";
 import {EventEmitter} from "node:events";
 import uWS from "uWebSockets.js";
-import Logger from "./util/logger.js";
-import {ensure, Is, JSONData, JSONObject, WrongDataError} from "./util/validation.js";
+import Logger from "../core/logger.js";
+import {ensure, Is, JSONData, JSONObject, WrongDataError} from "./validation.js";
 
 /** Anything you can emit events to (user, zone etc) */
 export interface Receiver {

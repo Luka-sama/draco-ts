@@ -32,6 +32,10 @@ export default class Tr {
 		}
 	}
 
+	public static stop(): void {
+		Tr.translations.clear();
+	}
+
 	/** Sets locale to the given if it exists in the dictionary */
 	public static setLocale(locale: string): void {
 		if (!Tr.translations.has(locale)) {

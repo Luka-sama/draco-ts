@@ -4,12 +4,12 @@ import Session from "./auth/session.js";
 import Chat from "./chat/chat.js";
 import App from "./draco-ts/app.js";
 import Cache from "./draco-ts/cache/cache.js";
-import GameLoop from "./draco-ts/game-loop.js";
+import GameLoop from "./draco-ts/core/game-loop.js";
 import Magic from "./magic/magic.js";
 import Zone from "./map/zone.js";
 
-class Index {
-	static async init() {
+export default class Index {
+	public static async init() {
 		App.init();
 		Session.init();
 		//Deploy.init();
@@ -17,7 +17,7 @@ class Index {
 		await Index.autoimport();
 	}
 
-	static addGlobalTasks() {
+	public static addGlobalTasks() {
 		GameLoop.addTask(Magic.moveAllLightsGroups);
 		GameLoop.addTask(Magic.removeLightsFromQueue);
 		GameLoop.addTask(Chat.sendTime);

@@ -1,5 +1,5 @@
 import _ from "lodash";
-import Logger from "./util/logger.js";
+import Logger from "./logger.js";
 
 /** A function that can be a task in game loop */
 export type TaskFunction = (delta: number) => void | Promise<void>;

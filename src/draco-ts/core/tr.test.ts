@@ -23,7 +23,7 @@ describe("Tr.get", () => {
 			Tr.get("TEST_TRANSLATION_COMPLEX", {userAndAnimalCount: 1, botCount: 12, enemyCount: 123}),
 			"test complex translation with 1 user and animal, 12 bots, enemies"
 		],
-	])('"%s" should be "%s"', (translation: string, result: string) => {
+	])(`"%s" should be "%s"`, (translation: string, result: string) => {
 		expect(translation).toBe(result);
 	});
 });

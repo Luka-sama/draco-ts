@@ -1,10 +1,10 @@
 import GameLoop from "./game-loop.js";
 
-const frequency = GameLoop["FREQUENCY"];
+const frequency = 16;
 const logError = jest.spyOn(GameLoop["logger"], "error").mockImplementation();
 beforeEach(() => {
 	jest.useFakeTimers();
-	GameLoop.init();
+	GameLoop.init(frequency);
 });
 afterEach(() => {
 	GameLoop.stop();
