@@ -13,6 +13,7 @@ export type UInt64 = bigint;
 
 /** Any class (not class instance) */
 export type Class = abstract new (...args: any[]) => unknown;
+export type Constructor<T> = new (...args: any[]) => T;
 
 /**
  * Ensures that no extra keys are used.
@@ -23,4 +24,4 @@ export type Class = abstract new (...args: any[]) => unknown;
 export type Exact<T, U extends T> = T & {[K in Exclude<keyof U, keyof T>]: never};
 
 /** This class is necessary to make class search work, see {@link TypeAnalyzer} for details */
-export class CoreTypings {}
+export class Typings {}

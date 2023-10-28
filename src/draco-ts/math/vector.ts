@@ -1,5 +1,6 @@
 import assert from "assert/strict";
 import _ from "lodash";
+import {Float, Int32} from "../typings.js";
 
 /**
  * Vector2 interface
@@ -153,11 +154,11 @@ export abstract class Vector {
 
 /** Vector2 class. Usually used to represent positions */
 export class Vector2f extends Vector {
-	public static Zero = new Vector2f(0, 0);
-	public static One = new Vector2f(1, 1);
+	public static readonly Zero = new Vector2f(0, 0);
+	public static readonly One = new Vector2f(1, 1);
 
 	/** Creates a vector with the given coordinates */
-	public constructor(public readonly x: number, public readonly y: number) {
+	public constructor(public readonly x: Float, public readonly y: Float) {
 		super(x, y);
 	}
 
@@ -166,23 +167,29 @@ export class Vector2f extends Vector {
 		return {x: this.x, y: this.y};
 	}
 
+	/** Converts to Vector2i with rounding */
 	public toVector2i(): Vector2i {
-		return new Vector2i(this.x, this.y);
+		return new Vector2i(Math.round(this.x), Math.round(this.y));
 	}
 
-	/** Converts to Vector3 with the given Z component */
-	public toVector3(z = 0): Vector3f {
+	/** Converts to Vector3f using the given Z component */
+	public toVector3f(z: Float = 0): Vector3f {
 		return new Vector3f(this.x, this.y, z);
+	}
+
+	/** Converts to Vector3i using the given Z component and with rounding */
+	public toVector3i(z: Int32 = 0): Vector3i {
+		return new Vector3i(Math.round(this.x), Math.round(this.y), Math.round(z));
 	}
 }
 
 /** Vector2 class. Usually used to represent positions */
 export class Vector2i extends Vector {
-	public static Zero = new Vector2i(0, 0);
-	public static One = new Vector2i(1, 1);
+	public static readonly Zero = new Vector2i(0, 0);
+	public static readonly One = new Vector2i(1, 1);
 
 	/** Creates a vector with the given coordinates */
-	public constructor(public readonly x: number, public readonly y: number) {
+	public constructor(public readonly x: Int32, public readonly y: Int32) {
 		assert(Number.isInteger(x) && Number.isInteger(y));
 		super(x, y);
 	}
@@ -192,24 +199,29 @@ export class Vector2i extends Vector {
 		return {x: this.x, y: this.y};
 	}
 
+	/** Converts to Vector2f */
 	public toVector2f(): Vector2f {
 		return new Vector2f(this.x, this.y);
 	}
 
-	/** Converts to Vector3 with the given Z component */
-	public toVector3(z = 0): Vector3f {
-		assert(Number.isInteger(z));
+	/** Converts to Vector3f with the given Z component */
+	public toVector3f(z: Float = 0): Vector3f {
 		return new Vector3f(this.x, this.y, z);
+	}
+
+	/** Converts to Vector3i with the given Z component */
+	public toVector3i(z: Int32 = 0): Vector3i {
+		return new Vector3i(this.x, this.y, z);
 	}
 }
 
 /** Vector3 class */
 export class Vector3f extends Vector {
-	public static Zero = new Vector3f(0, 0, 0);
-	public static One = new Vector3f(1, 1, 1);
+	public static readonly Zero = new Vector3f(0, 0, 0);
+	public static readonly One = new Vector3f(1, 1, 1);
 
 	/** Creates a vector with the given coordinates */
-	public constructor(public readonly x: number, public readonly y: number, public readonly z: number) {
+	public constructor(public readonly x: Float, public readonly y: Float, public readonly z: Float) {
 		super(x, y, z);
 	}
 
@@ -218,23 +230,29 @@ export class Vector3f extends Vector {
 		return {x: this.x, y: this.y, z: this.z};
 	}
 
-	public toVector3i(): Vector3i {
-		return new Vector3i(this.x, this.y, this.z);
+	/** Converts to Vector2 losing Z component */
+	public toVector2f(): Vector2f {
+		return new Vector2f(this.x, this.y);
 	}
 
-	/** Converts to Vector2 losing Z component */
-	public toVector2(): Vector2f {
-		return new Vector2f(this.x, this.y);
+	/** Converts to Vector2i with rounding losing Z component */
+	public toVector2i(): Vector2i {
+		return new Vector2i(Math.round(this.x), Math.round(this.y));
+	}
+
+	/** Converts to Vector3i with rounding */
+	public toVector3i(): Vector3i {
+		return new Vector3i(Math.round(this.x), Math.round(this.y), Math.round(this.z));
 	}
 }
 
 /** Vector3 class */
 export class Vector3i extends Vector {
-	public static Zero = new Vector3i(0, 0, 0);
-	public static One = new Vector3i(1, 1, 1);
+	public static readonly Zero = new Vector3i(0, 0, 0);
+	public static readonly One = new Vector3i(1, 1, 1);
 
 	/** Creates a vector with the given coordinates */
-	public constructor(public readonly x: number, public readonly y: number, public readonly z: number) {
+	public constructor(public readonly x: Int32, public readonly y: Int32, public readonly z: Int32) {
 		assert(Number.isInteger(x) && Number.isInteger(y) && Number.isInteger(z));
 		super(x, y, z);
 	}
@@ -244,18 +262,24 @@ export class Vector3i extends Vector {
 		return {x: this.x, y: this.y, z: this.z};
 	}
 
-	public toVector3f(): Vector3f {
-		return new Vector3f(this.x, this.y, this.z);
+	/** Converts to Vector2f losing Z component */
+	public toVector2f(): Vector2f {
+		return new Vector2f(this.x, this.y);
 	}
 
-	/** Converts to Vector2 losing Z component */
-	public toVector2(): Vector2f {
-		return new Vector2f(this.x, this.y);
+	/** Converts to Vector2i losing Z component */
+	public toVector2i(): Vector2i {
+		return new Vector2i(this.x, this.y);
+	}
+
+	/** Converts to Vector3f */
+	public toVector3f(): Vector3f {
+		return new Vector3f(this.x, this.y, this.z);
 	}
 }
 
 export function Vec2f(x: IVector2, y?: never): Vector2f;
-export function Vec2f(x: number, y: number): Vector2f;
+export function Vec2f(x: Float, y: Float): Vector2f;
 
 /**
  * Function to create vectors
@@ -263,7 +287,7 @@ export function Vec2f(x: number, y: number): Vector2f;
  * This is the short form instead of constructor using.
  * You can write `Vec2(1, 1)` instead of `new Vector2(1, 1)`. `Vec2({x: 1, y: 1})` is also possible.
  */
-export function Vec2f(x: number | IVector2, y?: number): Vector2f {
+export function Vec2f(x: Float | IVector2, y?: Float): Vector2f {
 	if (typeof x == "object") {
 		return Vec2f(x.x, x.y);
 	} else if (typeof y == "number") {
@@ -273,7 +297,7 @@ export function Vec2f(x: number | IVector2, y?: number): Vector2f {
 }
 
 export function Vec2i(x: IVector2, y?: never): Vector2i;
-export function Vec2i(x: number, y: number): Vector2i;
+export function Vec2i(x: Int32, y: Int32): Vector2i;
 
 /**
  * Function to create vectors
@@ -281,7 +305,7 @@ export function Vec2i(x: number, y: number): Vector2i;
  * This is the short form instead of constructor using.
  * You can write `Vec2i(1, 1)` or even `Vec2i(1)` instead of `new Vector2i(1, 1)`. `Vec2i({x: 1, y: 1})` is also possible.
  */
-export function Vec2i(x?: number | IVector2, y?: number): Vector2i {
+export function Vec2i(x?: Int32 | IVector2, y?: Int32): Vector2i {
 	if (typeof x == "object") {
 		return Vec2i(x.x, x.y);
 	} else if (typeof x == "number" && typeof y == "number") {
@@ -291,7 +315,7 @@ export function Vec2i(x?: number | IVector2, y?: number): Vector2i {
 }
 
 export function Vec3f(x: IVector3, y?: never, z?: never): Vector3f;
-export function Vec3f(x: number, y: number, z: number): Vector3f;
+export function Vec3f(x: Float, y: Float, z: Float): Vector3f;
 
 /**
  * Function to create vectors
@@ -299,7 +323,7 @@ export function Vec3f(x: number, y: number, z: number): Vector3f;
  * This is the short form instead of constructor using.
  * You can write `Vec3(1, 1, 1)` instead of `new Vector3(1, 1, 1)`. `Vec3({x: 1, y: 1, z: 1})` is also possible.
  */
-export function Vec3f(x: number | IVector3, y?: number, z?: number): Vector3f {
+export function Vec3f(x: Float | IVector3, y?: Float, z?: Float): Vector3f {
 	if (typeof x == "object") {
 		return Vec3f(x.x, x.y, x.z);
 	} else if (typeof y == "number" && typeof z == "number") {
@@ -310,13 +334,16 @@ export function Vec3f(x: number | IVector3, y?: number, z?: number): Vector3f {
 	);
 }
 
+export function Vec3i(x: IVector3, y?: never, z?: never): Vector3i;
+export function Vec3i(x: Int32, y: Int32, z: Int32): Vector3i;
+
 /**
  * Function to create vectors
  *
  * This is the short form instead of constructor using.
  * You can write `Vec3(1, 1, 1)` instead of `new Vector3(1, 1, 1)`. `Vec3({x: 1, y: 1, z: 1})` is also possible.
  */
-export function Vec3i(x: number | IVector3, y?: number, z?: number): Vector3i {
+export function Vec3i(x: Int32 | IVector3, y?: Int32, z?: Int32): Vector3i {
 	if (typeof x == "object") {
 		return Vec3i(x.x, x.y, x.z);
 	} else if (typeof y == "number" && typeof z == "number") {

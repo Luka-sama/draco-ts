@@ -106,7 +106,7 @@ describe("ensure", () => {
 		const val = ensure(raw, shouldBe);
 		expect(val).toBeInstanceOf(Vector2f);
 		expect(val.x).toBe(2);
-		expect(val.y).toEqual(3);
+		expect(val.y).toBe(3);
 	});
 
 	test("raw data is already vector", () => {
@@ -115,7 +115,7 @@ describe("ensure", () => {
 		const val = ensure(raw, shouldBe);
 		expect(val).toBeInstanceOf(Vector2f);
 		expect(val.x).toBe(2);
-		expect(val.y).toEqual(3);
+		expect(val.y).toBe(3);
 	});
 
 	test("allowUnknownKeys and clone", () => {

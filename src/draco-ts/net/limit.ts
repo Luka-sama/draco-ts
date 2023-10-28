@@ -1,6 +1,6 @@
 import {setTimeout} from "timers/promises";
 import MapUtil from "../collection-utils/map-util.js";
-import {NotLoggableError} from "../core/logger.js";
+import {NotLoggableError} from "../logger.js";
 import {Receiver} from "./ws.js";
 
 /** The action can be represented either as class or as string */

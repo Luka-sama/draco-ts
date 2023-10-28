@@ -11,31 +11,31 @@ test("get", () => {
 test("getArray", () => {
 	const map = new Map<string, number[]>;
 	const array = MapUtil.getArray(map, "key");
-	expect(array).toEqual([]);
+	expect(array).toStrictEqual([]);
 	array.push(123);
-	expect(MapUtil.getArray(map, "key")).toEqual([123]);
+	expect(MapUtil.getArray(map, "key")).toStrictEqual([123]);
 });
 
 test("getMap", () => {
 	const map = new Map<string, Map<string, number>>;
 	const nestedMap = MapUtil.getMap(map, "key");
-	expect(nestedMap).toEqual(new Map);
+	expect(nestedMap).toStrictEqual(new Map);
 	nestedMap.set("nestedKey", 123);
-	expect(MapUtil.getMap(map, "key")).toEqual(new Map([["nestedKey", 123]]));
+	expect(MapUtil.getMap(map, "key")).toStrictEqual(new Map([["nestedKey", 123]]));
 });
 
 test("getSet", () => {
 	const map = new Map<string, Set<number>>;
 	const set = MapUtil.getSet(map, "key");
-	expect(set).toEqual(new Set);
+	expect(set).toStrictEqual(new Set);
 	set.add(123);
-	expect(MapUtil.getSet(map, "key")).toEqual(new Set([123]));
+	expect(MapUtil.getSet(map, "key")).toStrictEqual(new Set([123]));
 });
 
 test("getWeakMap", () => {
 	const map = new Map<string, WeakMap<object, number>>;
 	const weakMap = MapUtil.getWeakMap(map, "key");
-	expect(weakMap).toEqual(new WeakMap);
+	expect(weakMap).toStrictEqual(new WeakMap);
 	weakMap.set(object, 123);
 	expect(MapUtil.getWeakMap(map, "key").get(object)).toBe(123);
 });
@@ -43,7 +43,7 @@ test("getWeakMap", () => {
 test("getWeakSet", () => {
 	const map = new Map<string, WeakSet<object>>;
 	const set = MapUtil.getWeakSet(map, "key");
-	expect(set).toEqual(new WeakSet);
+	expect(set).toStrictEqual(new WeakSet);
 	expect(set.has(object)).toBeFalsy();
 	set.add(object);
 	expect(MapUtil.getWeakSet(map, "key").has(object)).toBeTruthy();

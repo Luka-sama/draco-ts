@@ -1,4 +1,5 @@
 import GameLoop from "./game-loop.js";
+import Task from "./task.js";
 
 const frequency = 16;
 const logError = jest.spyOn(GameLoop["logger"], "error").mockImplementation();
@@ -10,24 +11,24 @@ afterEach(() => {
 	GameLoop.stop();
 });
 
-test("single task with limited execution count", () => {
+test("single task with limited execution count", async () => {
 	let counter = 0;
-	GameLoop.addTask(() => {
+	Task.create(() => {
 		counter++;
-	}, 0, 2);
+	}, {executionCount: 2});
 
-	jest.advanceTimersByTime(frequency);
+	await jest.advanceTimersByTimeAsync(frequency);
 	expect(counter).toBe(1);
-	jest.advanceTimersByTime(frequency);
+	await jest.advanceTimersByTimeAsync(frequency);
 	expect(counter).toBe(2);
-	jest.advanceTimersByTime(5 * frequency);
+	await jest.advanceTimersByTimeAsync(5 * frequency);
 	expect(counter).toBe(2);
 });
 
 test("slow and fast task in parallel", async () => {
 	const taskDuration = 1000;
 	let slowTaskCounter = 0, fastTaskCounter = 0, slowTaskInstanceCount = 0;
-	const slowTask = GameLoop.addTask(() => {
+	const slowTask = Task.create(() => {
 		slowTaskInstanceCount++;
 		return new Promise(resolve => {
 			setTimeout(() => {
@@ -37,7 +38,7 @@ test("slow and fast task in parallel", async () => {
 			}, taskDuration);
 		});
 	});
-	const fastTask = GameLoop.addTask(() => {
+	const fastTask = Task.create(() => {
 		fastTaskCounter++;
 	});
 
@@ -56,26 +57,26 @@ test("slow and fast task in parallel", async () => {
 	expect(slowTaskInstanceCount).toBeLessThanOrEqual(1);
 	expect(fastTaskCounter).toBe(Math.floor(2 + 2 * taskDuration / frequency));
 
-	GameLoop.removeTask(slowTask);
-	GameLoop.removeTask(fastTask);
+	slowTask.stop();
+	fastTask.stop();
 	await jest.advanceTimersByTimeAsync(3 * taskDuration);
 	expect(slowTaskCounter).toBe(3);
 	expect(slowTaskInstanceCount).toBe(0);
 	expect(fastTaskCounter).toBe(Math.floor(2 + 2 * taskDuration / frequency));
 });
 
-test("task with error", () => {
+test("task with error", async () => {
 	let taskWithErrorCounter = 0;
 	let taskWithoutErrorCounter = 0;
-	GameLoop.addTask(() => {
+	Task.create(() => {
 		taskWithErrorCounter++;
 		throw new Error("some error");
 	});
-	GameLoop.addTask(() => {
+	Task.create(() => {
 		taskWithoutErrorCounter++;
 	});
 
-	jest.advanceTimersByTime(3 * frequency);
+	await jest.advanceTimersByTimeAsync(3 * frequency);
 	expect(taskWithErrorCounter).toBe(3);
 	expect(taskWithoutErrorCounter).toBe(3);
 	expect(logError).toHaveBeenCalledTimes(3);
@@ -84,13 +85,13 @@ test("task with error", () => {
 test("async task with error", async () => {
 	let taskWithErrorCounter = 0;
 	let taskWithoutErrorCounter = 0;
-	GameLoop.addTask(() => {
+	Task.create(() => {
 		taskWithErrorCounter++;
 		return new Promise((resolve, reject) => {
 			reject("some error");
 		});
 	});
-	GameLoop.addTask(() => {
+	Task.create(() => {
 		taskWithoutErrorCounter++;
 	});
 
@@ -103,10 +104,10 @@ test("async task with error", async () => {
 test("using delta", async () => {
 	let fastTaskDeltaSum = 0, slowTaskDeltaSum = 0;
 	const slowTaskDuration = 100;
-	GameLoop.addTask(delta => {
+	Task.create(delta => {
 		fastTaskDeltaSum += delta;
 	});
-	GameLoop.addTask(delta => {
+	Task.create(delta => {
 		slowTaskDeltaSum += delta;
 		return new Promise(resolve => setTimeout(resolve, slowTaskDuration));
 	});
@@ -120,4 +121,20 @@ test("using delta", async () => {
 
 	await jest.advanceTimersByTimeAsync(slowTaskDuration);
 	expect(slowTaskDeltaSum).toBe(frequency + 2 * Math.ceil(slowTaskDuration / frequency) * frequency);
+});
+
+test("priorities", async () => {
+	const result: number[] = [];
+	Task.create(() => {
+		result.push(2);
+	}, {priority: 2});
+	Task.create(() => {
+		result.push(1);
+	}, {priority: 1});
+	Task.create(() => {
+		result.push(3);
+	}, {priority: 3});
+
+	await jest.advanceTimersByTimeAsync(frequency);
+	expect(result).toStrictEqual([1, 2, 3]);
 });

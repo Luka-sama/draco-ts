@@ -3,7 +3,7 @@ import fs from "fs/promises";
 import _ from "lodash";
 import path from "path";
 import util from "util";
-import MapUtil from "../collection-utils/map-util.js";
+import MapUtil from "./collection-utils/map-util.js";
 
 export enum LogDestination {Console, File}
 export enum LogLevel {Debug, Info, Warn, Error, Silent}

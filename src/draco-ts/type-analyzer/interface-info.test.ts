@@ -26,5 +26,5 @@ test("interface properties", () => {
 			name: "string", fullName: "string", kind: Kind.String, subtypes: []
 		}}
 	];
-	expect(interfaceInfo.properties).toEqual(properties);
+	expect(interfaceInfo.properties).toStrictEqual(properties);
 });

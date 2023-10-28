@@ -26,5 +26,5 @@ test("enum properties", () => {
 			name: `"second"`, fullName: `"second"`, kind: Kind.String, subtypes: []
 		}}
 	];
-	expect(enumInfo.properties).toEqual(properties);
+	expect(enumInfo.properties).toStrictEqual(properties);
 });

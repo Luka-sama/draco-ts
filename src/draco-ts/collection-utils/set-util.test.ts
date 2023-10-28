@@ -6,7 +6,7 @@ const B = new Set([2, 4, 6, 8]);
 test("merge", () => {
 	const C = new Set([2, 10]);
 	SetUtil.merge(C, A);
-	expect(C).toEqual(new Set([2, 10, 1, 3, 4]));
+	expect(C).toStrictEqual(new Set([2, 10, 1, 3, 4]));
 });
 
 test("isSuperset", () => {
@@ -34,17 +34,17 @@ test("areEqual", () => {
 });
 
 test("union", () => {
-	expect(SetUtil.union(A, B)).toEqual(new Set([1, 2, 3, 4, 6, 8]));
+	expect(SetUtil.union(A, B)).toStrictEqual(new Set([1, 2, 3, 4, 6, 8]));
 });
 
 test("intersection", () => {
-	expect(SetUtil.intersection(A, B)).toEqual(new Set([2, 4]));
+	expect(SetUtil.intersection(A, B)).toStrictEqual(new Set([2, 4]));
 });
 
 test("difference", () => {
-	expect(SetUtil.difference(A, B)).toEqual(new Set([1, 3]));
+	expect(SetUtil.difference(A, B)).toStrictEqual(new Set([1, 3]));
 });
 
 test("symmetricDifference", () => {
-	expect(SetUtil.symmetricDifference(A, B)).toEqual(new Set([1, 3, 6, 8]));
+	expect(SetUtil.symmetricDifference(A, B)).toStrictEqual(new Set([1, 3, 6, 8]));
 });

@@ -1,18 +1,23 @@
 import Cache from "./cache/cache.js";
-import GameLoop from "./core/game-loop.js";
-import Logger, {LogLevel} from "./core/logger.js";
-import Tr from "./core/tr.js";
+import GameLoop from "./game-loop/game-loop.js";
+import Task from "./game-loop/task.js";
+import Logger, {LogLevel} from "./logger.js";
 import WS from "./net/ws.js";
 import DB from "./orm/db.js";
 import ORM from "./orm/orm.js";
 import Synchronizer from "./sync/sync.js";
+import Tr from "./tr.js";
 import TypeAnalyzer from "./type-analyzer/type-analyzer.js";
 
 /** Framework configuration. It is recommended to leave default settings, unless you know what you are doing. */
 export interface AppConfig {
 	/** Specifies the number of lines in a Node.js stack trace that is generated in case of errors */
-	errorStackTraceLimit: number,
-	/** Runs game loop every `tickFrequency` ms. It makes no sense to set other frequencies lower than tickFrequency */
+	errorStackTraceLimit: number;
+	/**
+	 * Runs game loop every `tickFrequency` ms. It makes no sense to set other frequencies lower than `tickFrequency`.
+	 * If you set `tickFrequency` to a higher value, the server and network load will be less,
+	 * but the ping will also be higher, i.e. the user will have the higher latency.
+	 */
 	tickFrequency: number;
 	/**
 	 * Flush all log entries to the files every `loggerFlushFrequency` ms.
@@ -51,18 +56,19 @@ export default class App {
 		process.on("uncaughtException", App.logger.error);
 		process.on("unhandledRejection", App.logger.error);
 		GameLoop.init(config.tickFrequency);
-		GameLoop.addTask(Logger.flush, userConfig.loggerFlushFrequency);
+		Task.create(Logger.flush, {frequency: config.loggerFlushFrequency});
 		TypeAnalyzer.init();
 
 		// Then we can start other modules
 		Tr.init();
 		DB.init();
 		ORM.enableSync();
-		GameLoop.addTask(ORM.flush, config.dbFlushFrequency);
+		Task.create(ORM.flush, {frequency: config.dbFlushFrequency});
 		WS.init();
-		GameLoop.addTask(Cache.clean, Cache.CLEAN_FREQUENCY);
-		GameLoop.addTask(Synchronizer.synchronize, config.syncFrequency);
-		GameLoop.addTask(Synchronizer.syncNewZones);
+		Task.create(Cache.clean, {frequency: Cache.CLEAN_FREQUENCY});
+		// With priority 1, so that users get changes immediately rather than on the next game loop iteration
+		Task.create(Synchronizer.synchronize, {frequency: config.syncFrequency, priority: 1});
+		Task.create(Synchronizer.syncNewZones);
 
 		// We don't need megabytes of collected data anymore
 		TypeAnalyzer.stop();

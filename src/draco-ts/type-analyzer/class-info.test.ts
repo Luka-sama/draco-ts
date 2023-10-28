@@ -263,5 +263,5 @@ test("getParent", () => {
 });
 
 test("findDerivedClasses", () => {
-	expect(baseClassInfo.findDerivedClasses()).toEqual([childClassInfo, grandchildClassInfo]);
+	expect(baseClassInfo.findDerivedClasses()).toStrictEqual([childClassInfo, grandchildClassInfo]);
 });

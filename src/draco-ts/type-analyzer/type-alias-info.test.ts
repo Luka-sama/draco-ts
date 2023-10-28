@@ -1,4 +1,4 @@
-import {Exact} from "../core/core.typings.js";
+import {Exact} from "../typings.js";
 import TypeAliasInfo from "./type-alias-info.js";
 import TypeAnalyzer from "./type-analyzer.js";
 import {Kind, PropertyType} from "./type-analyzer.typings.js";
@@ -32,5 +32,5 @@ test("type alias type", () => {
 			]}
 		]
 	};
-	expect(typeAliasInfo.properties[0].type).toEqual(type);
+	expect(typeAliasInfo.properties[0].type).toStrictEqual(type);
 });

@@ -1,7 +1,7 @@
 import assert from "assert/strict";
 import _ from "lodash";
 import util from "util";
-import Logger, {NotLoggableError} from "../core/logger.js";
+import Logger, {NotLoggableError} from "../logger.js";
 import {Vec2f, Vec2i, Vec3f, Vec3i, Vector2f, Vector2i, Vector3f, Vector3i} from "../math/vector.js";
 
 /** Return type of JSON.parse() without arrays and objects */
@@ -84,7 +84,7 @@ function getType(value: unknown): (
  * Checks if the data correspond to the given template. The main purpose is to check if the user sent the correct data.
  * So you can both prevent the cheating and get strict type checking.
  *
- * Example of using:
+ * Example of use:
  * ```const {direction, run, someArray} = ensure(raw, {direction: Is.vec2i, run: Is.bool, someArray: Is.array(Of.ints)});```
  *
  * @param raw Raw data that should be checked

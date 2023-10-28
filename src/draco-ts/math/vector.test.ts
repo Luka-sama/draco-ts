@@ -1,6 +1,6 @@
-import {Vec2f, Vec3f, Vector2f, Vector3f} from "./vector.js";
+import {Vec2f, Vec3f, Vector2f, Vector2i, Vector3f, Vector3i} from "./vector.js";
 
-describe("Vector2", () => {
+describe("Vector2f", () => {
 	const a = new Vector2f(1, 2);
 	const a2 = new Vector2f(1 - 1e-9, 2);
 	const b = new Vector2f(1, 3);
@@ -120,16 +120,148 @@ describe("Vector2", () => {
 
 	test("toPlain", () => {
 		const c = a.toPlain();
-		expect(c).not.toBeInstanceOf(Vector2f);
-		expect(c).toEqual({x: 1, y: 2});
+		expect(c).toStrictEqual({x: 1, y: 2});
 	});
 
-	test("toVector3", () => {
-		const c = a.toVector3(4);
+	test("toVector2i", () => {
+		const c = a2.toVector2i();
+		expect(c).toBeInstanceOf(Vector2i);
+		expect(c.x).toBe(1);
+		expect(c.y).toBe(2);
+	});
+
+	test("toVector3f", () => {
+		const c = a.toVector3f(4);
 		expect(c).toBeInstanceOf(Vector3f);
 		expect(c.x).toBe(1);
 		expect(c.y).toBe(2);
 		expect(c.z).toBe(4);
+	});
+
+	test("toVector3i", () => {
+		const c = a2.toVector3i(4);
+		expect(c).toBeInstanceOf(Vector3i);
+		expect(c.x).toBe(1);
+		expect(c.y).toBe(2);
+		expect(c.z).toBe(4);
+	});
+});
+
+describe("Vector2i", () => {
+	const a = new Vector2i(1, 2);
+	const b = new Vector2i(1, 3);
+
+	test("add", () => {
+		const c = a.add(b);
+		expect(c.x).toBe(2);
+		expect(c.y).toBe(5);
+	});
+
+	test("toPlain", () => {
+		const c = a.toPlain();
+		expect(c).toStrictEqual({x: 1, y: 2});
+	});
+
+	test("toVector2f", () => {
+		const c = a.toVector2f();
+		expect(c).toBeInstanceOf(Vector2f);
+		expect(c.x).toBe(1);
+		expect(c.y).toBe(2);
+	});
+
+	test("toVector3f", () => {
+		const c = a.toVector3f(5);
+		expect(c).toBeInstanceOf(Vector3f);
+		expect(c.x).toBe(1);
+		expect(c.y).toBe(2);
+		expect(c.z).toBe(5);
+	});
+
+	test("toVector3i", () => {
+		const c = a.toVector3i(5);
+		expect(c).toBeInstanceOf(Vector3i);
+		expect(c.x).toBe(1);
+		expect(c.y).toBe(2);
+		expect(c.z).toBe(5);
+	});
+});
+
+describe("Vector3f", () => {
+	const a = new Vector3f(1, 2, 5);
+	const a2 = new Vector3f(1.3, 2, 5.1);
+	const b = new Vector3f(-1, 4, 3);
+
+	test("add", () => {
+		const c = a.add(b);
+		expect(c.x).toBe(0);
+		expect(c.y).toBe(6);
+		expect(c.z).toBe(8);
+	});
+
+	test("toPlain", () => {
+		const c = a.toPlain();
+		expect(c).toStrictEqual({x: 1, y: 2, z: 5});
+	});
+
+	test("toVector2f", () => {
+		const c = a.toVector2f();
+		expect(c).toBeInstanceOf(Vector2f);
+		expect(c.x).toBe(1);
+		expect(c.y).toBe(2);
+	});
+
+	test("toVector2i", () => {
+		const c = a2.toVector2i();
+		expect(c).toBeInstanceOf(Vector2i);
+		expect(c.x).toBe(1);
+		expect(c.y).toBe(2);
+	});
+
+	test("toVector3i", () => {
+		const c = a2.toVector3i();
+		expect(c).toBeInstanceOf(Vector3i);
+		expect(c.x).toBe(1);
+		expect(c.y).toBe(2);
+		expect(c.z).toBe(5);
+	});
+});
+
+describe("Vector3i", () => {
+	const a = new Vector3i(1, 3, 5);
+	const b = new Vector3i(-1, 4, 3);
+
+	test("add", () => {
+		const c = a.add(b);
+		expect(c.x).toBe(0);
+		expect(c.y).toBe(7);
+		expect(c.z).toBe(8);
+	});
+
+	test("toPlain", () => {
+		const c = a.toPlain();
+		expect(c).toStrictEqual({x: 1, y: 3, z: 5});
+	});
+
+	test("toVector2f", () => {
+		const c = a.toVector2f();
+		expect(c).toBeInstanceOf(Vector2f);
+		expect(c.x).toBe(1);
+		expect(c.y).toBe(3);
+	});
+
+	test("toVector2i", () => {
+		const c = a.toVector2i();
+		expect(c).toBeInstanceOf(Vector2i);
+		expect(c.x).toBe(1);
+		expect(c.y).toBe(3);
+	});
+
+	test("toVector3f", () => {
+		const c = a.toVector3f();
+		expect(c).toBeInstanceOf(Vector3f);
+		expect(c.x).toBe(1);
+		expect(c.y).toBe(3);
+		expect(c.z).toBe(5);
 	});
 });
 
@@ -146,25 +278,6 @@ describe("Vec2f", () => {
 		expect(a).toBeInstanceOf(Vector2f);
 		expect(a.x).toBe(3);
 		expect(a.y).toBe(4);
-	});
-});
-
-describe("Vector3", () => {
-	const a = new Vector3f(1, 2, 5);
-	const b = new Vector3f(-1, 4, 3);
-
-	test("add", () => {
-		const c = a.add(b);
-		expect(c.x).toBe(0);
-		expect(c.y).toBe(6);
-		expect(c.z).toBe(8);
-	});
-
-	test("toVector3", () => {
-		const c = a.toVector2();
-		expect(c).toBeInstanceOf(Vector2f);
-		expect(c.x).toBe(1);
-		expect(c.y).toBe(2);
 	});
 });
 
