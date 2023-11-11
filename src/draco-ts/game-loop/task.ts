@@ -39,6 +39,10 @@ export default class Task {
 	public readonly name: string;
 	public frequency: number;
 	public remainingExecutions: number;
+	/** The creation time as a unixtime timestamp, in milliseconds */
+	public readonly createdAt = Date.now();
+	/** The start time as a unixtime timestamp, in milliseconds. It is updated with each call of {@link Task.start} */
+	public startedAt = Date.now();
 	protected data: any;
 	private lastExecution: number;
 	private priority: number;
@@ -94,7 +98,7 @@ export default class Task {
 	 * Executes a task during a loop iteration
 	 * @internal
 	 */
-	public exec(): void | Promise<void> {
+	public step(): void | Promise<void> {
 		const now = Date.now();
 		const delta = now - this.lastExecution;
 		if (delta < this.frequency) {

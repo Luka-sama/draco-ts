@@ -12,7 +12,7 @@ export default class GameLoop {
 	/** Initializes the game loop */
 	public static init(frequency: number): void {
 		if (!GameLoop.interval) {
-			GameLoop.interval = setInterval(GameLoop.execAllTasks, frequency);
+			GameLoop.interval = setInterval(GameLoop.step, frequency);
 		}
 	}
 
@@ -38,6 +38,7 @@ export default class GameLoop {
 			GameLoop.logger.warn(`Tried to add task "${task.name}" that is already added.`);
 		} else {
 			taskSet.add(task);
+			task.startedAt = Date.now();
 			GameLoop.logger.info(
 				`${task.name} was added to tasks with frequency ${task.frequency}` +
 				(task.remainingExecutions != Infinity ? ` and execution count ${task.remainingExecutions}.` : ".")
@@ -56,7 +57,7 @@ export default class GameLoop {
 	}
 
 	/** Executes all tasks during a loop iteration */
-	private static async execAllTasks(): Promise<void> {
+	private static async step(): Promise<void> {
 		GameLoop.tick++;
 
 		const priorities = Array.from(GameLoop.tasks.keys()).sort((a, b) => a - b);
@@ -69,7 +70,7 @@ export default class GameLoop {
 
 			const promises: Promise<void>[] = [];
 			taskSet.forEach(task => {
-				const promise = task.exec();
+				const promise = task.step();
 				if (promise) {
 					promises.push(promise);
 				}
