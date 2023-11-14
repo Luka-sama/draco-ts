@@ -6,7 +6,10 @@ describe("Tr.get", () => {
 		[Tr.get("TEST_TRANSLATION"), "test translation"],
 
 		// String is "test translation with placeholder {placeholder}"
-		[Tr.get("TEST_TRANSLATION_WITH_PLACEHOLDER", {placeholder: "abc"}), "test translation with placeholder abc"],
+		[
+			Tr.get("TEST_TRANSLATION_WITH_PLACEHOLDER", {placeholder: "abc"}),
+			"test translation with placeholder abc"
+		],
 
 		// String is "test translation with {count} user(/s)"
 		[Tr.get("TEST_TRANSLATION_WITH_PLURAL", {count: 0}), "test translation with 0 users"],

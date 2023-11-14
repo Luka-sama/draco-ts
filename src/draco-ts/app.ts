@@ -73,7 +73,7 @@ export default class App {
 		// Then we collect the data using TypeAnalyzer and use it
 		TypeAnalyzer.init();
 		const typings = await ClassLoader.findOrThrow(Typings);
-		const {types, messages, services} = await ProtobufLoader.loadAllClasses();
+		const {types, messages, services} = await ProtobufLoader.loadAllProtoClasses();
 		Protobuf.init(types, messages, services, config.opcodeSize, typings);
 		// We don't need megabytes of collected data anymore
 		TypeAnalyzer.stop();

@@ -1,10 +1,11 @@
 import assert from "assert/strict";
 import {Vec2i, Vector2i} from "../math/vector.js";
-import ClassInfo from "../type-analyzer/class-info.js";
+import ClassInfo, {ClassWithInfo} from "../type-analyzer/class-info.js";
 import TypeAnalyzer from "../type-analyzer/type-analyzer.js";
 import {Double, Float, Int32, Int64, PropertiesOf, UInt32, UInt64} from "../typings.js";
+import MessageType from "./message-type.js";
 import Message from "./message.js";
-import Protobuf, {ProtoClassWithInfo, TypeClassWithInfo} from "./protobuf.js";
+import Protobuf from "./protobuf.js";
 import Service from "./service.js";
 
 enum TestEnum {
@@ -13,7 +14,7 @@ enum TestEnum {
 	Third,
 }
 
-export class NestedMessage extends Message {
+export class TestMessageType extends MessageType {
 	public someField!: string;
 }
 
@@ -30,7 +31,7 @@ export class TestMessage extends Message {
 	public int32array!: Int32[];
 	public enum!: TestEnum;
 	public position!: Vector2i;
-	public nested!: NestedMessage;
+	public nested!: TestMessageType;
 }
 
 export class TestService extends Service {
@@ -46,12 +47,12 @@ export class TestService extends Service {
 	public int32array!: Int32[];
 	public enum!: TestEnum;
 	public position!: Vector2i;
-	public nested!: NestedMessage;
+	public nested!: TestMessageType;
 }
 
 let typings: ClassInfo;
 let vector2iInfo: ClassInfo;
-let nestedMessageInfo: ClassInfo, testMessageInfo: ClassInfo;
+let testMessageTypeInfo: ClassInfo, testMessageInfo: ClassInfo;
 let testServiceInfo: ClassInfo;
 beforeAll(() => {
 	TypeAnalyzer.init();
@@ -63,8 +64,8 @@ beforeAll(() => {
 			typings = typeInfo;
 		} else if (typeInfo.name == "Vector2i") {
 			vector2iInfo = typeInfo;
-		} else if (typeInfo.name == "NestedMessage") {
-			nestedMessageInfo = typeInfo;
+		} else if (typeInfo.name == "TestMessageType") {
+			testMessageTypeInfo = typeInfo;
 		} else if (typeInfo.name == "TestMessage") {
 			testMessageInfo = typeInfo;
 		} else if (typeInfo.name == "TestService") {
@@ -72,18 +73,15 @@ beforeAll(() => {
 		}
 	}
 
-	const messages: ProtoClassWithInfo[] = [
-		{ProtoClass: TestMessage, classInfo: testMessageInfo},
-		{ProtoClass: NestedMessage, classInfo: nestedMessageInfo}
-	];
-	const services: ProtoClassWithInfo[] = [{ProtoClass: TestService, classInfo: testServiceInfo}];
-	const types: TypeClassWithInfo[] = [{TypeClass: Vector2i, classInfo: vector2iInfo}];
+	const types: ClassWithInfo[] = [[Vector2i, vector2iInfo], [TestMessageType, testMessageTypeInfo]];
+	const messages: ClassWithInfo[] = [[TestMessage, testMessageInfo]];
+	const services: ClassWithInfo[] = [[TestService, testServiceInfo]];
 	Protobuf.init(types, messages, services, 1, typings);
 });
 
 test("message encoding & service decoding", () => {
 	const loggerWarn = jest.spyOn(Protobuf["logger"], "warn").mockImplementation();
-	const nested = NestedMessage.create({someField: ""});
+	const nested = TestMessageType.create({someField: ""});
 	const data: PropertiesOf<TestMessage> = {
 		uint32: 12345, int64: -1234567890n, uint64: BigInt(Date.now()), float: 3.14, double: 3.1415,
 		false: false, true: true, string: "hello world", int32array: [1, 22, 333], enum: TestEnum.Second,
@@ -96,7 +94,7 @@ test("message encoding & service decoding", () => {
 	expect(failedService).toBeNull();
 	expect(loggerWarn).toBeCalledTimes(1);
 
-	TestMessage._opcode = 255;
+	Protobuf["opcodeByClassMap"].set(TestMessage, 255);
 	const encoded = Protobuf.encode(msg);
 	const service = Protobuf.decode(encoded);
 	expect(service).toBeInstanceOf(TestService);

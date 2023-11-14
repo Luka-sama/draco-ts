@@ -1,6 +1,6 @@
 import protobuf, {Long} from "protobufjs";
 import Logger from "../logger.js";
-import ClassInfo from "../type-analyzer/class-info.js";
+import ClassInfo, {ClassWithInfo} from "../type-analyzer/class-info.js";
 import TypeAnalyzer from "../type-analyzer/type-analyzer.js";
 import {Kind, PropertyInfo, PropertyType} from "../type-analyzer/type-analyzer.typings.js";
 import {Class, Constructor, Double, PropertiesOf, Typings} from "../typings.js";
@@ -33,17 +33,6 @@ interface ProtobufTypeInfo {
 	fields: ProtobufFieldInfo[];
 }
 
-/**
- * The child class of Message or Service with the info about this class
- * @internal
- */
-export type ProtoClassWithInfo = ({ProtoClass: typeof BaseProtoClass, classInfo: ClassInfo});
-/**
- * The arbitrary class used as a protobuf type with the info about this class
- * @internal
- */
-export type TypeClassWithInfo = ({TypeClass: Class, classInfo: ClassInfo});
-
 /** This class handles encoding and decoding of binary data using protobufs */
 export default class Protobuf {
 	/**
@@ -54,21 +43,19 @@ export default class Protobuf {
 	private static readonly logger = new Logger(Protobuf);
 	/** See {@link AppConfig.opcodeSize} */
 	private static opcodeSize = 0;
-	/** A map whose keys are opcodes and values are either messages or services */
+	/** A map whose keys are opcodes and values are proto classes */
 	private static readonly classByOpcodeMap = new Map<number, typeof BaseProtoClass>;
-	/** A map whose keys are type names and values are protobuf types */
+	/** A map whose keys are proto classes and values are opcodes */
+	private static readonly opcodeByClassMap = new Map<typeof BaseProtoClass, number>;
+	/** A map whose keys are class names and values are protobuf types */
 	private static readonly protobufByNameMap = new Map<string, protobuf.Type>;
-	/** A map whose keys are type names and values are type classes */
-	private static readonly typesByNameMap = new Map<string, Class>;
-	/** A map whose keys are type names and values are messages */
-	private static readonly messagesByNameMap = new Map<string, typeof Message & Constructor<Message>>;
-	/** A map whose keys are type names and values are services */
-	private static readonly servicesByNameMap = new Map<string, typeof Service & Constructor<Service>>;
+	/** A map whose keys are class names and values are proto classes */
+	private static readonly classesByNameMap = new Map<string, Class>;
 	private static readonly root = new protobuf.Root();
 
 	/** Calls {@link Protobuf.initClasses} for the given messages and services. Remembers the given opcode size */
 	public static init(
-		types: TypeClassWithInfo[], messages: ProtoClassWithInfo[], services: ProtoClassWithInfo[],
+		types: ClassWithInfo[], messages: ClassWithInfo[], services: ClassWithInfo[],
 		opcodeSize: number, typings: ClassInfo
 	): void {
 		Protobuf.opcodeSize = opcodeSize;
@@ -82,13 +69,17 @@ export default class Protobuf {
 	 * Returns an empty buffer in case of failure
 	 */
 	public static encode(message: Message): Buffer {
-		const protobufType = (message.constructor as typeof Message)._protobuf;
+		const protobufType = Protobuf.protobufByNameMap.get(message.constructor.name);
 		if (!protobufType) {
 			Protobuf.logger.error(`The message class ${message?.constructor?.name} was not found or not exported.`);
 			return Buffer.alloc(0);
 		}
 
-		const opcode = (message.constructor as typeof Message)._opcode;
+		const opcode = Protobuf.opcodeByClassMap.get(message.constructor as typeof Message);
+		if (!opcode) {
+			Protobuf.logger.error(`The opcode for the message class ${message?.constructor?.name} was not found.`);
+			return Buffer.alloc(0);
+		}
 		const encodedOpcode = Buffer.alloc(Protobuf.opcodeSize);
 		encodedOpcode.writeUIntBE(opcode, 0, Protobuf.opcodeSize);
 		const dataToEncode = Protobuf.getDataToEncode(protobufType, message);
@@ -110,7 +101,13 @@ export default class Protobuf {
 			Protobuf.logger.warn(`The service with opcode ${opcode} was not found.`);
 			return null;
 		}
-		const protobufType = ProtoClass._protobuf;
+		const protobufType = Protobuf.protobufByNameMap.get(ProtoClass.name);
+		if (!protobufType) {
+			Protobuf.logger.error(
+				`The corresponding protobuf type for the service class ${ProtoClass.name} was not found.`
+			);
+			return null;
+		}
 		const decodedMessage = protobufType.toObject(
 			protobufType.decode(encodedMessage),
 			{defaults: true}
@@ -124,22 +121,21 @@ export default class Protobuf {
 	}
 
 	/** Initializes all types that can be used in protobufs */
-	private static initTypes(types: TypeClassWithInfo[], typings: ClassInfo) {
-		for (const {TypeClass, classInfo} of types) {
+	private static initTypes(types: ClassWithInfo[], typings: ClassInfo) {
+		for (const [TypeClass, classInfo] of types) {
 			const protobufType = Protobuf.transform(classInfo, typings, TypeClass.name);
 			if (protobufType) {
 				Protobuf.addToJSONInfo(protobufType, 0, ProtoClassType.Type);
-				Protobuf.typesByNameMap.set(TypeClass.name, TypeClass);
+				Protobuf.classesByNameMap.set(TypeClass.name, TypeClass);
 			}
 		}
 	}
 
 	/**
 	 * Initializes either all messages or all services.
-	 * It sets properties {@link BaseProtoClass._opcode} and {@link BaseProtoClass._protobuf}
-	 * and prepares {@link Protobuf.typeInfos}.
+	 * It sets opcode, saves info in Protobuf maps and prepares {@link Protobuf.typeInfos}
 	 */
-	private static initClasses(classes: ProtoClassWithInfo[], BaseClass: Class, typings: ClassInfo): void {
+	private static initClasses(classes: ClassWithInfo[], BaseClass: Class, typings: ClassInfo): void {
 		const isService = (BaseClass == Service);
 
 		const opcodeLimit = 2 ** (Protobuf.opcodeSize * 8) - 1;
@@ -147,7 +143,7 @@ export default class Protobuf {
 		if (Protobuf.classByOpcodeMap.has(opcode)) {
 			return;
 		}
-		for (const {ProtoClass, classInfo} of classes) {
+		for (const [ProtoClass, classInfo] of classes) {
 			const protobufType = Protobuf.transform(classInfo, typings, BaseClass.name);
 			if (!protobufType) {
 				continue;
@@ -155,15 +151,10 @@ export default class Protobuf {
 
 			const type = (isService ? ProtoClassType.Service : ProtoClassType.Message);
 			Protobuf.addToJSONInfo(protobufType, opcode, type);
-			if (isService) {
-				Protobuf.servicesByNameMap.set(classInfo.name, ProtoClass as typeof Service & Constructor<Service>);
-			} else {
-				Protobuf.messagesByNameMap.set(classInfo.name, ProtoClass as typeof Message & Constructor<Message>);
-			}
+			Protobuf.classesByNameMap.set(classInfo.name, ProtoClass);
 
-			ProtoClass._protobuf = protobufType;
-			ProtoClass._opcode = opcode;
-			Protobuf.classByOpcodeMap.set(opcode, ProtoClass);
+			Protobuf.classByOpcodeMap.set(opcode, ProtoClass as typeof BaseProtoClass);
+			Protobuf.opcodeByClassMap.set(ProtoClass as typeof BaseProtoClass, opcode);
 
 			opcode += (isService ? -1 : 1);
 			if (opcode > opcodeLimit || Protobuf.classByOpcodeMap.has(opcode)) {
@@ -313,18 +304,16 @@ export default class Protobuf {
 
 			const protobufSubtype = Protobuf.protobufByNameMap.get(field.type);
 			if (protobufSubtype && value) {
-				const TypeClass = Protobuf.typesByNameMap.get(field.type);
-				const MessageClass = Protobuf.messagesByNameMap.get(field.type);
-				const ServiceClass = Protobuf.servicesByNameMap.get(field.type);
+				const ProtoClass = Protobuf.classesByNameMap.get(field.type);
 				const decoded = Protobuf.getDecodedData(protobufSubtype, value);
 				if (!decoded) {
 					data[field.name] = null;
-				} else if (MessageClass) {
-					data[field.name] = MessageClass.create(decoded);
-				} else if (ServiceClass) {
-					data[field.name] = ServiceClass.create(decoded);
-				} else if (TypeClass) {
-					const object = Object.create(TypeClass.prototype);
+				} else if (ProtoClass && BaseProtoClass.isPrototypeOf(ProtoClass)) {
+					data[field.name] = (
+						ProtoClass as typeof BaseProtoClass & Constructor<BaseProtoClass>
+					).create(decoded);
+				} else if (ProtoClass) {
+					const object = Object.create(ProtoClass.prototype);
 					Object.assign(object, decoded);
 					data[field.name] = object;
 				} else {

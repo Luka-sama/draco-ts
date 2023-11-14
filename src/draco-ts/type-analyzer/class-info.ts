@@ -1,9 +1,13 @@
 import assert from "assert/strict";
 import {ClassDeclaration, SourceFile, SyntaxKind} from "ts-morph";
+import {Class} from "../typings.js";
 import BaseTypeInfo from "./base-type-info.js";
 import SourceInfo from "./source-info.js";
 import TypeAnalyzer from "./type-analyzer.js";
 import {Kind, PropertyInfo} from "./type-analyzer.typings.js";
+
+/** The arbitrary class with the info about this class */
+export type ClassWithInfo = [Class, ClassInfo];
 
 /** A class that contains information about a class */
 export default class ClassInfo extends BaseTypeInfo {
