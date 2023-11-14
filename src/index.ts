@@ -4,13 +4,13 @@ import Session from "./auth/session.js";
 import Chat from "./chat/chat.js";
 import App from "./draco-ts/app.js";
 import Cache from "./draco-ts/cache/cache.js";
-import GameLoop from "./draco-ts/core/game-loop.js";
+import Task from "./draco-ts/game-loop/task.js";
 import Magic from "./magic/magic.js";
 import Zone from "./map/zone.js";
 
 export default class Index {
 	public static async init() {
-		App.init();
+		await App.init();
 		Session.init();
 		//Deploy.init();
 		Index.addGlobalTasks();
@@ -18,10 +18,10 @@ export default class Index {
 	}
 
 	public static addGlobalTasks() {
-		GameLoop.addTask(Magic.moveAllLightsGroups);
-		GameLoop.addTask(Magic.removeLightsFromQueue);
-		GameLoop.addTask(Chat.sendTime);
-		GameLoop.addTask(Zone.stayInCacheIfSomebodyIsOnline, Cache.CLEAN_FREQUENCY / 2);
+		Task.create(Magic.moveAllLightsGroups);
+		Task.create(Magic.removeLightsFromQueue);
+		Task.create(Chat.sendTime);
+		Task.create(Zone.stayInCacheIfSomebodyIsOnline, Cache.CLEAN_FREQUENCY / 2);
 	}
 
 	/** Auto-import to make @OnlyLogged() and other decorators to work without explicit import */

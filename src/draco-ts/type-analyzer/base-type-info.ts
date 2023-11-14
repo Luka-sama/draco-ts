@@ -22,7 +22,7 @@ export default class BaseTypeInfo {
 	/** Whether this type was exported or not */
 	public exported: boolean;
 	/**
-	 * The properties that this type contains.
+	 * The properties that this type contains (only public, not private or protected).
 	 * For some types (such as type aliases) it will only contain one property with the type description
 	 */
 	public properties: PropertyInfo[];

@@ -2,12 +2,16 @@ import Cache from "./cache/cache.js";
 import GameLoop from "./game-loop/game-loop.js";
 import Task from "./game-loop/task.js";
 import Logger, {LogLevel} from "./logger.js";
+import ProtobufLoader from "./net/protobuf-loader.js";
+import Protobuf from "./net/protobuf.js";
 import WS from "./net/ws.js";
 import DB from "./orm/db.js";
 import ORM from "./orm/orm.js";
 import Synchronizer from "./sync/sync.js";
 import Tr from "./tr.js";
+import ClassLoader from "./type-analyzer/class-loader.js";
 import TypeAnalyzer from "./type-analyzer/type-analyzer.js";
+import {Typings} from "./typings.js";
 
 /** Framework configuration. It is recommended to leave default settings, unless you know what you are doing. */
 export interface AppConfig {
@@ -29,6 +33,13 @@ export interface AppConfig {
 	dbFlushFrequency: number;
 	/** Sync all updates with clients every `syncFrequency` ms */
 	syncFrequency: number;
+	/**
+	 * The opcode size in bytes.
+	 * The larger, the more message and service classes can be created, but more bytes are sent per message.
+	 * By default 2 bytes, this means the limit of 65535 messages and services.
+	 * This should be enough for the vast majority of games.
+	 */
+	opcodeSize: number;
 }
 
 /** App class. App log level is by default `info`, unless you change it with `APP_LOG_LEVEL`, see {@link Logger} */
@@ -40,24 +51,32 @@ export default class App {
 		loggerFlushFrequency: 100,
 		dbFlushFrequency: 100,
 		syncFrequency: 100,
+		opcodeSize: 2,
 	};
 	private static started = false;
 
 	/** Initializes all core components (ORM, WS, GameLoop, etc.) */
-	public static init(userConfig: Partial<AppConfig> = {}): void {
+	public static async init(userConfig: Partial<AppConfig> = {}): Promise<void> {
 		if (App.started) {
 			App.logger.warn("Tried to start the application that is already started.");
 			return;
 		}
 		const config: AppConfig = {...App.defaultConfig, ...userConfig};
 
-		// First we should start gameloop, (error) logging and prepare TypeAnalyzer for use
+		// First we should start gameloop and (error) logging
 		Error.stackTraceLimit = config.errorStackTraceLimit;
 		process.on("uncaughtException", App.logger.error);
 		process.on("unhandledRejection", App.logger.error);
 		GameLoop.init(config.tickFrequency);
 		Task.create(Logger.flush, {frequency: config.loggerFlushFrequency});
+
+		// Then we collect the data using TypeAnalyzer and use it
 		TypeAnalyzer.init();
+		const typings = await ClassLoader.findOrThrow(Typings);
+		const {types, messages, services} = await ProtobufLoader.loadAllClasses();
+		Protobuf.init(types, messages, services, config.opcodeSize, typings);
+		// We don't need megabytes of collected data anymore
+		TypeAnalyzer.stop();
 
 		// Then we can start other modules
 		Tr.init();
@@ -69,9 +88,6 @@ export default class App {
 		// With priority 1, so that users get changes immediately rather than on the next game loop iteration
 		Task.create(Synchronizer.synchronize, {frequency: config.syncFrequency, priority: 1});
 		Task.create(Synchronizer.syncNewZones);
-
-		// We don't need megabytes of collected data anymore
-		TypeAnalyzer.stop();
 
 		App.started = true;
 		App.logger.info("Started.");

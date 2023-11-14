@@ -50,6 +50,11 @@ export default class ClassInfo extends BaseTypeInfo {
 		}
 	}
 
+	/** Shortcut for {@link TypeAnalyzer.getFromFile} with this class as first argument */
+	public getFromFile(name: string) {
+		return TypeAnalyzer.getFromFile(this, name);
+	}
+
 	/**
 	 * Returns whether this class is derived of some base class.
 	 * The word "derived" means that it can be a child class, a grandchild class, and so on

@@ -33,7 +33,7 @@ export default class TypeAnalyzer {
 			for (const [TypeInfoClass, nodes] of sourceInfo.nodes) {
 				for (const node of nodes) {
 					const typeInfo = new TypeInfoClass(node, sourceInfo, kindByUrlMap);
-					assert(!TypeAnalyzer.types.has(typeInfo.fullName));
+					assert(!TypeAnalyzer.types.has(typeInfo.fullName), `The type ${typeInfo.fullName} is duplicated.`);
 					TypeAnalyzer.types.set(typeInfo.fullName, typeInfo);
 				}
 			}
@@ -64,7 +64,7 @@ export default class TypeAnalyzer {
 	/** Returns a type info by a full name (see {@link BaseTypeInfo.fullName}) */
 	public static getByFullName(fullName: string): BaseTypeInfo {
 		const typeInfo = TypeAnalyzer.types.get(fullName);
-		assert(typeInfo);
+		assert(typeInfo, `The type ${fullName} is not found.`);
 		return typeInfo;
 	}
 

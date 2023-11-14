@@ -13,7 +13,15 @@ export type UInt64 = bigint;
 
 /** Any class (not class instance) */
 export type Class = abstract new (...args: any[]) => unknown;
+/** Constructor of class T */
 export type Constructor<T> = new (...args: any[]) => T;
+/**
+ * This type constructs a plain object whose properties are the same as in T (without methods).
+ * Example of how to use: `PropertiesOf<InstanceType<MyClass>>` or `PropertiesOf<this>`.
+ */
+export type PropertiesOf<T> = Pick<T, {
+	[K in keyof T]: T[K] extends Function ? never : K
+}[keyof T]>;
 
 /**
  * Ensures that no extra keys are used.
@@ -23,5 +31,17 @@ export type Constructor<T> = new (...args: any[]) => T;
  */
 export type Exact<T, U extends T> = T & {[K in Exclude<keyof U, keyof T>]: never};
 
-/** This class is necessary to make class search work, see {@link TypeAnalyzer} for details */
-export class Typings {}
+/**
+ * This class is necessary to make class search work, see {@link TypeAnalyzer} for details.
+ * It also provides constants with integer ranges.
+ */
+export class Typings {
+	public static readonly INT32_MIN_VALUE = -2_147_483_648;
+	public static readonly INT32_MAX_VALUE = 2_147_483_647;
+	public static readonly UINT32_MIN_VALUE = 0;
+	public static readonly UINT32_MAX_VALUE = 4_294_967_295;
+	public static readonly INT64_MIN_VALUE = -9_223_372_036_854_775_808n;
+	public static readonly INT64_MAX_VALUE = 9_223_372_036_854_775_807n;
+	public static readonly UINT64_MIN_VALUE = 0n;
+	public static readonly UINT64_MAX_VALUE = 18_446_744_073_709_551_615n;
+}

@@ -27,7 +27,8 @@ export interface IVector3 {
 
 /** Abstract basic class that can represent a vector with arbitrary number of components */
 export abstract class Vector {
-	readonly #components: number[]; // # (instead of TypeScript keyword "private") is used to hide this field when serializing a vector
+	// The symbol # (instead of TypeScript keyword "private") is used to hide this field when serializing a vector
+	readonly #components: number[];
 
 	protected constructor(...components: number[]) {
 		assert(!components.some(component => isNaN(component)));
@@ -152,7 +153,7 @@ export abstract class Vector {
 	}
 }
 
-/** Vector2 class. Usually used to represent positions */
+/** Vector2f class (with Float components). Usually used to represent positions */
 export class Vector2f extends Vector {
 	public static readonly Zero = new Vector2f(0, 0);
 	public static readonly One = new Vector2f(1, 1);
@@ -183,7 +184,7 @@ export class Vector2f extends Vector {
 	}
 }
 
-/** Vector2 class. Usually used to represent positions */
+/** Vector2i class (with Int32 components). Usually used to represent positions */
 export class Vector2i extends Vector {
 	public static readonly Zero = new Vector2i(0, 0);
 	public static readonly One = new Vector2i(1, 1);
@@ -215,7 +216,7 @@ export class Vector2i extends Vector {
 	}
 }
 
-/** Vector3 class */
+/** Vector3f class (with Float components) */
 export class Vector3f extends Vector {
 	public static readonly Zero = new Vector3f(0, 0, 0);
 	public static readonly One = new Vector3f(1, 1, 1);
@@ -246,7 +247,7 @@ export class Vector3f extends Vector {
 	}
 }
 
-/** Vector3 class */
+/** Vector3i class (with Int32 components) */
 export class Vector3i extends Vector {
 	public static readonly Zero = new Vector3i(0, 0, 0);
 	public static readonly One = new Vector3i(1, 1, 1);

@@ -98,7 +98,7 @@ export default class Task {
 	 * Executes a task during a loop iteration
 	 * @internal
 	 */
-	public step(): void | Promise<void> {
+	public _step(): void | Promise<void> {
 		const now = Date.now();
 		const delta = now - this.lastExecution;
 		if (delta < this.frequency) {
