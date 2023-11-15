@@ -7,20 +7,24 @@ import Session from "./session.js";
 /**
  * A message that can be sent to the client. You should extend this class to create your own messages.
  * It will be then sent as binary data for the most performance.
- * However, to make it work, you should have a service with an analogous name
- * and the same properties on the client side.
+ * On the client side, you should then have a service with an analogous name and the same properties.
  *
  * Please note that you should use `Float`, `Int32` etc. from `typings.ts` instead of imprecise `number`.
- * Also, do not use optional fields. If you really need this, make sure to provide default values
- * as in the example below.
+ * You can also use optional fields or default values. For optional fields without provided default values,
+ * default value is calced as follows:
+ * - Primitive values are treated as default values, i.e. `false` for booleans, `0` for numbers, `""` for strings.
+ * - Arrays are treated as arrays of length 0.
+ * - Enums get their first value (with index 0).
+ * - Vectors are treated as zero vectors (with all components equal to zero).
+ * - Only messages and message types will remain `undefined`.
  *
  * Example of use (on the client side you should then have ChatService):
  * ```ts
  * export class ChatMessage {
- *   text!: string;
+ *   text?: string;
  *   time!: Int64;
- *   userName!: string;
- *   isImportant?: boolean = false;
+ *   userName = "anonymous";
+ *   isImportant!: boolean;
  * }
  * ```
  */

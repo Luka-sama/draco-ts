@@ -14,12 +14,15 @@ export interface ServiceOptions {
  * For readability purposes, such methods get the current service instance
  * to make possible the destructuring assignment.
  *
+ * Only for messages and message types it makes sense to make fields optional (see example below).
+ *
  * Example of use (on the client side you should send AuthMessage to call this service):
  *
  * ```ts
  * export default class AuthService extends Service {
  *   public mail!: string;
  *   public pass!: string;
+ *   public someMessageType?: SomeMessageType;
  *
  *   public validate({mail, pass}: this): boolean {
  *     return mail.length > 0 && pass.length > 0;

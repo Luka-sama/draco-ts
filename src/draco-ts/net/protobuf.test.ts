@@ -28,10 +28,17 @@ export class TestMessage extends Message {
 	public false!: boolean;
 	public true!: boolean;
 	public string!: string;
-	public int32array!: Int32[];
+	public int64array!: Int64[];
 	public enum!: TestEnum;
 	public position!: Vector2i;
 	public nested!: TestMessageType;
+	public optionalInt64?: Int64;
+	public optionalBoolean?: boolean;
+	public optionalString?: string;
+	public optionalArray?: Int32[];
+	public optionalEnum?: TestEnum;
+	public optionalPosition?: Vector2i;
+	public optionalNested?: TestMessageType;
 }
 
 export class TestService extends Service {
@@ -44,10 +51,17 @@ export class TestService extends Service {
 	public false!: boolean;
 	public true!: boolean;
 	public string!: string;
-	public int32array!: Int32[];
+	public int64array!: Int64[];
 	public enum!: TestEnum;
 	public position!: Vector2i;
 	public nested!: TestMessageType;
+	public optionalInt64!: Int64;
+	public optionalBoolean!: boolean;
+	public optionalString!: string;
+	public optionalArray!: Int32[];
+	public optionalEnum!: TestEnum;
+	public optionalPosition!: Vector2i;
+	public optionalNested?: TestMessageType;
 }
 
 let typings: ClassInfo;
@@ -81,10 +95,10 @@ beforeAll(() => {
 
 test("message encoding & service decoding", () => {
 	const loggerWarn = jest.spyOn(Protobuf["logger"], "warn").mockImplementation();
-	const nested = TestMessageType.create({someField: ""});
+	const nested = TestMessageType.create({someField: "lalala"});
 	const data: PropertiesOf<TestMessage> = {
-		uint32: 12345, int64: -1234567890n, uint64: BigInt(Date.now()), float: 3.14, double: 3.1415,
-		false: false, true: true, string: "hello world", int32array: [1, 22, 333], enum: TestEnum.Second,
+		uint32: 12345, int64: -9_223_372_036_854_775_800n, uint64: BigInt(Date.now()), float: 3.14, double: 3.1415,
+		false: false, true: true, string: "hello world", int64array: [1n, 22n, 333n], enum: TestEnum.Second,
 		position: Vec2i(10, 15), nested
 	};
 	const msg = TestMessage.create(data);
@@ -93,6 +107,7 @@ test("message encoding & service decoding", () => {
 	const failedService = Protobuf.decode(encodedWithWrongOpcode);
 	expect(failedService).toBeNull();
 	expect(loggerWarn).toBeCalledTimes(1);
+	loggerWarn.mockRestore();
 
 	Protobuf["opcodeByClassMap"].set(TestMessage, 255);
 	const encoded = Protobuf.encode(msg);
@@ -109,8 +124,15 @@ test("message encoding & service decoding", () => {
 	expect(service.false).toBe(data.false);
 	expect(service.true).toBe(data.true);
 	expect(service.string).toBe(data.string);
-	expect(service.int32array).toStrictEqual(data.int32array);
+	expect(service.int64array).toStrictEqual(data.int64array);
 	expect(service.enum).toBe(data.enum);
 	expect(service.position).toStrictEqual(data.position);
 	expect(service.nested).toStrictEqual(data.nested);
+	expect(service.optionalInt64).toBe(0n);
+	expect(service.optionalBoolean).toBe(false);
+	expect(service.optionalString).toBe("");
+	expect(service.optionalArray).toStrictEqual([]);
+	expect(service.optionalEnum).toBe(TestEnum.First);
+	expect(service.optionalPosition).toStrictEqual(Vector2i.Zero);
+	expect(service.optionalNested).toBeUndefined();
 });

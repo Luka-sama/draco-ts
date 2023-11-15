@@ -1,9 +1,10 @@
-import protobuf, {Long} from "protobufjs";
+import protobuf from "protobufjs/light.js";
 import Logger from "../logger.js";
+import {Vector2f, Vector2i, Vector3f, Vector3i} from "../math/vector.js";
 import ClassInfo, {ClassWithInfo} from "../type-analyzer/class-info.js";
 import TypeAnalyzer from "../type-analyzer/type-analyzer.js";
-import {Kind, PropertyInfo, PropertyType} from "../type-analyzer/type-analyzer.typings.js";
-import {Class, Constructor, Double, PropertiesOf, Typings} from "../typings.js";
+import {Kind, PropertyType} from "../type-analyzer/type-analyzer.typings.js";
+import {Class, Constructor, PropertiesOf, Typings} from "../typings.js";
 import BaseProtoClass from "./base-proto-class.js";
 import Message from "./message.js";
 import Service from "./service.js";
@@ -86,9 +87,9 @@ export default class Protobuf {
 		if (!dataToEncode) {
 			return Buffer.alloc(0);
 		}
-		const encodedMessage = protobufType.encode(
+		const encodedMessage = (protobufType.encode(
 			protobufType.create(dataToEncode)
-		).finish() as Buffer;
+		) as {finish: () => Uint8Array}).finish() as Buffer;
 		return Buffer.concat([encodedOpcode, encodedMessage]);
 	}
 
@@ -108,16 +109,20 @@ export default class Protobuf {
 			);
 			return null;
 		}
-		const decodedMessage = protobufType.toObject(
-			protobufType.decode(encodedMessage),
-			{defaults: true}
-		) as PropertiesOf<typeof ProtoClass>;
-
-		const data = Protobuf.getDecodedData(protobufType, decodedMessage);
-		if (!data) {
+		try {
+			const decodedMessage = protobufType.toObject(
+				protobufType.decode(encodedMessage),
+				{defaults: true}
+			) as PropertiesOf<typeof ProtoClass>;
+			const data = Protobuf.getDecodedData(protobufType, decodedMessage);
+			if (!data) {
+				return null;
+			}
+			return ProtoClass.create(data);
+		} catch (e) {
+			Protobuf.logger.error(`Failed decoding of ${ProtoClass.name}. ${e}`);
 			return null;
 		}
-		return ProtoClass.create(data);
 	}
 
 	/** Initializes all types that can be used in protobufs */
@@ -198,27 +203,54 @@ export default class Protobuf {
 		Protobuf.root.add(protobufType);
 		Protobuf.protobufByNameMap.set(name, protobufType);
 		let id = 1;
+		const enums = new Set<string>;
 		for (const property of classInfo.getAllProperties()) {
-			const field = Protobuf.propertyToField(property, id, typings);
-			if (field) {
+			if (property.static) {
+				continue;
+			}
+
+			const field = Protobuf.propertyToField(property.name, property.type, id, typings);
+			if (!field) {
+				continue;
+			}
+
+			if (property.type.kind != Kind.Enum || enums.has(property.type.name)) {
 				protobufType.add(field);
 				id++;
+				continue;
 			}
+
+			const enumInfo = TypeAnalyzer.getByFullName(property.type.fullName);
+			const values: {[key: string]: number} = {};
+			enumInfo.properties.forEach(p => values[p.name] = +p.type.name);
+			const indexes = Object.values(values);
+			if (
+				enumInfo.properties.some(property => property.type.kind != Kind.Number) ||
+				indexes.some(num => isNaN(num) || num < Typings.UINT32_MIN_VALUE || num > Typings.UINT32_MAX_VALUE) ||
+				indexes.every(num => num != 0)
+			) {
+				Protobuf.logger.error("Only enums with uint32 values starting from 0 are allowed.");
+				continue;
+			}
+
+			const enumType = new protobuf.Enum(enumInfo.name, values);
+			enums.add(property.type.name);
+			protobufType.add(enumType);
+			protobufType.add(field);
+			id++;
 		}
 		return protobufType;
 	}
 
 	/** Transforms a property info from {@link TypeAnalyzer} to a protobuf field. Returns `null` in case of failure */
-	private static propertyToField(property: PropertyInfo, id: number, typings: ClassInfo): protobuf.Field | null {
-		if (property.static) {
-			return null;
+	private static propertyToField(
+		propertyName: string, propertyType: PropertyType, id: number, typings: ClassInfo, repeated = false
+	): protobuf.Field | null {
+		if (propertyType.kind == Kind.Array) {
+			return Protobuf.propertyToField(propertyName, propertyType.subtypes[0], id, typings, true);
 		}
-		if (property.type.kind == Kind.Array) {
-			const type = Protobuf.transformType(property.type.subtypes[0], typings);
-			return (type ? new protobuf.Field(property.name, id, type, "repeated") : null);
-		}
-		const type = Protobuf.transformType(property.type, typings);
-		return (type ? new protobuf.Field(property.name, id, type) : null);
+		const type = Protobuf.transformType(propertyType, typings);
+		return (type ? new protobuf.Field(propertyName, id, type, (repeated ? "repeated" : undefined)) : null);
 	}
 
 	/** Transforms a type info from {@link TypeAnalyzer} to a protobuf field type. Returns `null` in case of failure */
@@ -246,21 +278,9 @@ export default class Protobuf {
 		} else if (type.kind == Kind.String) {
 			return "string";
 		} else if (type.kind == Kind.Enum) {
-			const enumInfo = TypeAnalyzer.getByFullName(type.fullName);
-			if (enumInfo.properties.some(property => {
-				const number = +property.type.name;
-				return (
-					property.type.kind != Kind.Number || isNaN(number) ||
-					number < Typings.UINT32_MIN_VALUE || number > Typings.UINT32_MAX_VALUE
-				);
-			})) {
-				Protobuf.logger.error("Only enums with uint32 values are allowed.");
-				return null;
-			}
-			return "uint32";
+			return type.name;
 		} else if (type.kind == Kind.Class) {
-			const classInfo = TypeAnalyzer.getByFullName(type.fullName);
-			return classInfo.name;
+			return type.name;
 		}
 		Protobuf.logger.error(`Unknown field type "${type.kind}".`);
 		return null;
@@ -273,20 +293,89 @@ export default class Protobuf {
 		const data: {[p: string]: unknown} = {};
 		for (const field of protobufType.fieldsArray) {
 			const value: unknown = message[field.name as keyof typeof message];
-			if (!Protobuf.validate(value, field.type, field.repeated, field.name, protobufType.name)) {
+			if (!Protobuf.validateValueToEncode(protobufType, field, value)) {
 				return null;
 			}
-			data[field.name] = value;
-
-			const protobufSubtype = Protobuf.protobufByNameMap.get(field.type);
-			if (protobufSubtype) {
-				data[field.name] = Protobuf.getDataToEncode(protobufSubtype, value);
-			} else if (typeof value == "bigint") {
-				data[field.name] = value.toString();
-			}
+			data[field.name] = Protobuf.getValueToEncode(protobufType, field, value);
 		}
 
 		return data;
+	}
+
+	/** Validates a value that should be encoded. Ensures that numbers are not out of range */
+	private static validateValueToEncode(
+		protobufType: protobuf.Type, field: protobuf.Field, value: unknown, isArrayElement = false
+	): boolean {
+		const type = field.type;
+		const name = `${protobufType.name}.${field.name}`;
+		if (value === undefined) {
+			return true;
+		} else if (field.repeated && !isArrayElement) {
+			if (value instanceof Array) {
+				return value.every(
+					entry => Protobuf.validateValueToEncode(protobufType, field, entry, true)
+				);
+			} else {
+				Protobuf.logger.error(`${name} is not an array (value=${value}).`);
+				return false;
+			}
+		} else if (["int32", "uint32"].includes(type)) {
+			if (typeof value == "number" && Number.isInteger(value)) {
+				if (
+					type == "int32" && (value < Typings.INT32_MIN_VALUE || value > Typings.INT32_MAX_VALUE) ||
+					type == "uint32" && (value < Typings.UINT32_MIN_VALUE || value > Typings.UINT32_MAX_VALUE)
+				) {
+					Protobuf.logger.error(`${name}: ${type} out of range (value=${value}).`);
+					return false;
+				}
+			} else {
+				Protobuf.logger.error(`${name} is not an integer (${value}).`);
+				return false;
+			}
+		} else if (["int64", "uint64"].includes(type)) {
+			if (typeof value == "bigint") {
+				if (
+					type == "int64" && (value < Typings.INT64_MIN_VALUE || value > Typings.INT64_MAX_VALUE) ||
+					type == "uint64" && (value < Typings.UINT64_MIN_VALUE || value > Typings.UINT64_MAX_VALUE)
+				) {
+					Protobuf.logger.error(`${name}: ${type} out of range (value=${value}).`);
+					return false;
+				}
+			} else {
+				Protobuf.logger.error(`${name} is not a bigint (${value}).`);
+				return false;
+			}
+		} else if (!Protobuf.validateEnum(protobufType, field, value)) {
+			Protobuf.logger.error(`${name}: ${type} out of range (value=${value}).`);
+			return false;
+		}
+		return true;
+	}
+
+	/** Transforms a value so that it can be encoded by protobufjs */
+	private static getValueToEncode(
+		protobufType: protobuf.Type, field: protobuf.Field, value: unknown, isArrayElement = false
+	): unknown {
+		if (value === undefined) {
+			return value;
+		}
+
+		if (field.repeated && !isArrayElement) {
+			if (value instanceof Array) {
+				return value.map(entry => Protobuf.getValueToEncode(protobufType, field, entry, true));
+			} else {
+				Protobuf.logger.error(`${protobufType.name}.${field.name} is not an array (value=${value}).`);
+				return [];
+			}
+		}
+
+		const protobufSubtype = Protobuf.protobufByNameMap.get(field.type);
+		if (protobufSubtype && value) {
+			return Protobuf.getDataToEncode(protobufSubtype, value);
+		} else if (typeof value == "bigint") {
+			return value.toString();
+		}
+		return value;
 	}
 
 	/** Returns a plain object with the transformed data from a message */
@@ -300,81 +389,75 @@ export default class Protobuf {
 				Protobuf.logger.warn(`${protobufType.name}.${field.name} was not set.`);
 				return null;
 			}
-			data[field.name] = value;
-
-			const protobufSubtype = Protobuf.protobufByNameMap.get(field.type);
-			if (protobufSubtype && value) {
-				const ProtoClass = Protobuf.classesByNameMap.get(field.type);
-				const decoded = Protobuf.getDecodedData(protobufSubtype, value);
-				if (!decoded) {
-					data[field.name] = null;
-				} else if (ProtoClass && BaseProtoClass.isPrototypeOf(ProtoClass)) {
-					data[field.name] = (
-						ProtoClass as typeof BaseProtoClass & Constructor<BaseProtoClass>
-					).create(decoded);
-				} else if (ProtoClass) {
-					const object = Object.create(ProtoClass.prototype);
-					Object.assign(object, decoded);
-					data[field.name] = object;
-				} else {
-					data[field.name] = decoded;
-				}
-			} else if (value instanceof protobuf.util.Long) {
-				data[field.name] = Protobuf.longToBigint(value);
-			}
+			data[field.name] = Protobuf.getDecodedValue(protobufType, field, value);
 		}
 		return data;
 	}
 
-	/** Converts an object with long number (i.e. int64) to bigint */
-	private static longToBigint(long: Long): bigint {
-		const high = (long.unsigned ? (long.high >>> 0) : long.high);
-		const low = long.low >>> 0;
-		return (BigInt(high) << 32n) + BigInt(low);
-	}
+	/** Transforms a decoded value, e.g. from protobuf message to original class message */
+	private static getDecodedValue(
+		protobufType: protobuf.Type, field: protobuf.Field, value: unknown, isArrayElement = false
+	): unknown {
+		const name = `${protobufType.name}.${field.name}`;
+		if (value === null) {
+			value = undefined;
+		}
 
-	/** Validates a value that should be encoded. Ensures that numbers are not out of range */
-	private static validate(
-		value: unknown, type: string, repeated: boolean, fieldName: string, typeName: string
-	): boolean {
-		const name = `${typeName}.${fieldName}`;
-		if (value === undefined) {
-			Protobuf.logger.error(`${name} was not set.`);
-			return false;
-		} else if (repeated) {
+		if (field.repeated && !isArrayElement) {
 			if (value instanceof Array) {
-				return value.every(entry => Protobuf.validate(entry, type, false, fieldName, typeName));
+				return value.map(entry => Protobuf.getDecodedValue(protobufType, field, entry, true));
 			} else {
 				Protobuf.logger.error(`${name} is not an array (value=${value}).`);
-				return false;
-			}
-		} else if (type.endsWith("int32")) {
-			if (typeof value == "number" && Number.isInteger(value)) {
-				if (
-					type == "int32" && (value < Typings.INT32_MIN_VALUE || value > Typings.INT32_MAX_VALUE) ||
-					type == "uint32" && (value < Typings.UINT32_MIN_VALUE || value > Typings.UINT32_MAX_VALUE)
-				) {
-					Protobuf.logger.error(`${name}: ${type} out of range (value=${value}).`);
-					return false;
-				}
-			} else {
-				Protobuf.logger.error(`${name} is not an integer (${value}).`);
-				return false;
-			}
-		} else if (type.endsWith("int64")) {
-			if (typeof value == "bigint") {
-				if (
-					type == "int64" && (value < Typings.INT64_MIN_VALUE || value > Typings.INT64_MAX_VALUE) ||
-					type == "uint64" && (value < Typings.UINT64_MIN_VALUE || value > Typings.UINT64_MAX_VALUE)
-				) {
-					Protobuf.logger.error(`${name}: ${type} out of range (value=${value}).`);
-					return false;
-				}
-			} else {
-				Protobuf.logger.error(`${name} is not a bigint (${value}).`);
-				return false;
+				return [];
 			}
 		}
-		return true;
+
+		const protobufSubtype = Protobuf.protobufByNameMap.get(field.type);
+		if (protobufSubtype && value) {
+			const ProtoClass = Protobuf.classesByNameMap.get(field.type);
+			const decoded = Protobuf.getDecodedData(protobufSubtype, value);
+			if (!decoded) {
+				return null;
+			} else if (ProtoClass && BaseProtoClass.isPrototypeOf(ProtoClass)) {
+				return (
+					ProtoClass as typeof BaseProtoClass & Constructor<BaseProtoClass>
+				).create(decoded);
+			} else if (ProtoClass) {
+				const object = Object.create(ProtoClass.prototype);
+				Object.assign(object, decoded);
+				return object;
+			} else {
+				return decoded;
+			}
+		} else if (protobufSubtype && !value) {
+			const ProtoClass = Protobuf.classesByNameMap.get(field.type);
+			if (ProtoClass && ([Vector2f, Vector2i, Vector3f, Vector3i] as Class[]).includes(ProtoClass)) {
+				return (
+					ProtoClass as typeof Vector2f | typeof Vector2i | typeof Vector3f | typeof Vector3i
+				).Zero;
+			}
+		} else if (value instanceof protobuf.util.Long) {
+			const high = (value.unsigned ? (value.high >>> 0) : value.high);
+			const low = value.low >>> 0;
+			return (BigInt(high) << 32n) + BigInt(low);
+		} else if (!Protobuf.validateEnum(protobufType, field, value)) {
+			Protobuf.logger.warn(`${name}: ${field.type} out of range (value=${value}).`);
+			return 0;
+		}
+		return value;
+	}
+
+	/** Validates the given value for the given field of the given protobuf type, if it is an enum */
+	private static validateEnum(protobufType: protobuf.Type, field: protobuf.Field, value: unknown): boolean {
+		const builtInTypes = ["int32", "uint32", "int64", "uint64", "float", "double", "bool", "string"];
+		if (builtInTypes.includes(field.type)) {
+			return true;
+		}
+		const enumType = protobufType.lookup(field.type, protobuf.Enum, true) as protobuf.Enum | null;
+		if (!enumType) {
+			return true;
+		}
+		const indexes = Object.values(enumType.values);
+		return (typeof value == "number" && indexes.includes(value));
 	}
 }
