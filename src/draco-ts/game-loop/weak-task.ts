@@ -26,7 +26,7 @@ export default abstract class WeakTask<T extends object> extends Task {
 		this.data = new WeakRef(object);
 	}
 
-	public exec(): void | Promise<void> {
+	public _step(): void | Promise<void> {
 		const ref = this.data;
 		if (!(ref instanceof WeakRef)) {
 			GameLoop.logger.error(`${this.name}: data is not WeakRef.`);
@@ -37,7 +37,7 @@ export default abstract class WeakTask<T extends object> extends Task {
 		const value = ref.deref();
 		if (value) {
 			this.data = value;
-			super.exec();
+			super._step();
 			this.data = ref;
 		} else {
 			this.stop();

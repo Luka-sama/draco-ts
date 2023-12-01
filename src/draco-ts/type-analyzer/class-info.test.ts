@@ -1,4 +1,5 @@
 import assert from "assert/strict";
+import {before, test} from "node:test";
 import ClassInfo from "./class-info.js";
 import TypeAnalyzer from "./type-analyzer.js";
 import {Kind, PropertyInfo} from "./type-analyzer.typings.js";
@@ -42,22 +43,12 @@ class ClassInfoTest<T extends string | number> {
 export {ClassInfoTest as ExportedClassInfoTest};
 
 let classInfo: ClassInfo, baseClassInfo: ClassInfo, childClassInfo: ClassInfo, grandchildClassInfo: ClassInfo;
-beforeAll(() => {
+before(() => {
 	TypeAnalyzer.init();
-	for (const typeInfo of TypeAnalyzer.getAllTypes()) {
-		if (!(typeInfo instanceof ClassInfo)) {
-			continue;
-		}
-		if (typeInfo.name == "ClassInfoTest") {
-			classInfo = typeInfo;
-		} else if (typeInfo.name == "BaseClassInfoTest") {
-			baseClassInfo = typeInfo;
-		} else if (typeInfo.name == "ChildClassInfoTest") {
-			childClassInfo = typeInfo;
-		} else if (typeInfo.name == "GrandchildClassInfoTest") {
-			grandchildClassInfo = typeInfo;
-		}
-	}
+	classInfo = TypeAnalyzer.findByName("ClassInfoTest", ClassInfo);
+	baseClassInfo = TypeAnalyzer.findByName("BaseClassInfoTest", ClassInfo);
+	childClassInfo = TypeAnalyzer.findByName("ChildClassInfoTest", ClassInfo);
+	grandchildClassInfo = TypeAnalyzer.findByName("GrandchildClassInfoTest", ClassInfo);
 });
 
 test("properties of classInfo", () => {
@@ -188,53 +179,53 @@ test("properties of classInfo", () => {
 		},
 	];
 
-	expect(classInfo.name).toBe("ClassInfoTest");
-	expect(classInfo.exportName).toBe("ExportedClassInfoTest");
-	expect(classInfo.fullName.endsWith(classInfo.exportName)).toBeTruthy();
-	expect(classInfo.source.includes("class-info.test.js")).toBeTruthy();
-	expect(classInfo.fullName.includes(classInfo.source)).toBeTruthy();
-	expect(classInfo.exported).toBeTruthy();
-	expect(classInfo.extends).toBeUndefined();
-	expect(classInfo.fullExtends).toBeUndefined();
-	expect(classInfo.abstract).toBeFalsy();
-	expect(classInfo.properties).toStrictEqual(properties);
+	assert.equal(classInfo.name, "ClassInfoTest");
+	assert.equal(classInfo.exportName, "ExportedClassInfoTest");
+	assert(classInfo.fullName.endsWith(classInfo.exportName));
+	assert(classInfo.source.includes("class-info.test.js"));
+	assert(classInfo.fullName.includes(classInfo.source));
+	assert.equal(classInfo.exported, true);
+	assert.equal(classInfo.extends, undefined);
+	assert.equal(classInfo.fullExtends, undefined);
+	assert.equal(classInfo.abstract, false);
+	assert.deepEqual(classInfo.properties, properties);
 });
 
 test("equals", () => {
 	const type = classInfo.properties.find(property => property.name == "usingTypeof")?.type.subtypes[0];
 	assert(type);
-	expect(classInfo.equals(type)).toBeTruthy();
+	assert.equal(classInfo.equals(type), true);
 });
 
 test("properties of baseClassInfo, childClassInfo, grandchildClassInfo", () => {
-	expect(baseClassInfo.exportName).toBe("");
-	expect(childClassInfo.exportName).toBe("");
-	expect(grandchildClassInfo.exportName).toBe("GrandchildClassInfoTest");
+	assert.equal(baseClassInfo.exportName, "");
+	assert.equal(childClassInfo.exportName, "");
+	assert.equal(grandchildClassInfo.exportName, "GrandchildClassInfoTest");
 
-	expect(baseClassInfo.exported).toBeFalsy();
-	expect(childClassInfo.exported).toBeFalsy();
-	expect(grandchildClassInfo.exported).toBeTruthy();
+	assert.equal(baseClassInfo.exported, false);
+	assert.equal(childClassInfo.exported, false);
+	assert.equal(grandchildClassInfo.exported, true);
 
-	expect(baseClassInfo.extends).toBeUndefined();
-	expect(childClassInfo.extends).toBe("BaseClassInfoTest");
-	expect(grandchildClassInfo.extends).toBe("ChildClassInfoTest");
+	assert.equal(baseClassInfo.extends, undefined);
+	assert.equal(childClassInfo.extends, "BaseClassInfoTest");
+	assert.equal(grandchildClassInfo.extends, "ChildClassInfoTest");
 
-	expect(baseClassInfo.fullExtends).toBeUndefined();
-	expect(childClassInfo.fullExtends).toBe(baseClassInfo.fullName);
-	expect(grandchildClassInfo.fullExtends).toBe(childClassInfo.fullName);
+	assert.equal(baseClassInfo.fullExtends, undefined);
+	assert.equal(childClassInfo.fullExtends, baseClassInfo.fullName);
+	assert.equal(grandchildClassInfo.fullExtends, childClassInfo.fullName);
 
-	expect(baseClassInfo.abstract).toBeTruthy();
-	expect(childClassInfo.abstract).toBeFalsy();
-	expect(grandchildClassInfo.abstract).toBeFalsy();
+	assert.equal(baseClassInfo.abstract, true);
+	assert.equal(childClassInfo.abstract, false);
+	assert.equal(grandchildClassInfo.abstract, false);
 });
 
 test("isDerivedOf", () => {
-	expect(childClassInfo.isDerivedOf(baseClassInfo)).toBeTruthy();
-	expect(grandchildClassInfo.isDerivedOf(baseClassInfo)).toBeTruthy();
-	expect(grandchildClassInfo.isDerivedOf(childClassInfo)).toBeTruthy();
-	expect(baseClassInfo.isDerivedOf(childClassInfo)).toBeFalsy();
-	expect(baseClassInfo.isDerivedOf(grandchildClassInfo)).toBeFalsy();
-	expect(childClassInfo.isDerivedOf(grandchildClassInfo)).toBeFalsy();
+	assert.equal(childClassInfo.isDerivedOf(baseClassInfo), true);
+	assert.equal(grandchildClassInfo.isDerivedOf(baseClassInfo), true);
+	assert.equal(grandchildClassInfo.isDerivedOf(childClassInfo), true);
+	assert.equal(baseClassInfo.isDerivedOf(childClassInfo), false);
+	assert.equal(baseClassInfo.isDerivedOf(grandchildClassInfo), false);
+	assert.equal(childClassInfo.isDerivedOf(grandchildClassInfo), false);
 });
 
 test("getAllProperties", () => {
@@ -253,15 +244,15 @@ test("getAllProperties", () => {
 		},
 	];
 
-	expect(grandchildClassInfo.getAllProperties()).toStrictEqual(properties);
+	assert.deepEqual(grandchildClassInfo.getAllProperties(), properties);
 });
 
 test("getParent", () => {
-	expect(baseClassInfo.getParent()).toBeUndefined();
-	expect(childClassInfo.getParent()).toBe(baseClassInfo);
-	expect(grandchildClassInfo.getParent()).toBe(childClassInfo);
+	assert.equal(baseClassInfo.getParent(), undefined);
+	assert.equal(childClassInfo.getParent(), baseClassInfo);
+	assert.equal(grandchildClassInfo.getParent(), childClassInfo);
 });
 
 test("findDerivedClasses", () => {
-	expect(baseClassInfo.findDerivedClasses()).toStrictEqual([childClassInfo, grandchildClassInfo]);
+	assert.deepEqual(baseClassInfo.findDerivedClasses(), [childClassInfo, grandchildClassInfo]);
 });

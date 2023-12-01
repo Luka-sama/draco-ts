@@ -1,3 +1,5 @@
+import assert from "assert/strict";
+import {before, test} from "node:test";
 import EnumInfo from "./enum-info.js";
 import TypeAnalyzer from "./type-analyzer.js";
 import {Kind, PropertyInfo} from "./type-analyzer.typings.js";
@@ -7,17 +9,13 @@ export enum EnumInfoTest {
 	Second = "second",
 }
 
-let enumInfo: EnumInfo;
-beforeAll(() => {
+before(() => {
 	TypeAnalyzer.init();
-	for (const typeInfo of TypeAnalyzer.getAllTypes()) {
-		if (typeInfo instanceof EnumInfo && typeInfo.name == "EnumInfoTest") {
-			enumInfo = typeInfo;
-		}
-	}
 });
 
 test("enum properties", () => {
+	const enumInfo = TypeAnalyzer.findByName("EnumInfoTest", EnumInfo);
+
 	const properties: PropertyInfo[] = [
 		{name: "First", optional: false, static: false, type: {
 			name: "0", fullName: "0", kind: Kind.Number, subtypes: []
@@ -26,5 +24,5 @@ test("enum properties", () => {
 			name: `"second"`, fullName: `"second"`, kind: Kind.String, subtypes: []
 		}}
 	];
-	expect(enumInfo.properties).toStrictEqual(properties);
+	assert.deepEqual(enumInfo.properties, properties);
 });

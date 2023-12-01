@@ -1,3 +1,4 @@
+import "dotenv/config";
 import pg from "pg";
 
 export default class DB {

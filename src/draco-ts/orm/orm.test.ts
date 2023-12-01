@@ -1,3 +1,5 @@
+import {describe, test} from "node:test";
+
 test("ORM.query", async () => {
 	//const result = await ORM.query("SELECT 'test' AS field");
 	//expect(result.rows[0].field).toBe("test");

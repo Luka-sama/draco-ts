@@ -7,7 +7,7 @@ export default class GameLoop {
 	public static readonly logger = new Logger(GameLoop);
 	private static readonly tasks = new Map<number, Set<Task>>;
 	private static tick = 0;
-	private static interval?: NodeJS.Timer;
+	private static interval?: NodeJS.Timeout;
 
 	/** Initializes the game loop */
 	public static init(frequency: number): void {

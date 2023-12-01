@@ -1,4 +1,5 @@
 import assert from "assert/strict";
+import "dotenv/config";
 import fs from "fs";
 import path from "path";
 import {Project, SourceFile, SyntaxKind} from "ts-morph";

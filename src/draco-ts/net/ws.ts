@@ -1,5 +1,6 @@
 import assert from "assert/strict";
 import {Buffer} from "buffer";
+import "dotenv/config";
 import _ from "lodash";
 import {EventEmitter} from "node:events";
 import uWS from "uWebSockets.js";

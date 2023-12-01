@@ -1,8 +1,11 @@
 import assert from "assert/strict";
+import _ from "lodash";
+import {before, test} from "node:test";
 import {Vec2i, Vector2i} from "../math/vector.js";
-import ClassInfo, {ClassWithInfo} from "../type-analyzer/class-info.js";
+import {ClassWithInfo} from "../type-analyzer/class-info.js";
+import ClassLoader from "../type-analyzer/class-loader.js";
 import TypeAnalyzer from "../type-analyzer/type-analyzer.js";
-import {Double, Float, Int32, Int64, PropertiesOf, UInt32, UInt64} from "../typings.js";
+import {Double, Float, Int32, Int64, PropertiesOf, Typings, UInt32, UInt64} from "../typings.js";
 import MessageType from "./message-type.js";
 import Message from "./message.js";
 import Protobuf from "./protobuf.js";
@@ -64,37 +67,26 @@ export class TestService extends Service {
 	public optionalNested?: TestMessageType;
 }
 
-let typings: ClassInfo;
-let vector2iInfo: ClassInfo;
-let testMessageTypeInfo: ClassInfo, testMessageInfo: ClassInfo;
-let testServiceInfo: ClassInfo;
-beforeAll(() => {
+before(async () => {
 	TypeAnalyzer.init();
-	for (const typeInfo of TypeAnalyzer.getAllTypes()) {
-		if (!(typeInfo instanceof ClassInfo)) {
-			continue;
-		}
-		if (typeInfo.name == "Typings") {
-			typings = typeInfo;
-		} else if (typeInfo.name == "Vector2i") {
-			vector2iInfo = typeInfo;
-		} else if (typeInfo.name == "TestMessageType") {
-			testMessageTypeInfo = typeInfo;
-		} else if (typeInfo.name == "TestMessage") {
-			testMessageInfo = typeInfo;
-		} else if (typeInfo.name == "TestService") {
-			testServiceInfo = typeInfo;
-		}
-	}
 
-	const types: ClassWithInfo[] = [[Vector2i, vector2iInfo], [TestMessageType, testMessageTypeInfo]];
-	const messages: ClassWithInfo[] = [[TestMessage, testMessageInfo]];
-	const services: ClassWithInfo[] = [[TestService, testServiceInfo]];
+	const types: ClassWithInfo[] = [
+		await ClassLoader.findOrThrowWithInfo(Vector2i),
+		await ClassLoader.findOrThrowWithInfo(TestMessageType)
+	];
+	const messages: ClassWithInfo[] = [
+		await ClassLoader.findOrThrowWithInfo(TestMessage),
+	];
+	const services: ClassWithInfo[] = [
+		await ClassLoader.findOrThrowWithInfo(TestService),
+	];
+	const typings = await ClassLoader.findOrThrow(Typings);
 	Protobuf.init(types, messages, services, 1, typings);
 });
 
-test("message encoding & service decoding", () => {
-	const loggerWarn = jest.spyOn(Protobuf["logger"], "warn").mockImplementation();
+test("message encoding & service decoding", (ctx) => {
+	const loggerWarn = ctx.mock.method(Protobuf["logger"], "warn");
+	loggerWarn.mock.mockImplementationOnce(() => {});
 	const nested = TestMessageType.create({someField: "lalala"});
 	const data: PropertiesOf<TestMessage> = {
 		uint32: 12345, int64: -9_223_372_036_854_775_800n, uint64: BigInt(Date.now()), float: 3.14, double: 3.1415,
@@ -105,34 +97,32 @@ test("message encoding & service decoding", () => {
 
 	const encodedWithWrongOpcode = Protobuf.encode(msg);
 	const failedService = Protobuf.decode(encodedWithWrongOpcode);
-	expect(failedService).toBeNull();
-	expect(loggerWarn).toBeCalledTimes(1);
-	loggerWarn.mockRestore();
+	assert.equal(failedService, null);
+	assert.equal(loggerWarn.mock.callCount(), 1);
 
 	Protobuf["opcodeByClassMap"].set(TestMessage, 255);
 	const encoded = Protobuf.encode(msg);
 	const service = Protobuf.decode(encoded);
-	expect(service).toBeInstanceOf(TestService);
 	assert(service instanceof TestService);
 
-	expect(service.int32).toBe(-12345);
-	expect(service.uint32).toBe(data.uint32);
-	expect(service.int64).toBe(data.int64);
-	expect(service.uint64).toBe(data.uint64);
-	expect(service.float).toBeCloseTo(data.float);
-	expect(service.double).toBeCloseTo(data.double);
-	expect(service.false).toBe(data.false);
-	expect(service.true).toBe(data.true);
-	expect(service.string).toBe(data.string);
-	expect(service.int64array).toStrictEqual(data.int64array);
-	expect(service.enum).toBe(data.enum);
-	expect(service.position).toStrictEqual(data.position);
-	expect(service.nested).toStrictEqual(data.nested);
-	expect(service.optionalInt64).toBe(0n);
-	expect(service.optionalBoolean).toBe(false);
-	expect(service.optionalString).toBe("");
-	expect(service.optionalArray).toStrictEqual([]);
-	expect(service.optionalEnum).toBe(TestEnum.First);
-	expect(service.optionalPosition).toStrictEqual(Vector2i.Zero);
-	expect(service.optionalNested).toBeUndefined();
+	assert.equal(service.int32, -12345);
+	assert.equal(service.uint32, data.uint32);
+	assert.equal(service.int64, data.int64);
+	assert.equal(service.uint64, data.uint64);
+	assert.equal(_.round(service.float, 5), data.float);
+	assert.equal(_.round(service.double, 5), data.double);
+	assert.equal(service.false, data.false);
+	assert.equal(service.true, data.true);
+	assert.equal(service.string, data.string);
+	assert.deepEqual(service.int64array, data.int64array);
+	assert.equal(service.enum, data.enum);
+	assert.deepEqual(service.position, data.position);
+	assert.deepEqual(service.nested, data.nested);
+	assert.equal(service.optionalInt64, 0n);
+	assert.equal(service.optionalBoolean, false);
+	assert.equal(service.optionalString, "");
+	assert.deepEqual(service.optionalArray, []);
+	assert.equal(service.optionalEnum, TestEnum.First);
+	assert.deepEqual(service.optionalPosition, Vector2i.Zero);
+	assert.equal(service.optionalNested, undefined);
 });

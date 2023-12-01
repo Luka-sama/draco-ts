@@ -1,3 +1,3 @@
-test("ORM.register", async function() {
+import {test} from "node:test";
 
-});
+test("entity");

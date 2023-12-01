@@ -1,9 +1,11 @@
+import assert from "assert/strict";
+import {afterEach, beforeEach, mock, test} from "node:test";
 import GameLoop from "./game-loop.js";
 import WeakTask from "./weak-task.js";
 
 const frequency = 16;
+mock.timers.enable();
 beforeEach(() => {
-	jest.useFakeTimers();
 	GameLoop.init(frequency);
 });
 afterEach(() => {
@@ -26,6 +28,6 @@ test("WeakTask", async () => {
 	const someObject = new SomeObject();
 	const weakTask = SomeWeakTask.create(someObject);
 
-	await jest.advanceTimersByTimeAsync(frequency);
-	expect(weakTask.test).toBe(234);
+	mock.timers.tick(frequency);
+	assert.equal(weakTask.test, 234);
 });

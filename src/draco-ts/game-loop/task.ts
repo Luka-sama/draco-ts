@@ -121,7 +121,7 @@ export default class Task {
 	}
 
 	/**
-	 * Here should be a implementation of the task – either overwritten in the child class
+	 * Here should be an implementation of the task – either overwritten in the child class
 	 * or replaced with a function passed to the constructor
 	 */
 	protected run(delta: number, data: any): void | Promise<void> {

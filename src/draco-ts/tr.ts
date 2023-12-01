@@ -1,4 +1,5 @@
 import assert from "assert/strict";
+import "dotenv/config";
 import fs from "fs";
 import {po} from "gettext-parser";
 import {globSync} from "glob";

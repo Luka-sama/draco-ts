@@ -1,3 +1,5 @@
+import assert from "assert/strict";
+import {before, test} from "node:test";
 import InterfaceInfo from "./interface-info.js";
 import TypeAnalyzer from "./type-analyzer.js";
 import {Kind, PropertyInfo} from "./type-analyzer.typings.js";
@@ -7,17 +9,13 @@ export interface InterfaceInfoTest {
 	two?: string;
 }
 
-let interfaceInfo: InterfaceInfo;
-beforeAll(() => {
+before(() => {
 	TypeAnalyzer.init();
-	for (const typeInfo of TypeAnalyzer.getAllTypes()) {
-		if (typeInfo instanceof InterfaceInfo && typeInfo.name == "InterfaceInfoTest") {
-			interfaceInfo = typeInfo;
-		}
-	}
 });
 
 test("interface properties", () => {
+	const interfaceInfo = TypeAnalyzer.findByName("InterfaceInfoTest", InterfaceInfo);
+
 	const properties: PropertyInfo[] = [
 		{name: "one", optional: false, static: false, type: {
 			name: "number", fullName: "number", kind: Kind.Number, subtypes: []
@@ -26,5 +24,5 @@ test("interface properties", () => {
 			name: "string", fullName: "string", kind: Kind.String, subtypes: []
 		}}
 	];
-	expect(interfaceInfo.properties).toStrictEqual(properties);
+	assert.deepEqual(interfaceInfo.properties, properties);
 });

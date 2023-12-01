@@ -1,3 +1,5 @@
+import assert from "assert/strict";
+import {test} from "node:test";
 import SetUtil from "./set-util.js";
 
 const A = new Set([1, 2, 3, 4]);
@@ -6,45 +8,45 @@ const B = new Set([2, 4, 6, 8]);
 test("merge", () => {
 	const C = new Set([2, 10]);
 	SetUtil.merge(C, A);
-	expect(C).toStrictEqual(new Set([2, 10, 1, 3, 4]));
+	assert.deepEqual(C, new Set([2, 10, 1, 3, 4]));
 });
 
 test("isSuperset", () => {
 	const C = new Set([0, 1, 2, 3, 4, 5, 6, 7]);
-	expect(SetUtil.isSuperset(A, B)).toBeFalsy();
-	expect(SetUtil.isSuperset(C, A)).toBeTruthy();
+	assert.equal(SetUtil.isSuperset(A, B), false);
+	assert.equal(SetUtil.isSuperset(C, A), true);
 });
 
 test("isSubset", () => {
 	const C = new Set([1, 4]);
-	expect(SetUtil.isSubset(A, B)).toBeFalsy();
-	expect(SetUtil.isSubset(C, A)).toBeTruthy();
+	assert.equal(SetUtil.isSubset(A, B), false);
+	assert.equal(SetUtil.isSubset(C, A), true);
 });
 
 test("haveCommonElements", () => {
 	const C = new Set([10, 20]);
-	expect(SetUtil.haveCommonElements(A, B)).toBeTruthy();
-	expect(SetUtil.haveCommonElements(A, C)).toBeFalsy();
+	assert.equal(SetUtil.haveCommonElements(A, B), true);
+	assert.equal(SetUtil.haveCommonElements(A, C), false);
 });
 
 test("areEqual", () => {
 	const C = new Set([1, 2, 3, 4]);
-	expect(SetUtil.areEqual(A, B)).toBeFalsy();
-	expect(SetUtil.areEqual(A, C)).toBeTruthy();
+	assert.equal(SetUtil.areEqual(A, B), false);
+	assert.equal(SetUtil.areEqual(A, C), true);
 });
 
 test("union", () => {
-	expect(SetUtil.union(A, B)).toStrictEqual(new Set([1, 2, 3, 4, 6, 8]));
+	assert.deepEqual(SetUtil.union(A, B), new Set([1, 2, 3, 4, 6, 8]));
 });
 
 test("intersection", () => {
-	expect(SetUtil.intersection(A, B)).toStrictEqual(new Set([2, 4]));
+	assert.deepEqual(SetUtil.intersection(A, B), new Set([2, 4]));
 });
 
 test("difference", () => {
-	expect(SetUtil.difference(A, B)).toStrictEqual(new Set([1, 3]));
+	assert.deepEqual(SetUtil.difference(A, B), new Set([1, 3]));
 });
 
 test("symmetricDifference", () => {
-	expect(SetUtil.symmetricDifference(A, B)).toStrictEqual(new Set([1, 3, 6, 8]));
+	assert.deepEqual(SetUtil.symmetricDifference(A, B), new Set([1, 3, 6, 8]));
 });

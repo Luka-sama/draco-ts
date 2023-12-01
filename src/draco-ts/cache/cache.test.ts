@@ -1,14 +1,16 @@
+import assert from "assert/strict";
+import {test} from "node:test";
 import Cache from "./cache.js";
 
 test("clean", () => {
 	const name = "test/some/entry";
 	const value = "some value";
 	Cache.set(name, value);
-	expect(Cache.get(name)).toBe(value);
+	assert.equal(Cache.get(name), value);
 	Cache["clean"]();
-	expect(Cache.get(name)).toBe(value);
+	assert.equal(Cache.get(name), value);
 	Cache["searchFor"](name).entry!.lastAccess = Date.now() - Cache["DEFAULT_DURATION"] - 5;
 	Cache["clean"]();
-	expect(Cache.has(name)).toBeFalsy();
-	expect(Cache["entries"].has("test")).toBeFalsy();
+	assert.equal(Cache.has(name), false);
+	assert.equal(Cache["entries"].has("test"), false);
 });

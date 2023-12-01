@@ -1,3 +1,5 @@
+import assert from "assert/strict";
+import {describe, test} from "node:test";
 import {Vec2f, Vec3f, Vector2f, Vector2i, Vector3f, Vector3i} from "./vector.js";
 
 describe("Vector2f", () => {
@@ -8,142 +10,142 @@ describe("Vector2f", () => {
 
 	test("add", () => {
 		const c = a.add(b);
-		expect(c.x).toBe(2);
-		expect(c.y).toBe(5);
+		assert.equal(c.x, 2);
+		assert.equal(c.y, 5);
 	});
 
 	test("sub", () => {
 		const c = a.sub(b);
-		expect(c.x).toBe(0);
-		expect(c.y).toBe(-1);
+		assert.equal(c.x, 0);
+		assert.equal(c.y, -1);
 	});
 
 	test("mul with vector", () => {
 		const c = a.mul(b);
-		expect(c.x).toBe(1);
-		expect(c.y).toBe(6);
+		assert.equal(c.x, 1);
+		assert.equal(c.y, 6);
 	});
 
 	test("mul with number", () => {
 		const c = a.mul(5);
-		expect(c.x).toBe(5);
-		expect(c.y).toBe(10);
+		assert.equal(c.x, 5);
+		assert.equal(c.y, 10);
 	});
 
 	test("div with vector", () => {
 		const c = a.div(b);
-		expect(c.x).toBe(1);
-		expect(c.y).toBeCloseTo(2/3);
+		assert.equal(c.x, 1);
+		assert.equal(c.y, 2/3);
 	});
 
 	test("div with number", () => {
 		const c = a.div(2);
-		expect(c.x).toBeCloseTo(0.5);
-		expect(c.y).toBe(1);
+		assert.equal(c.x, 0.5);
+		assert.equal(c.y, 1);
 	});
 
 	test("intdiv with vector", () => {
 		const c = a.intdiv(b);
-		expect(c.x).toBe(1);
-		expect(c.y).toBe(0);
+		assert.equal(c.x, 1);
+		assert.equal(c.y, 0);
 	});
 
 	test("intdiv with number", () => {
 		const c = a.intdiv(2);
-		expect(c.x).toBe(0);
-		expect(c.y).toBe(1);
+		assert.equal(c.x, 0);
+		assert.equal(c.y, 1);
 	});
 
 	test("negated", () => {
 		const c = a.negated();
-		expect(c.x).toBe(-1);
-		expect(c.y).toBe(-2);
+		assert.equal(c.x, -1);
+		assert.equal(c.y, -2);
 	});
 
 	test("sign", () => {
 		const c = n.sign();
-		expect(c.x).toBe(1);
-		expect(c.y).toBe(-1);
+		assert.equal(c.x, 1);
+		assert.equal(c.y, -1);
 	});
 
 	test("abs", () => {
 		const c = n.abs();
-		expect(c.x).toBe(10);
-		expect(c.y).toBe(15);
+		assert.equal(c.x, 10);
+		assert.equal(c.y, 15);
 	});
 
 	test("isInt", () => {
-		expect(a.isInt()).toBeTruthy();
-		expect(a2.isInt()).toBeFalsy();
+		assert.equal(a.isInt(), true);
+		assert.equal(a2.isInt(), false);
 	});
 
 	test("equals", () => {
-		expect(a.equals(b)).toBeFalsy();
-		expect(a.equals(a2)).toBeTruthy();
+		assert.equal(a.equals(b), false);
+		assert.equal(a.equals(a2), true);
 	});
 
 	test("isElementOf", () => {
 		const array = [a, b];
-		expect(a2.isElementOf(array)).toBeTruthy();
-		expect(n.isElementOf(array)).toBeFalsy();
+		assert.equal(a2.isElementOf(array), true);
+		assert.equal(n.isElementOf(array), false);
 	});
 
 	test("lengthSquared", () => {
-		expect(a.lengthSquared()).toBe(1 ** 2 + 2 ** 2);
+		assert.equal(a.lengthSquared(), 1 ** 2 + 2 ** 2);
 	});
 
 	test("length", () => {
-		expect(a.length()).toBeCloseTo(Math.sqrt(1 ** 2 + 2 ** 2));
+		assert.equal(a.length(), Math.sqrt(1 ** 2 + 2 ** 2));
 	});
 
 	test("distanceSquaredTo", () => {
 		const c = new Vector2f(4, 6);
-		expect(a.distanceSquaredTo(c)).toBeCloseTo(25);
-		expect(a.distanceSquaredTo(c, true)).toBeCloseTo(13);
+		assert.equal(a.distanceSquaredTo(c), 25);
+		assert.equal(a.distanceSquaredTo(c, true), 13);
 	});
 
 	test("distanceTo", () => {
 		const c = new Vector2f(4, 6);
-		expect(a.distanceTo(c)).toBeCloseTo(5);
-		expect(a.distanceTo(c, true)).toBeCloseTo(Math.sqrt(13));
+		assert.equal(a.distanceTo(c), 5);
+		assert.equal(a.distanceTo(c, true), Math.sqrt(13));
 	});
 
 	test("toStaggered", () => {
 		const c = a.toStaggered();
-		expect(c.x).toBe(1);
-		expect(c.y).toBe(4);
+		assert.equal(c.x, 1);
+		assert.equal(c.y, 4);
 	});
 
 	test("toString", () => {
-		expect(`${a}`).toBe("(1, 2)");
+		assert.equal(`${a}`, "(1, 2)");
 	});
 
 	test("toPlain", () => {
 		const c = a.toPlain();
-		expect(c).toStrictEqual({x: 1, y: 2});
+		assert.deepEqual(c, {x: 1, y: 2});
 	});
 
 	test("toVector2i", () => {
 		const c = a2.toVector2i();
-		expect(c).toBeInstanceOf(Vector2i);
-		expect(c.x).toBe(1);
-		expect(c.y).toBe(2);
+		assert(c instanceof Vector2i);
+		assert.equal(c.x, 1);
+		assert.equal(c.y, 2);
 	});
 
 	test("toVector3f", () => {
 		const c = a.toVector3f(4);
-		expect(c).toBeInstanceOf(Vector3f);
-		expect(c.x).toBe(1);
-		expect(c.y).toBe(2);
-		expect(c.z).toBe(4);
+		assert(c instanceof Vector3f);
+		assert.equal(c.x, 1);
+		assert.equal(c.y, 2);
+		assert.equal(c.z, 4);
 	});
 
 	test("toVector3i", () => {
 		const c = a2.toVector3i(4);
-		expect(c).toBeInstanceOf(Vector3i);
-		expect(c.x).toBe(1);
-		expect(c.y).toBe(2);
-		expect(c.z).toBe(4);
+		assert(c instanceof Vector3i);
+		assert.equal(c.x, 1);
+		assert.equal(c.y, 2);
+		assert.equal(c.z, 4);
 	});
 });
 
@@ -153,36 +155,36 @@ describe("Vector2i", () => {
 
 	test("add", () => {
 		const c = a.add(b);
-		expect(c.x).toBe(2);
-		expect(c.y).toBe(5);
+		assert.equal(c.x, 2);
+		assert.equal(c.y, 5);
 	});
 
 	test("toPlain", () => {
 		const c = a.toPlain();
-		expect(c).toStrictEqual({x: 1, y: 2});
+		assert.deepEqual(c, {x: 1, y: 2});
 	});
 
 	test("toVector2f", () => {
 		const c = a.toVector2f();
-		expect(c).toBeInstanceOf(Vector2f);
-		expect(c.x).toBe(1);
-		expect(c.y).toBe(2);
+		assert(c instanceof Vector2f);
+		assert.equal(c.x, 1);
+		assert.equal(c.y, 2);
 	});
 
 	test("toVector3f", () => {
 		const c = a.toVector3f(5);
-		expect(c).toBeInstanceOf(Vector3f);
-		expect(c.x).toBe(1);
-		expect(c.y).toBe(2);
-		expect(c.z).toBe(5);
+		assert(c instanceof Vector3f);
+		assert.equal(c.x, 1);
+		assert.equal(c.y, 2);
+		assert.equal(c.z, 5);
 	});
 
 	test("toVector3i", () => {
 		const c = a.toVector3i(5);
-		expect(c).toBeInstanceOf(Vector3i);
-		expect(c.x).toBe(1);
-		expect(c.y).toBe(2);
-		expect(c.z).toBe(5);
+		assert(c instanceof Vector3i);
+		assert.equal(c.x, 1);
+		assert.equal(c.y, 2);
+		assert.equal(c.z, 5);
 	});
 });
 
@@ -193,36 +195,36 @@ describe("Vector3f", () => {
 
 	test("add", () => {
 		const c = a.add(b);
-		expect(c.x).toBe(0);
-		expect(c.y).toBe(6);
-		expect(c.z).toBe(8);
+		assert.equal(c.x, 0);
+		assert.equal(c.y, 6);
+		assert.equal(c.z, 8);
 	});
 
 	test("toPlain", () => {
 		const c = a.toPlain();
-		expect(c).toStrictEqual({x: 1, y: 2, z: 5});
+		assert.deepEqual(c, {x: 1, y: 2, z: 5});
 	});
 
 	test("toVector2f", () => {
 		const c = a.toVector2f();
-		expect(c).toBeInstanceOf(Vector2f);
-		expect(c.x).toBe(1);
-		expect(c.y).toBe(2);
+		assert(c instanceof Vector2f);
+		assert.equal(c.x, 1);
+		assert.equal(c.y, 2);
 	});
 
 	test("toVector2i", () => {
 		const c = a2.toVector2i();
-		expect(c).toBeInstanceOf(Vector2i);
-		expect(c.x).toBe(1);
-		expect(c.y).toBe(2);
+		assert(c instanceof Vector2i);
+		assert.equal(c.x, 1);
+		assert.equal(c.y, 2);
 	});
 
 	test("toVector3i", () => {
 		const c = a2.toVector3i();
-		expect(c).toBeInstanceOf(Vector3i);
-		expect(c.x).toBe(1);
-		expect(c.y).toBe(2);
-		expect(c.z).toBe(5);
+		assert(c instanceof Vector3i);
+		assert.equal(c.x, 1);
+		assert.equal(c.y, 2);
+		assert.equal(c.z, 5);
 	});
 });
 
@@ -232,69 +234,69 @@ describe("Vector3i", () => {
 
 	test("add", () => {
 		const c = a.add(b);
-		expect(c.x).toBe(0);
-		expect(c.y).toBe(7);
-		expect(c.z).toBe(8);
+		assert.equal(c.x, 0);
+		assert.equal(c.y, 7);
+		assert.equal(c.z, 8);
 	});
 
 	test("toPlain", () => {
 		const c = a.toPlain();
-		expect(c).toStrictEqual({x: 1, y: 3, z: 5});
+		assert.deepEqual(c, {x: 1, y: 3, z: 5});
 	});
 
 	test("toVector2f", () => {
 		const c = a.toVector2f();
-		expect(c).toBeInstanceOf(Vector2f);
-		expect(c.x).toBe(1);
-		expect(c.y).toBe(3);
+		assert(c instanceof Vector2f);
+		assert.equal(c.x, 1);
+		assert.equal(c.y, 3);
 	});
 
 	test("toVector2i", () => {
 		const c = a.toVector2i();
-		expect(c).toBeInstanceOf(Vector2i);
-		expect(c.x).toBe(1);
-		expect(c.y).toBe(3);
+		assert(c instanceof Vector2i);
+		assert.equal(c.x, 1);
+		assert.equal(c.y, 3);
 	});
 
 	test("toVector3f", () => {
 		const c = a.toVector3f();
-		expect(c).toBeInstanceOf(Vector3f);
-		expect(c.x).toBe(1);
-		expect(c.y).toBe(3);
-		expect(c.z).toBe(5);
+		assert(c instanceof Vector3f);
+		assert.equal(c.x, 1);
+		assert.equal(c.y, 3);
+		assert.equal(c.z, 5);
 	});
 });
 
 describe("Vec2f", () => {
 	test("from object", () => {
 		const a = Vec2f({x: 3, y: 4});
-		expect(a).toBeInstanceOf(Vector2f);
-		expect(a.x).toBe(3);
-		expect(a.y).toBe(4);
+		assert(a instanceof Vector2f);
+		assert.equal(a.x, 3);
+		assert.equal(a.y, 4);
 	});
 
 	test("two numeric arguments", () => {
 		const a = Vec2f(3, 4);
-		expect(a).toBeInstanceOf(Vector2f);
-		expect(a.x).toBe(3);
-		expect(a.y).toBe(4);
+		assert(a instanceof Vector2f);
+		assert.equal(a.x, 3);
+		assert.equal(a.y, 4);
 	});
 });
 
 describe("Vec3f", () => {
 	test("from object", () => {
 		const a = Vec3f({x: 3, y: 4, z: 5});
-		expect(a).toBeInstanceOf(Vector3f);
-		expect(a.x).toBe(3);
-		expect(a.y).toBe(4);
-		expect(a.z).toBe(5);
+		assert(a instanceof Vector3f);
+		assert.equal(a.x, 3);
+		assert.equal(a.y, 4);
+		assert.equal(a.z, 5);
 	});
 
 	test("three numeric arguments", () => {
 		const a = Vec3f(3, 4, 10);
-		expect(a).toBeInstanceOf(Vector3f);
-		expect(a.x).toBe(3);
-		expect(a.y).toBe(4);
-		expect(a.z).toBe(10);
+		assert(a instanceof Vector3f);
+		assert.equal(a.x, 3);
+		assert.equal(a.y, 4);
+		assert.equal(a.z, 10);
 	});
 });

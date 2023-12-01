@@ -1,4 +1,5 @@
 import assert from "assert/strict";
+import {Constructor} from "../typings.js";
 import BaseTypeInfo from "./base-type-info.js";
 import SourceInfo from "./source-info.js";
 import {Kind} from "./type-analyzer.typings.js";
@@ -33,7 +34,10 @@ export default class TypeAnalyzer {
 			for (const [TypeInfoClass, nodes] of sourceInfo.nodes) {
 				for (const node of nodes) {
 					const typeInfo = new TypeInfoClass(node, sourceInfo, kindByUrlMap);
-					assert(!TypeAnalyzer.types.has(typeInfo.fullName), `The type ${typeInfo.fullName} is duplicated.`);
+					assert(
+						!TypeAnalyzer.types.has(typeInfo.fullName),
+						`The type ${typeInfo.fullName} is duplicated.`
+					);
 					TypeAnalyzer.types.set(typeInfo.fullName, typeInfo);
 				}
 			}
@@ -66,6 +70,19 @@ export default class TypeAnalyzer {
 		const typeInfo = TypeAnalyzer.types.get(fullName);
 		assert(typeInfo, `The type ${fullName} is not found.`);
 		return typeInfo;
+	}
+
+	/**
+	 * Returns the first type info found by its name.
+	 * Note that if you have multiple types with the same name, this function can return any of them.
+	 * You should avoid using this method for anything other than test files.
+	 */
+	public static findByName<T extends Constructor<BaseTypeInfo>>(name: string, TypeInfoClass: T): InstanceType<T> {
+		const type = TypeAnalyzer.getAllTypes().find(
+			typeInfo => typeInfo.name == name && typeInfo instanceof TypeInfoClass
+		);
+		assert(type, `The type ${name} is not found.`);
+		return type as InstanceType<T>;
 	}
 
 	/** Returns an array with all collected types */

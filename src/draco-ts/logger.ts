@@ -1,4 +1,5 @@
 import assert from "assert/strict";
+import "dotenv/config";
 import fs from "fs/promises";
 import _ from "lodash";
 import path from "path";

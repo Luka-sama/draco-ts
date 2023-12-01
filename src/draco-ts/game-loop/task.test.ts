@@ -1,15 +1,26 @@
+import assert from "assert/strict";
+import {afterEach, beforeEach, mock, test} from "node:test";
 import GameLoop from "./game-loop.js";
 import Task from "./task.js";
 
 const frequency = 16;
-const logError = jest.spyOn(GameLoop["logger"], "error").mockImplementation();
+const logError = mock.method(GameLoop["logger"], "error");
+logError.mock.mockImplementation(() => {});
+mock.timers.enable();
 beforeEach(() => {
-	jest.useFakeTimers();
+	logError.mock.resetCalls();
 	GameLoop.init(frequency);
 });
 afterEach(() => {
 	GameLoop.stop();
 });
+
+async function advanceTimers(ms: number): Promise<void> {
+	for (let i = 0; i < ms; i++) {
+		mock.timers.tick(1);
+		await Promise.resolve();
+	}
+}
 
 test("single task with limited execution count", async () => {
 	let counter = 0;
@@ -17,12 +28,12 @@ test("single task with limited execution count", async () => {
 		counter++;
 	}, {executionCount: 2});
 
-	await jest.advanceTimersByTimeAsync(frequency);
-	expect(counter).toBe(1);
-	await jest.advanceTimersByTimeAsync(frequency);
-	expect(counter).toBe(2);
-	await jest.advanceTimersByTimeAsync(5 * frequency);
-	expect(counter).toBe(2);
+	await advanceTimers(frequency);
+	assert.equal(counter, 1);
+	await advanceTimers(frequency);
+	assert.equal(counter, 2);
+	await advanceTimers(5 * frequency);
+	assert.equal(counter, 2);
 });
 
 test("slow and fast task in parallel", async () => {
@@ -42,27 +53,27 @@ test("slow and fast task in parallel", async () => {
 		fastTaskCounter++;
 	});
 
-	await jest.advanceTimersByTimeAsync(2 * frequency);
-	expect(slowTaskCounter).toBe(0);
-	expect(slowTaskInstanceCount).toBe(1);
-	expect(fastTaskCounter).toBe(2);
+	await advanceTimers(2 * frequency);
+	assert.equal(slowTaskCounter, 0);
+	assert.equal(slowTaskInstanceCount, 1);
+	assert.equal(fastTaskCounter, 2);
 
-	await jest.advanceTimersByTimeAsync(taskDuration);
-	expect(slowTaskCounter).toBe(1);
-	expect(slowTaskInstanceCount).toBeLessThanOrEqual(1);
-	expect(fastTaskCounter).toBe(Math.floor(2 + taskDuration / frequency));
+	await advanceTimers(taskDuration);
+	assert.equal(slowTaskCounter, 1);
+	assert(slowTaskInstanceCount <= 1);
+	assert.equal(fastTaskCounter, Math.floor(2 + taskDuration / frequency));
 
-	await jest.advanceTimersByTimeAsync(taskDuration);
-	expect(slowTaskCounter).toBe(2);
-	expect(slowTaskInstanceCount).toBeLessThanOrEqual(1);
-	expect(fastTaskCounter).toBe(Math.floor(2 + 2 * taskDuration / frequency));
+	await advanceTimers(taskDuration);
+	assert.equal(slowTaskCounter, 2);
+	assert(slowTaskInstanceCount <= 1);
+	assert.equal(fastTaskCounter, Math.floor(2 + 2 * taskDuration / frequency));
 
 	slowTask.stop();
 	fastTask.stop();
-	await jest.advanceTimersByTimeAsync(3 * taskDuration);
-	expect(slowTaskCounter).toBe(3);
-	expect(slowTaskInstanceCount).toBe(0);
-	expect(fastTaskCounter).toBe(Math.floor(2 + 2 * taskDuration / frequency));
+	await advanceTimers(3 * taskDuration);
+	assert.equal(slowTaskCounter, 3);
+	assert.equal(slowTaskInstanceCount, 0);
+	assert.equal(fastTaskCounter, Math.floor(2 + 2 * taskDuration / frequency));
 });
 
 test("task with error", async () => {
@@ -76,10 +87,10 @@ test("task with error", async () => {
 		taskWithoutErrorCounter++;
 	});
 
-	await jest.advanceTimersByTimeAsync(3 * frequency);
-	expect(taskWithErrorCounter).toBe(3);
-	expect(taskWithoutErrorCounter).toBe(3);
-	expect(logError).toHaveBeenCalledTimes(3);
+	await advanceTimers(3 * frequency);
+	assert.equal(taskWithErrorCounter, 3);
+	assert.equal(taskWithoutErrorCounter, 3);
+	assert.equal(logError.mock.callCount(), 3);
 });
 
 test("async task with error", async () => {
@@ -95,10 +106,10 @@ test("async task with error", async () => {
 		taskWithoutErrorCounter++;
 	});
 
-	await jest.advanceTimersByTimeAsync(4 * frequency);
-	expect(taskWithErrorCounter).toBe(4);
-	expect(taskWithoutErrorCounter).toBe(4);
-	expect(logError).toHaveBeenCalledTimes(4);
+	await advanceTimers(4 * frequency);
+	assert.equal(taskWithErrorCounter, 4);
+	assert.equal(taskWithoutErrorCounter, 4);
+	assert.equal(logError.mock.callCount(), 4);
 });
 
 test("using delta", async () => {
@@ -112,15 +123,15 @@ test("using delta", async () => {
 		return new Promise(resolve => setTimeout(resolve, slowTaskDuration));
 	});
 
-	await jest.advanceTimersByTimeAsync(4 * frequency + 2);
-	expect(fastTaskDeltaSum).toBe(4 * frequency);
-	expect(slowTaskDeltaSum).toBe(frequency);
+	await advanceTimers(4 * frequency + 2);
+	assert.equal(fastTaskDeltaSum, 4 * frequency);
+	assert.equal(slowTaskDeltaSum, frequency);
 
-	await jest.advanceTimersByTimeAsync(slowTaskDuration);
-	expect(slowTaskDeltaSum).toBe(frequency + Math.ceil(slowTaskDuration / frequency) * frequency);
+	await advanceTimers(slowTaskDuration);
+	assert.equal(slowTaskDeltaSum, frequency + Math.ceil(slowTaskDuration / frequency) * frequency);
 
-	await jest.advanceTimersByTimeAsync(slowTaskDuration);
-	expect(slowTaskDeltaSum).toBe(frequency + 2 * Math.ceil(slowTaskDuration / frequency) * frequency);
+	await advanceTimers(slowTaskDuration);
+	assert.equal(slowTaskDeltaSum, frequency + 2 * Math.ceil(slowTaskDuration / frequency) * frequency);
 });
 
 test("priorities", async () => {
@@ -135,6 +146,6 @@ test("priorities", async () => {
 		result.push(3);
 	}, {priority: 3});
 
-	await jest.advanceTimersByTimeAsync(frequency);
-	expect(result).toStrictEqual([1, 2, 3]);
+	await advanceTimers(frequency);
+	assert.deepEqual(result, [1, 2, 3]);
 });

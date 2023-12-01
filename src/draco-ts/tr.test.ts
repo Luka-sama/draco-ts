@@ -1,7 +1,13 @@
+import assert from "assert/strict";
+import {before, test} from "node:test";
 import Tr from "./tr.js";
 
-describe("Tr.get", () => {
-	test.each([
+before(() => {
+	Tr.init();
+});
+
+test("Tr.get", () => {
+	const translations = [
 		// String is "test translation"
 		[Tr.get("TEST_TRANSLATION"), "test translation"],
 
@@ -26,7 +32,9 @@ describe("Tr.get", () => {
 			Tr.get("TEST_TRANSLATION_COMPLEX", {userAndAnimalCount: 1, botCount: 12, enemyCount: 123}),
 			"test complex translation with 1 user and animal, 12 bots, enemies"
 		],
-	])(`"%s" should be "%s"`, (translation: string, result: string) => {
-		expect(translation).toBe(result);
-	});
+	];
+
+	for (const [actual, expected] of translations) {
+		assert.equal(actual, expected);
+	}
 });

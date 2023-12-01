@@ -4,7 +4,7 @@ This is one of the game repositories.
 
 Installation
 ------------
-* Install Node.JS 18
+* Install Node.JS 21
 * Install PostgreSQL 15
 * Create database enveltia (encoding UTF8, collation C)
 * Clone the project from GitHub

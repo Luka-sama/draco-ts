@@ -1,5 +1,5 @@
 import assert from "assert/strict";
-import {Vec2} from "../draco-ts/util/vector.js";
+import {Vec2f} from "../draco-ts/math/vector.js";
 import Movement from "./movement.js";
 
 describe("move", () => {
@@ -13,6 +13,6 @@ describe("move", () => {
 		const raw = {direction: {x: 1, y: 0}, run: false};
 		await Movement.move({...loggedArgs, raw});
 		const newPosition = user.position;
-		expect(oldPosition.add(Vec2(1, 0)).equals(newPosition)).toBeTruthy();
+		expect(oldPosition.add(Vec2f(1, 0)).equals(newPosition)).toBeTruthy();
 	});
 });
