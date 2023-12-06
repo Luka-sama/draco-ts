@@ -26,8 +26,8 @@ export default class TypeAnalyzer {
 	 * Initializes TypeAnalyzer, i.e. extracts information
 	 * about all classes, enums, interfaces, etc. used in the project
 	 */
-	public static init(): void {
-		const sources = SourceInfo.getSources();
+	public static init(filePaths = ["**/*.d.ts"]): void {
+		const sources = SourceInfo.getSources(filePaths);
 		const kindByUrlMap = TypeAnalyzer.getKindByUrlMap(sources);
 
 		for (const sourceInfo of sources) {

@@ -37,7 +37,7 @@ test("single task with limited execution count", async () => {
 });
 
 test("slow and fast task in parallel", async () => {
-	const taskDuration = 1000;
+	const taskDuration = 100;
 	let slowTaskCounter = 0, fastTaskCounter = 0, slowTaskInstanceCount = 0;
 	const slowTask = Task.create(() => {
 		slowTaskInstanceCount++;
@@ -53,27 +53,27 @@ test("slow and fast task in parallel", async () => {
 		fastTaskCounter++;
 	});
 
-	await advanceTimers(2 * frequency);
+	await advanceTimers(3 * frequency);
 	assert.equal(slowTaskCounter, 0);
 	assert.equal(slowTaskInstanceCount, 1);
-	assert.equal(fastTaskCounter, 2);
+	assert.equal(fastTaskCounter, 3);
 
 	await advanceTimers(taskDuration);
 	assert.equal(slowTaskCounter, 1);
 	assert(slowTaskInstanceCount <= 1);
-	assert.equal(fastTaskCounter, Math.floor(2 + taskDuration / frequency));
+	assert.equal(fastTaskCounter, Math.floor(3 + taskDuration / frequency));
 
 	await advanceTimers(taskDuration);
 	assert.equal(slowTaskCounter, 2);
 	assert(slowTaskInstanceCount <= 1);
-	assert.equal(fastTaskCounter, Math.floor(2 + 2 * taskDuration / frequency));
+	assert.equal(fastTaskCounter, Math.floor(3 + 2 * taskDuration / frequency));
 
 	slowTask.stop();
 	fastTask.stop();
 	await advanceTimers(3 * taskDuration);
 	assert.equal(slowTaskCounter, 3);
 	assert.equal(slowTaskInstanceCount, 0);
-	assert.equal(fastTaskCounter, Math.floor(2 + 2 * taskDuration / frequency));
+	assert.equal(fastTaskCounter, Math.floor(3 + 2 * taskDuration / frequency));
 });
 
 test("task with error", async () => {

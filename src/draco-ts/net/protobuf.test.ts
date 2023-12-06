@@ -68,7 +68,7 @@ export class TestService extends Service {
 }
 
 before(async () => {
-	TypeAnalyzer.init();
+	TypeAnalyzer.init(["**/net/*.d.ts", "**/typings.d.ts", "**/vector.d.ts"]);
 
 	const types: ClassWithInfo[] = [
 		await ClassLoader.findOrThrowWithInfo(Vector2i),

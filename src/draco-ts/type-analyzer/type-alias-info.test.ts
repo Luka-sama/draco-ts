@@ -1,5 +1,6 @@
 import assert from "assert/strict";
 import {before, test} from "node:test";
+import path from "path";
 import {Exact} from "../typings.js";
 import TypeAliasInfo from "./type-alias-info.js";
 import TypeAnalyzer from "./type-analyzer.js";
@@ -9,7 +10,8 @@ export type SomeType<T, O extends Exact<{a: number}, O>> = T;
 export type TypeAliasInfoTest = SomeType<number, {a: 123}>;
 
 before(() => {
-	TypeAnalyzer.init();
+	const fileName = path.basename(import.meta.url).replace(".js", ".d.ts");
+	TypeAnalyzer.init(["**/" + fileName]);
 });
 
 test("type alias type", () => {

@@ -38,12 +38,13 @@ export default class SourceInfo {
 	}
 
 	/** Returns all source infos from this project */
-	public static getSources(): SourceInfo[] {
+	public static getSources(filePaths: string[]): SourceInfo[] {
 		const tsConfigFilePath = process.env.TS_CONFIG_FILE_PATH || "tsconfig.json";
 		const tsConfig = JSON.parse(fs.readFileSync(tsConfigFilePath, {encoding: "utf-8"}));
-		const sourceFilesPaths = path.join(tsConfig.compilerOptions.outDir || "", "**/*.d.ts");
-		const project = new Project({tsConfigFilePath, skipAddingFilesFromTsConfig: true});
-		return project.addSourceFilesAtPaths(sourceFilesPaths).map(source => new SourceInfo(source));
+		const outDir: string = tsConfig.compilerOptions.outDir || "";
+		return new Project({tsConfigFilePath, skipAddingFilesFromTsConfig: true})
+			.addSourceFilesAtPaths(filePaths.map(filePath => path.join(outDir, filePath)))
+			.map(source => new SourceInfo(source));
 	}
 
 	/**

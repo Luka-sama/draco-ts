@@ -1,5 +1,6 @@
 import assert from "assert/strict";
 import {before, test} from "node:test";
+import path from "path";
 import EnumInfo from "./enum-info.js";
 import TypeAnalyzer from "./type-analyzer.js";
 import {Kind, PropertyInfo} from "./type-analyzer.typings.js";
@@ -10,7 +11,8 @@ export enum EnumInfoTest {
 }
 
 before(() => {
-	TypeAnalyzer.init();
+	const fileName = path.basename(import.meta.url).replace(".js", ".d.ts");
+	TypeAnalyzer.init(["**/" + fileName]);
 });
 
 test("enum properties", () => {

@@ -1,13 +1,16 @@
+import _ from "lodash";
 import {TestEvent} from "node:test/reporters";
 import path from "path";
 import util from "util";
 
-export default async function*(source: TestEvent[]) {
+export default async function*(source: TestEvent[]): AsyncGenerator<string, void> {
 	// https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
 	const MODIFY = `\x1b[`;
+	const CYAN = `${MODIFY}36m`;
 	const BRIGHT_RED = `${MODIFY}91m`;
 	const BRIGHT_GREEN = `${MODIFY}92m`;
 	const RESET = `${MODIFY}0m`;
+	const ERASE_LAST_LINE = `\x1b[1A \x1b[2K\r`;
 	const EXPERIMENTAL_WARNING = (
 		"ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time\n"
 	);
@@ -15,22 +18,39 @@ export default async function*(source: TestEvent[]) {
 		"(Use `node --trace-warnings ...` to show where the warning was created)\n"
 	);
 	const getFilePath = (file?: string) => (file ? path.relative(path.dirname(import.meta.url), file) : "");
-	const files: string[] = [];
 	let isFirstDiagnostic = true;
 
+	let lastFile = "";
+	let totalDuration = 0;
+	let failed = false;
 	for await (const event of source) {
 		if (event.type == "test:pass") {
 			const file = getFilePath(event.data.file);
-			if (!files.includes(file)) {
-				files.push(file);
-				yield `${BRIGHT_GREEN}✔  ${file}${RESET}\n`;
+			if (lastFile == file) {
+				if (failed) {
+					continue;
+				}
+				yield `${ERASE_LAST_LINE}`;
+			} else {
+				failed = false;
+				totalDuration = 0;
 			}
+			lastFile = file;
+			totalDuration += event.data.details.duration_ms;
+			yield `${BRIGHT_GREEN}✔  ${file}${RESET} ${CYAN}${_.round(totalDuration, 2)} ms${RESET}\n`;
 		} else if (event.type == "test:fail") {
 			const data = event.data;
 			const file = getFilePath(data.file);
+			if (lastFile == file && !failed) {
+				yield `${ERASE_LAST_LINE}`;
+			}
+			lastFile = file;
+			failed = true;
 			const error = util.format(data.details.error.cause);
-			yield `${BRIGHT_RED}✖  ${data.name} [${file}:${data.line}]${RESET}\n${error}\n`;
+			const path = `${file}:${data.line}`;
+			yield `${BRIGHT_RED}✖  ${path} [${data.name}]${RESET} ${CYAN}${RESET}\n${error}\n`;
 		} else if (event.type == "test:diagnostic") {
+			lastFile = "";
 			if (isFirstDiagnostic) {
 				isFirstDiagnostic = false;
 				yield `---------------------\n`;
@@ -40,6 +60,7 @@ export default async function*(source: TestEvent[]) {
 				yield `${msg}\n`;
 			}
 		} else if (event.type == "test:stderr" || event.type == "test:stdout") {
+			lastFile = "";
 			const msg = event.data.message;
 			if (!msg.endsWith(EXPERIMENTAL_WARNING) && msg != WARNING_HINT) {
 				yield `${msg}\n`;
