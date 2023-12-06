@@ -22,9 +22,10 @@ export default async function*(source: TestEvent[]): AsyncGenerator<string, void
 
 	let lastFile = "";
 	let totalDuration = 0;
+	let totalTests = 0;
 	let failed = false;
 	for await (const event of source) {
-		if (event.type == "test:pass") {
+		if (event.type == "test:pass" && event.data.details.type != "suite") {
 			const file = getFilePath(event.data.file);
 			if (lastFile == file) {
 				if (failed) {
@@ -34,11 +35,13 @@ export default async function*(source: TestEvent[]): AsyncGenerator<string, void
 			} else {
 				failed = false;
 				totalDuration = 0;
+				totalTests = 0;
 			}
 			lastFile = file;
 			totalDuration += event.data.details.duration_ms;
-			yield `${BRIGHT_GREEN}✔  ${file}${RESET} ${CYAN}${_.round(totalDuration, 2)} ms${RESET}\n`;
-		} else if (event.type == "test:fail") {
+			totalTests++;
+			yield `${BRIGHT_GREEN}✔  ${file} [${totalTests} tests]${RESET} ${CYAN}${_.round(totalDuration, 2)} ms${RESET}\n`;
+		} else if (event.type == "test:fail" && event.data.details.type != "suite") {
 			const data = event.data;
 			const file = getFilePath(data.file);
 			if (lastFile == file && !failed) {
@@ -56,8 +59,16 @@ export default async function*(source: TestEvent[]): AsyncGenerator<string, void
 				yield `---------------------\n`;
 			}
 			const msg = event.data.message;
-			if (!msg.endsWith(" 0") && !msg.startsWith("suites ")) {
-				yield `${msg}\n`;
+			if (msg.endsWith(" 0")) {
+				continue;
+			}
+			if (msg.startsWith("pass ")) {
+				yield `${BRIGHT_GREEN}✔  ${msg}${RESET}\n`;
+			} else if (msg.startsWith("fail ")) {
+				yield `${BRIGHT_RED}✖  ${msg}${RESET}\n`;
+			} else if (msg.startsWith("duration_ms ")) {
+				const duration = +msg.replace("duration_ms ", "");
+				yield `${CYAN}${_.round(duration, 2)} ms${RESET}\n`;
 			}
 		} else if (event.type == "test:stderr" || event.type == "test:stdout") {
 			lastFile = "";
