@@ -14,7 +14,7 @@ export default class InterfaceInfo extends BaseTypeInfo {
 	 */
 	public fullExtends: string[];
 
-	public static getKind() {
+	public static getKind(): Kind {
 		return Kind.Interface;
 	}
 

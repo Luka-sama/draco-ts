@@ -5,7 +5,7 @@ import {Kind} from "./type-analyzer.typings.js";
 
 /** A class that contains information about a type alias */
 export default class TypeAliasInfo extends BaseTypeInfo {
-	public static getKind() {
+	public static getKind(): Kind {
 		return Kind.TypeAlias;
 	}
 

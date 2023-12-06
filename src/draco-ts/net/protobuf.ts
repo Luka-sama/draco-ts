@@ -126,7 +126,7 @@ export default class Protobuf {
 	}
 
 	/** Initializes all types that can be used in protobufs */
-	private static initTypes(types: ClassWithInfo[], typings: ClassInfo) {
+	private static initTypes(types: ClassWithInfo[], typings: ClassInfo): void {
 		for (const [TypeClass, classInfo] of types) {
 			const protobufType = Protobuf.transform(classInfo, typings, TypeClass.name);
 			if (protobufType) {

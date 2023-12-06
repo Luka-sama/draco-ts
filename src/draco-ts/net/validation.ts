@@ -65,7 +65,7 @@ function getType(value: unknown): (
 	} else if (value instanceof Vector3f) {
 		return "vector3f";
 	} else if (value instanceof Vector3i) {
-		return "vector3i"
+		return "vector3i";
 	} else if (value instanceof Array) {
 		return "array";
 	} else if (value === null) {

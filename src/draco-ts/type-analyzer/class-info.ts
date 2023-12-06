@@ -21,11 +21,11 @@ export default class ClassInfo extends BaseTypeInfo {
 	/** Whether the class is abstract or not */
 	public abstract: boolean;
 
-	public static getKind() {
+	public static getKind(): Kind {
 		return Kind.Class;
 	}
 
-	public static getNodes(source: SourceFile) {
+	public static getNodes(source: SourceFile): ClassDeclaration[] {
 		return source.getClasses();
 	}
 
@@ -55,7 +55,7 @@ export default class ClassInfo extends BaseTypeInfo {
 	}
 
 	/** Shortcut for {@link TypeAnalyzer.getFromFile} with this class as first argument */
-	public getFromFile(name: string) {
+	public getFromFile(name: string): BaseTypeInfo {
 		return TypeAnalyzer.getFromFile(this, name);
 	}
 

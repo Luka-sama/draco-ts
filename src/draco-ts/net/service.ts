@@ -43,7 +43,7 @@ export default abstract class Service extends BaseProtoClass {
 	 * Executes a service. Includes all steps (preparing, validating, running etc.).
 	 * @internal
 	 */
-	public async _exec() {
+	public async _exec(): Promise<void> {
 		assert(this.created, `You should use the method "create" to create a service, not a constructor.`);
 		const dynamicOptions = (this.options ? await this.options(this) : {});
 		const options: ServiceOptions = {...(this.constructor as typeof Service).options, ...dynamicOptions};

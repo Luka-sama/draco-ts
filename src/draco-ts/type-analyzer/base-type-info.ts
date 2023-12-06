@@ -28,12 +28,12 @@ export default class BaseTypeInfo {
 	public properties: PropertyInfo[];
 
 	/** Returns kind of this type. Not as property to avoid cyclic references */
-	public static getKind() {
+	public static getKind(): Kind {
 		return Kind.Unidentified;
 	}
 
 	/** Returns all nodes of this type */
-	public static getNodes(source: SourceFile): TSNode[] {
+	public static getNodes(_source: SourceFile): TSNode[] {
 		return [];
 	}
 
@@ -60,7 +60,7 @@ export default class BaseTypeInfo {
 	}
 
 	/** Whether two type infos or a type info and a property type are equal */
-	public equals(typeInfo: BaseTypeInfo | PropertyType) {
+	public equals(typeInfo: BaseTypeInfo | PropertyType): boolean {
 		return this.fullName == typeInfo.fullName;
 	}
 
@@ -118,7 +118,7 @@ export default class BaseTypeInfo {
 		if (typeNode.isKind(SyntaxKind.UnionType) || typeNode.isKind(SyntaxKind.IntersectionType)) {
 			const kind = (typeNode.isKind(SyntaxKind.UnionType) ? Kind.Union : Kind.Intersection);
 			const subtypes = typeNode.getTypeNodes().map(node => this.getPropertyType(node, typeParameters));
-			return {name: "", fullName: "", kind, subtypes}
+			return {name: "", fullName: "", kind, subtypes};
 		}
 
 		if (literal.isKind(SyntaxKind.NullKeyword)) {

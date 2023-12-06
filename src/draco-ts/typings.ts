@@ -20,7 +20,7 @@ export type Constructor<T> = new (...args: any[]) => T;
  * Example of how to use: `PropertiesOf<InstanceType<MyClass>>` or `PropertiesOf<this>`.
  */
 export type PropertiesOf<T> = Pick<T, {
-	[K in keyof T]: T[K] extends Function ? never : K
+	[K in keyof T]: T[K] extends (...args: any[]) => unknown ? never : K
 }[keyof T]>;
 
 /**

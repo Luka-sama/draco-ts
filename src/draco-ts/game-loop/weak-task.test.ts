@@ -24,7 +24,7 @@ class SomeWeakTask extends WeakTask<SomeObject> {
 	}
 }
 
-test("WeakTask", async () => {
+test("WeakTask", () => {
 	const someObject = new SomeObject();
 	const weakTask = SomeWeakTask.create(someObject);
 

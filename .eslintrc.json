@@ -20,6 +20,7 @@
         "@typescript-eslint/explicit-member-accessibility": "error",
         "@typescript-eslint/no-explicit-any": "off",
         "@typescript-eslint/no-non-null-assertion": "off",
+        "@typescript-eslint/no-unused-vars": ["error", {"argsIgnorePattern": "^_"}],
 
         "camelcase": "error",
         "capitalized-comments": "warn",
@@ -28,13 +29,14 @@
         "default-case-last": "error",
         "default-param-last": "error",
         "func-name-matching": "error",
+        "no-prototype-builtins": "off",
         "prefer-exponentiation-operator": "error",
         "require-await": "error",
 
         "arrow-spacing": ["error", {"before": true, "after": true}],
         "indent": ["error", "tab", {"ignoredNodes": ["PropertyDefinition"]}],
         "linebreak-style": ["error", "unix"],
-        "quotes": ["error", "double", {"avoidEscape": true}],
+        "quotes": ["error", "double", {"avoidEscape": true, "allowTemplateLiterals": true}],
         "semi": ["error", "always"]
     }
 }

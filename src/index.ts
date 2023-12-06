@@ -7,14 +7,14 @@ import Magic from "./magic/magic.js";
 import Zone from "./map/zone.js";
 
 export default class Index {
-	public static async init() {
+	public static async init(): Promise<void> {
 		await App.init();
 		Session.init();
 		//Deploy.init();
 		Index.addGlobalTasks();
 	}
 
-	public static addGlobalTasks() {
+	public static addGlobalTasks(): void {
 		Task.create(Magic.moveAllLightsGroups);
 		Task.create(Magic.removeLightsFromQueue);
 		Task.create(Chat.sendTime);

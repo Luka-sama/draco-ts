@@ -120,8 +120,8 @@ export default class SourceInfo {
 		for (const importDeclarationNode of this.source.getImportDeclarations()) {
 			const relativeModulePath = importDeclarationNode.getModuleSpecifierValue();
 			const modulePath = (relativeModulePath[0] == "." ?
-					path.join(path.dirname(this.path), relativeModulePath) :
-					relativeModulePath
+				path.join(path.dirname(this.path), relativeModulePath) :
+				relativeModulePath
 			);
 
 			const namedBindings = importDeclarationNode.getImportClause()?.getNamedBindings()

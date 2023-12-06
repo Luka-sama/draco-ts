@@ -35,7 +35,7 @@ export default class Task {
 	 * You can pass this constant instead of a function to constructor
 	 * to use the overwritten ´run` method from your child class
 	 */
-	public static readonly USE_RUN_METHOD = () => {};
+	public static readonly USE_RUN_METHOD = (): void => {};
 	public readonly name: string;
 	public frequency: number;
 	public remainingExecutions: number;
@@ -124,7 +124,7 @@ export default class Task {
 	 * Here should be an implementation of the task – either overwritten in the child class
 	 * or replaced with a function passed to the constructor
 	 */
-	protected run(delta: number, data: any): void | Promise<void> {
+	protected run(_delta: number, _data: any): void | Promise<void> {
 		GameLoop.logger.warn(`No task implementation for ${this.name} provided.`);
 	}
 

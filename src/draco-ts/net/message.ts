@@ -37,7 +37,7 @@ export default abstract class Message extends BaseProtoClass {
 	}
 
 	/** Sends the message */
-	public send(sessions: Session | Iterable<Session>) {
+	public send(sessions: Session | Iterable<Session>): void {
 		assert(this.created, `You should use the method "create" to create a message, not a constructor.`);
 		const buffer = Protobuf.encode(this);
 		for (const session of (sessions instanceof Session ? [sessions] : sessions)) {
