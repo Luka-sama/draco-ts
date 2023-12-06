@@ -2,8 +2,8 @@ import assert from "assert/strict";
 import "dotenv/config";
 import fs from "fs";
 import {po} from "gettext-parser";
-import {globSync} from "glob";
 import _ from "lodash";
+import path from "path";
 import Logger from "./logger.js";
 
 /**
@@ -17,10 +17,15 @@ export default class Tr {
 
 	/** Initializes gettext */
 	public static init(): void {
-		assert(process.env.LOCALE_DIR, "You should specify the environment variable LOCALE_DIR.");
-		const files = globSync("*.po", {cwd: process.env.LOCALE_DIR, absolute: true});
-		for (const file of files) {
-			const parsed = po.parse(fs.readFileSync(file));
+		const localeDir = process.env.LOCALE_DIR;
+		assert(localeDir, "You should specify the environment variable LOCALE_DIR.");
+		const files = fs.readdirSync(localeDir);
+		for (const fileName of files) {
+			if (!fileName.endsWith(".po")) {
+				continue;
+			}
+			const filePath = path.join(localeDir, fileName);
+			const parsed = po.parse(fs.readFileSync(filePath));
 			const language = parsed.headers.Language;
 			const translations = parsed.translations[""];
 			const dictionary = new Map<string, string>;

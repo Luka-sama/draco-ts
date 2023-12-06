@@ -1,4 +1,3 @@
-import {glob} from "glob";
 import Session from "./auth/session.js";
 import Chat from "./chat/chat.js";
 import App from "./draco-ts/app.js";
@@ -13,7 +12,6 @@ export default class Index {
 		Session.init();
 		//Deploy.init();
 		Index.addGlobalTasks();
-		await Index.autoimport();
 	}
 
 	public static addGlobalTasks() {
@@ -21,16 +19,6 @@ export default class Index {
 		Task.create(Magic.removeLightsFromQueue);
 		Task.create(Chat.sendTime);
 		Task.create(Zone.stayInCacheIfSomebodyIsOnline, {frequency: Cache.CLEAN_FREQUENCY / 2});
-	}
-
-	/** Auto-import to make @OnlyLogged() and other decorators to work without explicit import */
-	private static async autoimport(): Promise<void> {
-		const ignore = [
-			"**/*.entity.js", "**/*.test.js", "**/*.typings.js",
-			"seeder.js", "jest-setup.js"
-		];
-		const files = await glob("./**/*.js", {ignore, cwd: "./dist"});
-		await Promise.all(files.map(file => import(`./${file}`)));
 	}
 }
 
