@@ -96,7 +96,7 @@ export default class Protobuf {
 	/** Decodes a buffer using the opcode at its beginning. Returns a service with the filled data */
 	public static decode(buffer: Buffer): Service | null {
 		const opcode = buffer.readUIntBE(0, Protobuf.opcodeSize);
-		const encodedMessage = buffer.slice(Protobuf.opcodeSize);
+		const encodedMessage = buffer.subarray(Protobuf.opcodeSize);
 		const ProtoClass = Protobuf.classByOpcodeMap.get(opcode) as typeof Service & Constructor<Service>;
 		if (!ProtoClass || !ProtoClass.name.endsWith(Service.name)) {
 			Protobuf.logger.warn(`The service with opcode ${opcode} was not found.`);

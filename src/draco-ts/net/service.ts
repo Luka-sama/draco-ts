@@ -1,6 +1,7 @@
 import assert from "assert/strict";
 import Logger from "../logger.js";
 import BaseProtoClass from "./base-proto-class.js";
+import Session from "./session.js";
 
 /** Service options to customize its behavior */
 export interface ServiceOptions {
@@ -43,7 +44,7 @@ export default abstract class Service extends BaseProtoClass {
 	 * Executes a service. Includes all steps (preparing, validating, running etc.).
 	 * @internal
 	 */
-	public async _exec(): Promise<void> {
+	public async _exec(session: Session): Promise<void> {
 		assert(this.created, `You should use the method "create" to create a service, not a constructor.`);
 		const dynamicOptions = (this.options ? await this.options(this) : {});
 		const options: ServiceOptions = {...(this.constructor as typeof Service).options, ...dynamicOptions};
