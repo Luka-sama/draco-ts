@@ -5,6 +5,8 @@ import {ModelMap} from "./orm.decorator.js";
 import ORM from "./orm.js";
 import {EntityData, EntityHelper, IEntity} from "./orm.typings.js";
 
+export type InMemory<T> = T;
+
 export default class Entity {
 	public static syncTracked = new Map<Entity, Set<string>>;
 	public id: number;

@@ -1,31 +1,30 @@
 import assert from "assert/strict";
 import {Buffer} from "buffer";
 import "dotenv/config";
-import uWS, {WebSocketBehavior} from "uWebSockets.js";
+import uWS from "uWebSockets.js";
 import Logger from "../logger.js";
 import Protobuf from "./protobuf.js";
 import Session from "./session.js";
 
-interface UserData {
+interface WebSocketData {
 	session?: Session;
 }
 
-export type WebSocket = uWS.WebSocket<UserData>;
+export type WebSocket = uWS.WebSocket<WebSocketData>;
 
 /** This class starts WebSocket server and handles getting/sending data */
 export default class WS {
-	//public static emitter = new EventEmitter;
-	public static logger = new Logger(WS);
+	public static readonly logger = new Logger(WS);
 	private static app?: uWS.TemplatedApp;
 	private static listenSocket?: uWS.us_listen_socket;
 
 	/** Initializes WebSocket server */
-	static init(): void {
+	public static init(): void {
 		if (WS.app) {
 			return;
 		}
 
-		const config: WebSocketBehavior<UserData> = {
+		const config: uWS.WebSocketBehavior<WebSocketData> = {
 			open: WS.onOpen,
 			message: WS.onMessage,
 			close: WS.onClose,
@@ -59,54 +58,53 @@ export default class WS {
 		}
 	}
 
-	/** Sends a message wrapped in the interface WSData to the given socket */
-	public static send(webSocket: WebSocket, message: Buffer): boolean {
-		return webSocket.send(message, true, false) == 1;
+	/** Sends a message to the given socket */
+	public static send(webSocket: WebSocket, message: Buffer): void {
+		const statusCode = webSocket.send(message, true, false);
+		if (statusCode != 1) {
+			WS.logger.debug(`The message could not be send (status code ${statusCode}).`);
+		}
 	}
 
-	/** Handles socket connection. Converts uWS.WebSocket to Socket */
+	/** Handles socket connection. Sends protobuf types */
 	private static onOpen(webSocket: WebSocket): void {
 		const json = JSON.stringify({typeInfos: Protobuf.typeInfos});
-		if (webSocket.send(json, false, false) != 1) {
-			WS.logger.warn(`JSON with type infos was not sent.`);
+		const statusCode = webSocket.send(json, false, false);
+		if (statusCode != 1) {
+			WS.logger.debug(`JSON with type infos was not sent (status code ${statusCode}).`);
 		}
-		//WS.emitter.emit("open", webSocket);
 	}
 
-	/** Handles socket close event */
+	/** Handles socket disconnection */
 	private static onClose(webSocket: WebSocket): void {
 		webSocket.getUserData().session?.removeWebSocket();
-		//WS.emitter.emit("close", webSocket);
 	}
 
 	/** Handles getting data. Decodes a protobuf message and invokes the corresponding service */
-	private static async onMessage(webSocket: WebSocket, message: ArrayBuffer): Promise<void> {
-		const userData = webSocket.getUserData();
-		const session = userData.session;
+	private static async onMessage(webSocket: WebSocket, arrayBuffer: ArrayBuffer): Promise<void> {
+		const session = webSocket.getUserData()?.session;
+		const message = Buffer.from(arrayBuffer);
 		if (session) {
-			await session.receive(Buffer.from(message));
-			return;
+			return await session.receive(message);
 		}
+		await WS.establishSession(webSocket, message);
+	}
 
-		const bufferAsString = Buffer.from(message).toString();
-		let json: unknown;
-		try {
-			json = JSON.parse(bufferAsString);
-		} catch(e) {
-			return WS.logger.warn("Could not decode JSON.");
-		}
-		if (!json || typeof json != "object" || json instanceof Array) {
-			WS.logger.warn("Wrong JSON.");
-			return;
-		}
-		if ("token" in json && typeof json.token == "string") {
-			userData.session = Session.getByToken(json.token);
-			if (!userData.session) {
-				WS.logger.warn(`Wrong session token ${json.token}.`);
+	private static async establishSession(webSocket: WebSocket, message: Buffer): Promise<void> {
+		let session: Session | undefined;
+		if (message.length == Session.TOKEN_SIZE) {
+			session = Session.getByToken(message);
+			if (!session) {
+				WS.logger.debug(`Wrong session token ${message}.`);
+				session = await Session.create();
 			}
-		} else if ("newSession" in json) {
-			userData.session = await Session.create();
+		} else if (message.equals(Buffer.from([0]))) {
+			session = await Session.create();
+		} else {
+			webSocket.end();
+			return WS.logger.debug(`WS server got a message without active session.`);
 		}
-		userData.session?.setWebSocket(webSocket);
+		session.setWebSocket(webSocket);
+		WS.send(webSocket, session.token);
 	}
 }

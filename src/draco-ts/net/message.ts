@@ -1,7 +1,6 @@
 import assert from "assert/strict";
 import {Constructor, PropertiesOf} from "../typings.js";
 import BaseProtoClass from "./base-proto-class.js";
-import Protobuf from "./protobuf.js";
 import Session from "./session.js";
 
 /**
@@ -39,9 +38,9 @@ export default abstract class Message extends BaseProtoClass {
 	/** Sends the message */
 	public send(sessions: Session | Iterable<Session>): void {
 		assert(this.created, `You should use the method "create" to create a message, not a constructor.`);
-		const buffer = Protobuf.encode(this);
-		for (const session of (sessions instanceof Session ? [sessions] : sessions)) {
-			session.send(buffer);
+		sessions = (Symbol.iterator in sessions ? sessions : [sessions]);
+		for (const session of sessions) {
+			session.send(this);
 		}
 	}
 }

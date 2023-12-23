@@ -11,9 +11,9 @@ import Logger from "./logger.js";
  * It is named the same as the function in Godot, which is an abbreviation of "translation".
  */
 export default class Tr {
-	private static logger = new Logger(Tr);
+	private static readonly logger = new Logger(Tr);
+	private static readonly translations = new Map<string, Map<string, string>>;
 	private static locale = process.env.LOCALE || "en_US";
-	private static translations = new Map<string, Map<string, string>>;
 
 	/** Initializes gettext */
 	public static init(): void {

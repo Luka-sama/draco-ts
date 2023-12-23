@@ -84,7 +84,7 @@ before(async () => {
 	Protobuf.init(types, messages, services, 1, typings);
 });
 
-test("message encoding & service decoding", (ctx) => {
+test("message encoding & service decoding", ctx => {
 	const loggerWarn = ctx.mock.method(Protobuf["logger"], "warn");
 	loggerWarn.mock.mockImplementationOnce(() => {});
 	const nested = TestMessageType.create({someField: "lalala"});

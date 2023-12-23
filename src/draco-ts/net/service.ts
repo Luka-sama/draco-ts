@@ -39,6 +39,7 @@ export default abstract class Service extends BaseProtoClass {
 	public static readonly logger = new Logger(Service);
 	/** See {@link ServiceOptions} for details */
 	public static options: ServiceOptions = {};
+	protected session!: Session;
 
 	/**
 	 * Executes a service. Includes all steps (preparing, validating, running etc.).
@@ -46,6 +47,7 @@ export default abstract class Service extends BaseProtoClass {
 	 */
 	public async _exec(session: Session): Promise<void> {
 		assert(this.created, `You should use the method "create" to create a service, not a constructor.`);
+		this.session = session;
 		const dynamicOptions = (this.options ? await this.options(this) : {});
 		const options: ServiceOptions = {...(this.constructor as typeof Service).options, ...dynamicOptions};
 		if (this.prepare) {

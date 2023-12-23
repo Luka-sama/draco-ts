@@ -4,6 +4,8 @@ import Task from "./game-loop/task.js";
 import Logger, {LogLevel} from "./logger.js";
 import ProtobufLoader from "./net/protobuf-loader.js";
 import Protobuf from "./net/protobuf.js";
+import Session from "./net/session.js";
+import UDP from "./net/udp.js";
 import WS from "./net/ws.js";
 import DB from "./orm/db.js";
 import ORM from "./orm/orm.js";
@@ -26,7 +28,7 @@ export interface AppConfig {
 	/**
 	 * Flush all log entries to the files every `loggerFlushFrequency` ms.
 	 * This parameter only has an impact if `LOG_DESTINATION` is set `file` (see {@link Logger} for details).
-	 * The log entries to the console will be always flushed immediately.
+	 * The log entries to the console will always be flushed immediately.
 	 */
 	loggerFlushFrequency: number;
 	/** Flush all updates to the database every `dbFlushFrequency` ms */
@@ -36,22 +38,31 @@ export interface AppConfig {
 	/**
 	 * The opcode size in bytes.
 	 * The larger, the more message and service classes can be created, but more bytes are sent per message.
-	 * By default 2 bytes, this means the limit of 65535 messages and services.
+	 * Defaults to 2 bytes, which means limiting to 65535 messages and services.
 	 * This should be enough for the vast majority of games.
 	 */
 	opcodeSize: number;
+	/** How many milliseconds to wait for a user to reconnect to an existing session */
+	waitForReconnection: number;
+	udpMaxOptimalPacketCount: number;
+	udpAttemptCount: number;
+	udpSessionTimeout: number;
 }
 
 /** App class. App log level is by default `info`, unless you change it with `APP_LOG_LEVEL`, see {@link Logger} */
 export default class App {
-	private static logger = new Logger(App, LogLevel.Info);
-	private static defaultConfig: AppConfig = {
+	private static readonly logger = new Logger(App, LogLevel.Info);
+	private static readonly defaultConfig: AppConfig = {
 		errorStackTraceLimit: 50,
 		tickFrequency: 16,
 		loggerFlushFrequency: 100,
 		dbFlushFrequency: 100,
 		syncFrequency: 100,
 		opcodeSize: 2,
+		waitForReconnection: 3000,
+		udpMaxOptimalPacketCount: 3,
+		udpAttemptCount: 5,
+		udpSessionTimeout: 5000,
 	};
 	private static started = false;
 
@@ -83,7 +94,12 @@ export default class App {
 		DB.init();
 		ORM.enableSync();
 		Task.create(ORM.flush, {frequency: config.dbFlushFrequency});
+		Session.waitForReconnection = config.waitForReconnection;
+		UDP.maxOptimalPacketCount = config.udpMaxOptimalPacketCount;
+		UDP.attemptCount = config.udpAttemptCount;
+		UDP.sessionTimeout = config.udpSessionTimeout;
 		WS.init();
+		UDP.init();
 		Task.create(Cache.clean, {frequency: Cache.CLEAN_FREQUENCY});
 		// With priority 1, so that users get changes immediately rather than on the next game loop iteration
 		Task.create(Synchronizer.synchronize, {frequency: config.syncFrequency, priority: 1});
@@ -100,6 +116,7 @@ export default class App {
 			return;
 		}
 		GameLoop.stop();
+		UDP.close();
 		WS.close();
 		ORM.disableSync();
 		await DB.close();
