@@ -4,6 +4,7 @@ import Task from "./game-loop/task.js";
 import Logger, {LogLevel} from "./logger.js";
 import ProtobufLoader from "./net/protobuf-loader.js";
 import Protobuf from "./net/protobuf.js";
+import Service from "./net/service.js";
 import Session from "./net/session.js";
 import UDP from "./net/udp.js";
 import WS from "./net/ws.js";
@@ -44,9 +45,13 @@ export interface AppConfig {
 	opcodeSize: number;
 	/** How many milliseconds to wait for a user to reconnect to an existing session */
 	waitForReconnection: number;
+	wsMaxPayloadLength: number;
 	udpMaxOptimalPacketCount: number;
 	udpAttemptCount: number;
 	udpSessionTimeout: number;
+	udpReceiveMaxBytesPerSecond: number;
+	udpShouldWaitForNext: number;
+	alwaysCorrectOrder: boolean;
 }
 
 /** App class. App log level is by default `info`, unless you change it with `APP_LOG_LEVEL`, see {@link Logger} */
@@ -60,9 +65,13 @@ export default class App {
 		syncFrequency: 100,
 		opcodeSize: 2,
 		waitForReconnection: 3000,
+		wsMaxPayloadLength: 16384,
 		udpMaxOptimalPacketCount: 3,
 		udpAttemptCount: 5,
 		udpSessionTimeout: 5000,
+		udpReceiveMaxBytesPerSecond: 65535,
+		udpShouldWaitForNext: 1000,
+		alwaysCorrectOrder: false,
 	};
 	private static started = false;
 
@@ -95,10 +104,12 @@ export default class App {
 		ORM.enableSync();
 		Task.create(ORM.flush, {frequency: config.dbFlushFrequency});
 		Session.waitForReconnection = config.waitForReconnection;
+		Service.options.correctOrder = config.alwaysCorrectOrder;
 		UDP.maxOptimalPacketCount = config.udpMaxOptimalPacketCount;
 		UDP.attemptCount = config.udpAttemptCount;
 		UDP.sessionTimeout = config.udpSessionTimeout;
-		WS.init();
+		UDP.receiveMaxBytesPerSecond = config.udpReceiveMaxBytesPerSecond;
+		WS.init(config.wsMaxPayloadLength);
 		UDP.init();
 		Task.create(Cache.clean, {frequency: Cache.CLEAN_FREQUENCY});
 		// With priority 1, so that users get changes immediately rather than on the next game loop iteration

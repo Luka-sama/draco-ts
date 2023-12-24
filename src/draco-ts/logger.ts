@@ -9,14 +9,10 @@ import MapUtil from "./collection-utils/map-util.js";
 export enum LogDestination {Console, File}
 export enum LogLevel {Debug, Info, Warn, Error, Silent}
 
-export class NotLoggableError extends Error {
-	public name = "NotLoggableError";
-}
-
 /**
  * Logger class. It can be used to log any info or errors to the console or the files.
  *
- * Typically you want to use it like so:
+ * Typically, you want to use it like so:
  * ```ts
  * export default class YourClassName {
  *  private static readonly logger = new Logger(YourClassName);`
@@ -27,7 +23,8 @@ export class NotLoggableError extends Error {
  * or use it somewhere like `something.on("error", YourClassName.logger.error);`.
  *
  * The logger will read environment variable `LOG_DESTINATION` (possible values are `console` or `file`)
- * to determine whether it should write to the console or the files. In the second case, a separate file for each component is created.
+ * to determine whether it should write to the console or the files.
+ * In the second case, a separate file for each component is created.
  * You can specify their location with `LOG_DIR=logs/`.
  *
  * You can also control the log levels with environment variables. An example how and what you can control in .env-file:
@@ -73,7 +70,7 @@ export default class Logger {
 
 	/**
 	 * Creates a logger for the given component.
-	 * The component can be a string or a function (incl. classes), in the second case the name of the function will be used.
+	 * The component can be a string or a function (incl. classes), in the second case the function name will be used.
 	 */
 	// eslint-disable-next-line @typescript-eslint/ban-types
 	public constructor(component: string | Function, level?: LogLevel) {
@@ -100,7 +97,10 @@ export default class Logger {
 		return LogLevel.Warn;
 	}
 
-	/** Sets the logger level. If process environment variable for this component is specified, this method will have no visible effect */
+	/**
+	 * Sets the logger level.
+	 * If process environment variable for this component is specified, this method will have no visible effect.
+	 */
 	public setLevel(level: LogLevel): void {
 		this.level = level;
 	}
@@ -110,13 +110,13 @@ export default class Logger {
 	 * (e.g. `debug` will not be logged in the logger with level `warn`).
 	 * It logs also the datetime, the component name and the level of the message.
 	 *
-	 * `content` can be of any type. If it is an error that extends NotLoggableError, it will not be logged.
+	 * `content` can be of any type. It will be logged using `util.format`.
 	 *
 	 * If `LOG_DESTINATION` is set to `console` (by default), it will write directly to the console,
 	 * otherwise the entries will be collected and periodically flushed to the files.
 	 */
 	public log(level: Exclude<LogLevel, LogLevel.Silent>, content: unknown): void {
-		if (level < this.getLevel() || content instanceof NotLoggableError) {
+		if (level < this.getLevel()) {
 			return;
 		}
 

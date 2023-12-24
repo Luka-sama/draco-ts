@@ -39,9 +39,9 @@ export default class Task {
 	public readonly name: string;
 	public frequency: number;
 	public remainingExecutions: number;
-	/** The creation time as a unixtime timestamp, in milliseconds */
+	/** The creation time as a unix timestamp, in milliseconds */
 	public readonly createdAt = Date.now();
-	/** The start time as a unixtime timestamp, in milliseconds. It is updated with each call of {@link Task.start} */
+	/** The start time as a unix timestamp, in milliseconds. It is updated with each call of {@link Task.start} */
 	public startedAt = Date.now();
 	protected data: any;
 	private lastExecution: number;

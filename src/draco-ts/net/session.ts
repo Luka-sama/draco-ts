@@ -1,11 +1,13 @@
 import assert from "assert/strict";
 import {Buffer} from "buffer";
 import {randomBytes} from "crypto";
+import {setTimeout} from "timers/promises";
 import {promisify} from "util";
 import Timeout from "../game-loop/timeout.js";
 import {AuthorizableEntity} from "../orm/authorizable-entity.js";
 import Message from "./message.js";
 import Protobuf from "./protobuf.js";
+import Service from "./service.js";
 import UDPSocket from "./udp-socket.js";
 import UDP from "./udp.js";
 import WS, {WebSocket} from "./ws.js";
@@ -14,9 +16,10 @@ export default class Session {
 	public static readonly TOKEN_SIZE = 48;
 	public static waitForReconnection: number;
 	public readonly token: Buffer;
-	public readonly tokenAsString: string;
-	private static sessionByToken = new Map<string, Session>;
+	private static readonly sessionByToken = new Map<string, Session>;
 	private readonly messageQueue: Buffer[] = [];
+	private readonly serviceLastRunTime = new Map<typeof Service, number>();
+	private readonly serviceAbortControllers = new Map<typeof Service, AbortController>();
 	private entity?: AuthorizableEntity;
 	private webSocket?: WebSocket;
 	private udpSocket?: UDPSocket;
@@ -24,7 +27,7 @@ export default class Session {
 	private closed = false;
 
 	public static async create(): Promise<Session> {
-		const token = await Session.generateToken();
+		const token = await promisify(randomBytes)(Session.TOKEN_SIZE);
 		return new Session(token);
 	}
 
@@ -34,9 +37,9 @@ export default class Session {
 
 	protected constructor(token: Buffer) {
 		this.token = token;
-		this.tokenAsString = token.toString("base64");
-		assert(!Session.sessionByToken.has(this.tokenAsString));
-		Session.sessionByToken.set(this.tokenAsString, this);
+		const tokenAsString = token.toString("base64");
+		assert(!Session.sessionByToken.has(tokenAsString));
+		Session.sessionByToken.set(tokenAsString, this);
 	}
 
 	public isConnected(): boolean {
@@ -78,8 +81,15 @@ export default class Session {
 
 	public authorize(entity: AuthorizableEntity): void {
 		assert(!this.closed);
+		assert(!entity._session || entity._session.closed, "The given entity is already authorized.");
 		this.entity = entity;
 		this.entity._session = this;
+	}
+
+	public reauthorize(entity: AuthorizableEntity): void {
+		assert(!this.closed);
+		entity._session?.close();
+		this.authorize(entity);
 	}
 
 	public logOut(): void {
@@ -98,11 +108,11 @@ export default class Session {
 		this.flush();
 	}
 
-	public async receive(message: Buffer): Promise<void> {
+	public async receive(message: Buffer, correctOrder?: boolean): Promise<void> {
 		assert(!this.closed);
 		const service = Protobuf.decode(message);
 		if (service) {
-			await service._exec(this);
+			await service._exec(this, correctOrder);
 		}
 	}
 
@@ -111,12 +121,42 @@ export default class Session {
 		this.logOut();
 		this.udpSocket?.close();
 		this.webSocket?.end();
-		Session.sessionByToken.delete(this.tokenAsString);
+		Session.sessionByToken.delete(this.token.toString("base64"));
 		this.closed = true;
 	}
 
-	private static async generateToken(): Promise<Buffer> {
-		return await promisify(randomBytes)(Session.TOKEN_SIZE);
+
+	/**
+	 * Limits the given service for user `user`: not more often than every `frequency` ms.
+	 * If the user sends a request too early, this request will be delayed (but not more than one request).
+	 * Should be used together with {@link updateLastTime}
+	 */
+	public async softLimit(ServiceClass: typeof Service, frequency: number): Promise<void> {
+		const abortController = this.serviceAbortControllers.get(ServiceClass);
+		if (abortController) {
+			abortController.abort();
+			this.serviceAbortControllers.delete(ServiceClass);
+		}
+
+		const shouldWait = this.getShouldWait(ServiceClass, frequency);
+		if (shouldWait > 0) {
+			const abort = new AbortController();
+			this.serviceAbortControllers.set(ServiceClass, abort);
+			await setTimeout(shouldWait, undefined, {ref: false, signal: abort.signal});
+			this.serviceAbortControllers.delete(ServiceClass);
+		}
+	}
+
+	/** Updates the last run time of the given service for this session */
+	public updateLastTime(ServiceClass: typeof Service): void {
+		this.serviceLastRunTime.set(ServiceClass, Date.now());
+	}
+
+	/** Returns how long the user should wait before he can execute a ServiceClass again */
+	public getShouldWait(ServiceClass: typeof Service, frequency: number): number {
+		const lastRunTime = this.serviceLastRunTime.get(ServiceClass) || 0;
+		const passed = Date.now() - lastRunTime;
+		return frequency - passed;
 	}
 
 	private connected(): void {

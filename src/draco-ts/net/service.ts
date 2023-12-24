@@ -2,10 +2,13 @@ import assert from "assert/strict";
 import Logger from "../logger.js";
 import BaseProtoClass from "./base-proto-class.js";
 import Session from "./session.js";
+import {AsyncLocalStorage} from "node:async_hooks";
 
 /** Service options to customize its behavior */
 export interface ServiceOptions {
-
+	correctOrder?: boolean;
+	limit?: number;
+	limitAlways?: boolean;
 }
 
 /**
@@ -39,31 +42,56 @@ export default abstract class Service extends BaseProtoClass {
 	public static readonly logger = new Logger(Service);
 	/** See {@link ServiceOptions} for details */
 	public static options: ServiceOptions = {};
+	private static asyncLocalStorage = new AsyncLocalStorage();
 	protected session!: Session;
+	private hasModifiedEntities = false;
 
 	/**
 	 * Executes a service. Includes all steps (preparing, validating, running etc.).
 	 * @internal
 	 */
-	public async _exec(session: Session): Promise<void> {
+	public async _exec(session: Session, correctOrder?: boolean): Promise<void> {
 		assert(this.created, `You should use the method "create" to create a service, not a constructor.`);
 		this.session = session;
-		const dynamicOptions = (this.options ? await this.options(this) : {});
-		const options: ServiceOptions = {...(this.constructor as typeof Service).options, ...dynamicOptions};
+		const ServiceClass = (this.constructor as typeof Service);
+		const options: ServiceOptions = {...Service.options, ...ServiceClass.options};
+		if ((options.correctOrder && correctOrder === false) || (!options.correctOrder && correctOrder === true)) {
+			return;
+		}
+		if (!this.run) {
+			return Service.logger.error(`${ServiceClass.name} has no run method.`);
+		}
+
+		const speed = await this.getSpeed?.(this);
+		const limit = (!process.env.NODE_TEST_CONTEXT ? (speed ? 1000 / speed : options.limit) : 0);
+		if (limit && this.errorOnLimit && this.session.getShouldWait(ServiceClass, limit) > 0) {
+            await this.errorOnLimit(this);
+			return;
+		} else if (limit && !this.errorOnLimit) {
+			await session.softLimit(ServiceClass, limit);
+		}
+
 		if (this.prepare) {
 			await this.prepare(this);
 		}
 		if (this.validate && !(await this.validate(this))) {
-			Service.logger.warn(`User input for ${this.constructor.name} failed validation.`);
-			return;
+			return Service.logger.warn(`User input for ${this.constructor.name} failed validation.`);
 		}
-		if (this.run) {
-			await this.run(this);
+		await Service.asyncLocalStorage.run(this, async () => await this.run!(this));
+
+		if (limit && (this.hasModifiedEntities || options.limitAlways)) {
+			session.updateLastTime(ServiceClass);
 		}
 	}
 
-	/** Use this instead of {@link Service.options} if you need to calculate options dynamically */
-	public options?(service: this): ServiceOptions | Promise<ServiceOptions>;
+	public static _trackChange() {
+		const service = Service.asyncLocalStorage.getStore();
+		if (service === undefined) {
+			return;
+		}
+		assert(service instanceof Service);
+		service.hasModifiedEntities = true;
+	}
 
 	/** Prepares data before other steps */
 	public prepare?(service: this): void | Promise<void>;
@@ -81,4 +109,8 @@ export default abstract class Service extends BaseProtoClass {
 
 	/** Runs the service (i.e. produces some reaction to the user message) */
 	public run?(service: this): void | Promise<void>;
+
+	public getSpeed?(service: this): number | Promise<number>;
+
+	public errorOnLimit?(service: this): void | Promise<void>;
 }

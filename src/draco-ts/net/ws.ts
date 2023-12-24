@@ -19,12 +19,13 @@ export default class WS {
 	private static listenSocket?: uWS.us_listen_socket;
 
 	/** Initializes WebSocket server */
-	public static init(): void {
+	public static init(maxPayloadLength: number): void {
 		if (WS.app) {
 			return;
 		}
 
 		const config: uWS.WebSocketBehavior<WebSocketData> = {
+			maxPayloadLength,
 			open: WS.onOpen,
 			message: WS.onMessage,
 			close: WS.onClose,

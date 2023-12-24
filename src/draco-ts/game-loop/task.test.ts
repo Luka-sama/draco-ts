@@ -1,12 +1,14 @@
 import assert from "assert/strict";
-import {afterEach, beforeEach, mock, test} from "node:test";
+import {afterEach, before, beforeEach, mock, test} from "node:test";
 import GameLoop from "./game-loop.js";
 import Task from "./task.js";
 
 const frequency = 16;
 const logError = mock.method(GameLoop["logger"], "error");
-logError.mock.mockImplementation(() => {});
-mock.timers.enable();
+before(() => {
+	logError.mock.mockImplementation(() => {});
+	mock.timers.enable();
+});
 beforeEach(() => {
 	logError.mock.resetCalls();
 	GameLoop.init(frequency);

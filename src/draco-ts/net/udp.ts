@@ -12,14 +12,17 @@ export default class UDP {
 	public static maxOptimalPacketCount: number;
 	public static attemptCount: number;
 	public static sessionTimeout: number;
+	public static receiveMaxBytesPerSecond: number;
+	public static shouldWaitForNext: number;
 	private static socketByAddress = new Map<string, UDPSocket>;
 	private static server?: dgram.Socket;
+	private static newMessageResolve?: () => void;
 
 	public static init(): void {
 		const port = +process.env.UDP_PORT!;
 		assert(!UDP.server && port);
 
-		UDP.server = dgram.createSocket("udp4");
+		UDP.server = dgram.createSocket({type: "udp4", sendBufferSize: 1024 ** 3, recvBufferSize: 1024 ** 3});
 		UDP.server.on("error", UDP.logger.error);
 		UDP.server.on("message", UDP.onMessage);
 		UDP.server.bind(port, () => {
@@ -33,24 +36,27 @@ export default class UDP {
 		delete UDP.server;
 	}
 
-	public static send(address: string, port: number, message: Buffer, callback?: () => void): void {
+	public static send(address: string, port: number, message: Buffer, cb?: () => void): void {
 		assert(UDP.server);
-		UDP.server.send(message, 0, message.length, port, address, callback);
+		UDP.server.send(message, 0, message.length, port, address, cb);
 	}
 
 	public static removeSocket(udpSocket: UDPSocket): void {
 		const address = `${udpSocket.address}:${udpSocket.port}`;
-		this.socketByAddress.delete(address);
+		UDP.socketByAddress.delete(address);
 	}
 
-	private static async onMessage(message: Buffer, rinfo: dgram.RemoteInfo): Promise<void> {
-		if (message.length < 1) {
-			return UDP.logger.debug(`The received message is empty.`);
-		}
+	public static waitForMessage(): Promise<void> {
+		return new Promise(resolve => {
+			UDP.newMessageResolve = resolve;
+		});
+	}
 
+	private static onMessage(message: Buffer, rinfo: dgram.RemoteInfo): void {
 		const address = `${rinfo.address}:${rinfo.port}`;
 		const udpSocket = UDP.socketByAddress.get(address) ?? new UDPSocket(rinfo.address, rinfo.port);
 		UDP.socketByAddress.set(address, udpSocket);
 		udpSocket.receive(message);
+		UDP.newMessageResolve?.();
 	}
 }

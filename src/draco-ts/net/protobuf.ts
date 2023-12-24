@@ -16,7 +16,7 @@ interface ProtobufFieldInfo {
 	type: string;
 }
 
-/** Type of a proto class */
+/** Type of proto class */
 enum ProtoClassType {
 	/** A message can be sent to a user */
 	Message,
