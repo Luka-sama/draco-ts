@@ -1,9 +1,53 @@
 import assert from "assert/strict";
-import {before, test} from "node:test";
+import fs from "fs";
+import {before, mock, test} from "node:test";
 import Tr from "./tr.js";
 
+const poContent = `msgid ""
+msgstr ""
+"Project-Id-Version: draco-ts\\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\\n"
+"POT-Creation-Date: 2023-10-07 00:11+0200\\n"
+"PO-Revision-Date: 2023-10-07 00:28+0200\\n"
+"Last-Translator: Luka-sama <luka-sama@pm.me>\\n"
+"Language-Team: \\n"
+"Language: en_US\\n"
+"MIME-Version: 1.0\\n"
+"Content-Type: text/plain; charset=UTF-8\\n"
+"Content-Transfer-Encoding: 8bit\\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\\n"
+"Generated-By: Babel 2.9.1\\n"
+"X-Generator: Poedit 3.4\\n"
+
+#: src/draco-ts/tr.test.ts:4
+msgid "TEST_TRANSLATION"
+msgstr "test translation"
+
+#: src/draco-ts/tr.test.ts:6
+msgid "TEST_TRANSLATION_WITH_PLACEHOLDER"
+msgstr "test translation with placeholder {placeholder}"
+
+#: src/draco-ts/tr.test.ts:8 src/draco-ts/tr.test.ts:10
+#: src/draco-ts/tr.test.ts:12
+msgid "TEST_TRANSLATION_WITH_PLURAL"
+msgstr "test translation with {count} user(/s)"
+
+#: src/draco-ts/tr.test.ts:14 src/draco-ts/tr.test.ts:16
+msgid "TEST_TRANSLATION_WITH_COMMENTS"
+msgstr "test translation with /*{count}*/user(/s)"
+
+#: src/draco-ts/tr.test.ts:18
+msgid "TEST_TRANSLATION_COMPLEX"
+msgstr ""
+"test complex translation with {user_and_animal_count} user(/s) and animal(/"
+"s), {bot_count} bot(/s), /*{enemy_count}*/enem(y/ies)"
+`;
+
 before(() => {
+	mock.method(fs, "readdirSync").mock.mockImplementation(() => [`en_US.po`]);
+	mock.method(fs, "readFileSync").mock.mockImplementation(() => poContent);
 	Tr.init();
+	Tr.setLocale("en_US");
 });
 
 test("Tr.get", () => {
