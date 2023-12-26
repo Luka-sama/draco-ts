@@ -47,6 +47,5 @@ Useful commands
 * Build project: `npx tsc`
 * Generate documentation: `npx typedoc`
 * Run tests: `npm t`
-* Run mutants: `npx stryker run`
 * Check project with ESLint: `npm run eslint`
 * (Re)create database schema and seed database: `node dist/seeder`
