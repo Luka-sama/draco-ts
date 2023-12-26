@@ -1,6 +1,6 @@
-Theater of Talismans. Server
+draco-ts
 ============================
-This is one of the game repositories.
+This is the repository of the game MMO(RPG) framework.
 
 Installation
 ------------

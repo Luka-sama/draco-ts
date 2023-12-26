@@ -19,7 +19,7 @@ class SomeObject {
 class SomeWeakTask extends WeakTask<SomeObject> {
 	public test = 0;
 
-	protected run(delta: number, object: SomeObject): void {
+	protected run(_delta: number, object: SomeObject): void {
 		this.test = object.someProperty;
 	}
 }

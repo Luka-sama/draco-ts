@@ -212,8 +212,7 @@ test("resending message to client", async () => {
 
 test("very big message to client", async () => {
 	const packetCount = UDPSocket["MAX_MESSAGE_ID"];
-	const packetSize = UDP.MAX_SAFE_PACKET_SIZE - UDPSocket.SENT_HEADER_SIZE;
-	const testString = "a".repeat((packetCount - 1) * packetSize);
+	const testString = "a".repeat(UDPSocket.calcMessageSize(packetCount - 1));
 	const message = UDPTestMessage.create({testString, testNumber: 7});
 	session.send(message);
 	for (let i = 0; i < packetCount; i++) {
