@@ -1,4 +1,3 @@
-import Cache from "./cache/cache.js";
 import GameLoop from "./game-loop/game-loop.js";
 import Task from "./game-loop/task.js";
 import Logger, {LogLevel} from "./logger.js";
@@ -9,8 +8,6 @@ import Session from "./net/session.js";
 import UDP from "./net/udp.js";
 import WS from "./net/ws.js";
 import DB from "./orm/db.js";
-import ORM from "./orm/orm.js";
-import Synchronizer from "./sync/sync.js";
 import Tr from "./tr.js";
 import ClassLoader from "./type-analyzer/class-loader.js";
 import TypeAnalyzer from "./type-analyzer/type-analyzer.js";
@@ -101,8 +98,8 @@ export default class App {
 		// Then we can start other modules
 		Tr.init();
 		DB.init();
-		ORM.enableSync();
-		Task.create(ORM.flush, {frequency: config.dbFlushFrequency});
+		//ORM.enableSync();
+		//Task.create(ORM.flush, {frequency: config.dbFlushFrequency});
 		Session.waitForReconnection = config.waitForReconnection;
 		Service.options.correctOrder = config.alwaysCorrectOrder;
 		UDP.maxOptimalPacketCount = config.udpMaxOptimalPacketCount;
@@ -111,10 +108,10 @@ export default class App {
 		UDP.receiveMaxBytesPerSecond = config.udpReceiveMaxBytesPerSecond;
 		WS.init(config.wsMaxPayloadLength);
 		UDP.init();
-		Task.create(Cache.clean, {frequency: Cache.CLEAN_FREQUENCY});
+		//Task.create(Cache.clean, {frequency: Cache.CLEAN_FREQUENCY});
 		// With priority 1, so that users get changes immediately rather than on the next game loop iteration
-		Task.create(Synchronizer.synchronize, {frequency: config.syncFrequency, priority: 1});
-		Task.create(Synchronizer.syncNewZones);
+		//Task.create(Synchronizer.synchronize, {frequency: config.syncFrequency, priority: 1});
+		//Task.create(Synchronizer.syncNewZones);
 
 		App.started = true;
 		App.logger.info("Started.");
@@ -129,7 +126,7 @@ export default class App {
 		GameLoop.stop();
 		UDP.close();
 		WS.close();
-		ORM.disableSync();
+		//ORM.disableSync();
 		await DB.close();
 		Tr.stop();
 
