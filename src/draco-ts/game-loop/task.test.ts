@@ -20,7 +20,7 @@ afterEach(() => {
 async function advanceTimers(ms: number): Promise<void> {
 	for (let i = 0; i < ms; i++) {
 		mock.timers.tick(1);
-		await Promise.resolve();
+		await new Promise(process.nextTick);
 	}
 }
 

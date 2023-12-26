@@ -4,12 +4,12 @@ import WS from "../net/ws.js";
 import Entity, {InMemory} from "./entity.js";
 
 export class AuthorizableEntity extends Entity {
-	public _session?: InMemory<Session>;
+	public session?: InMemory<Session>;
 
 	public send(message: Message): void {
-		if (!this._session) {
+		if (!this.session) {
 			return WS.logger.debug(`The entity does not have a session to send data to.`);
 		}
-		this._session.send(message);
+		this.session.send(message);
 	}
 }

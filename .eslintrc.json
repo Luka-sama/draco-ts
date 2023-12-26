@@ -24,7 +24,9 @@
 
         "camelcase": "error",
         "capitalized-comments": "warn",
-        "class-methods-use-this": "error",
+        "class-methods-use-this": ["error", {"exceptMethods": [
+            "prepare", "validate", "run", "getSpeed", "errorOnLimit"
+        ]}],
         "curly": "error",
         "default-case-last": "error",
         "default-param-last": "error",

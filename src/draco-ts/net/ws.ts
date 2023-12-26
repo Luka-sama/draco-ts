@@ -51,6 +51,7 @@ export default class WS {
 		return WS.app;
 	}
 
+	/** Closes WebSocket server */
 	public static close(): void {
 		if (WS.listenSocket) {
 			uWS.us_listen_socket_close(WS.listenSocket);
@@ -59,29 +60,29 @@ export default class WS {
 		}
 	}
 
-	/** Sends a message to the given socket */
+	/** Sends a message to the given web socket */
 	public static send(webSocket: WebSocket, message: Buffer): void {
 		const statusCode = webSocket.send(message, true, false);
-		if (statusCode != 1) {
-			WS.logger.debug(`The message could not be send (status code ${statusCode}).`);
+		if (statusCode == 2) {
+			WS.logger.debug(`The message could not be send.`);
 		}
 	}
 
-	/** Handles socket connection. Sends protobuf types */
+	/** Handles socket connection. Sends protobuf types as JSON */
 	private static onOpen(webSocket: WebSocket): void {
 		const json = JSON.stringify({typeInfos: Protobuf.typeInfos});
 		const statusCode = webSocket.send(json, false, false);
-		if (statusCode != 1) {
-			WS.logger.debug(`JSON with type infos was not sent (status code ${statusCode}).`);
+		if (statusCode == 2) {
+			WS.logger.debug(`JSON with type infos was not sent.`);
 		}
 	}
 
 	/** Handles socket disconnection */
 	private static onClose(webSocket: WebSocket): void {
-		webSocket.getUserData().session?.removeWebSocket();
+		webSocket.getUserData().session?.unbindWebSocket();
 	}
 
-	/** Handles getting data. Decodes a protobuf message and invokes the corresponding service */
+	/** Handles getting data. Passes the message to the session or tries to establish a session if it is missing */
 	private static async onMessage(webSocket: WebSocket, arrayBuffer: ArrayBuffer): Promise<void> {
 		const session = webSocket.getUserData()?.session;
 		const message = Buffer.from(arrayBuffer);
@@ -91,21 +92,15 @@ export default class WS {
 		await WS.establishSession(webSocket, message);
 	}
 
+	/** Establishes a session (either with the given token or a new one) */
 	private static async establishSession(webSocket: WebSocket, message: Buffer): Promise<void> {
-		let session: Session | undefined;
-		if (message.length == Session.TOKEN_SIZE) {
-			session = Session.getByToken(message);
-			if (!session) {
-				WS.logger.debug(`Wrong session token ${message}.`);
-				session = await Session.create();
-			}
-		} else if (message.equals(Buffer.from([0]))) {
-			session = await Session.create();
-		} else {
+		const newSession = message.equals(Buffer.from([0]));
+		const session = (newSession ? await Session.create() : Session.getByToken(message));
+		if (!session) {
 			webSocket.end();
-			return WS.logger.debug(`WS server got a message without active session.`);
+			return WS.logger.debug(`Wrong session token or a message without active session (message length ${message.length}).`);
 		}
-		session.setWebSocket(webSocket);
+		session.bindWebSocket(webSocket);
 		WS.send(webSocket, session.token);
 	}
 }

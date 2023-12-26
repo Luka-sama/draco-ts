@@ -1,6 +1,6 @@
 import assert from "assert/strict";
 import {describe, test} from "node:test";
-import {Vec2f, Vec3f, Vector2f, Vector2i, Vector3f, Vector3i} from "./vector.js";
+import {Vec2f, Vec2i, Vec3f, Vec3i, Vector2f, Vector2i, Vector3f, Vector3i} from "./vector.js";
 
 describe("Vector2f", () => {
 	const a = new Vector2f(1, 2);
@@ -120,11 +120,6 @@ describe("Vector2f", () => {
 		assert.equal(`${a}`, "(1, 2)");
 	});
 
-	test("toPlain", () => {
-		const c = a.toPlain();
-		assert.deepEqual(c, {x: 1, y: 2});
-	});
-
 	test("toVector2i", () => {
 		const c = a2.toVector2i();
 		assert(c instanceof Vector2i);
@@ -157,11 +152,6 @@ describe("Vector2i", () => {
 		const c = a.add(b);
 		assert.equal(c.x, 2);
 		assert.equal(c.y, 5);
-	});
-
-	test("toPlain", () => {
-		const c = a.toPlain();
-		assert.deepEqual(c, {x: 1, y: 2});
 	});
 
 	test("toVector2f", () => {
@@ -200,11 +190,6 @@ describe("Vector3f", () => {
 		assert.equal(c.z, 8);
 	});
 
-	test("toPlain", () => {
-		const c = a.toPlain();
-		assert.deepEqual(c, {x: 1, y: 2, z: 5});
-	});
-
 	test("toVector2f", () => {
 		const c = a.toVector2f();
 		assert(c instanceof Vector2f);
@@ -239,11 +224,6 @@ describe("Vector3i", () => {
 		assert.equal(c.z, 8);
 	});
 
-	test("toPlain", () => {
-		const c = a.toPlain();
-		assert.deepEqual(c, {x: 1, y: 3, z: 5});
-	});
-
 	test("toVector2f", () => {
 		const c = a.toVector2f();
 		assert(c instanceof Vector2f);
@@ -267,36 +247,32 @@ describe("Vector3i", () => {
 	});
 });
 
-describe("Vec2f", () => {
-	test("from object", () => {
-		const a = Vec2f({x: 3, y: 4});
-		assert(a instanceof Vector2f);
-		assert.equal(a.x, 3);
-		assert.equal(a.y, 4);
-	});
-
-	test("two numeric arguments", () => {
-		const a = Vec2f(3, 4);
-		assert(a instanceof Vector2f);
-		assert.equal(a.x, 3);
-		assert.equal(a.y, 4);
-	});
+test("Vec2f", () => {
+	const a = Vec2f(3, 4.5);
+	assert(a instanceof Vector2f);
+	assert.equal(a.x, 3);
+	assert.equal(a.y, 4.5);
 });
 
-describe("Vec3f", () => {
-	test("from object", () => {
-		const a = Vec3f({x: 3, y: 4, z: 5});
-		assert(a instanceof Vector3f);
-		assert.equal(a.x, 3);
-		assert.equal(a.y, 4);
-		assert.equal(a.z, 5);
-	});
+test("Vec2i", () => {
+	const a = Vec2i(3, 4);
+	assert(a instanceof Vector2i);
+	assert.equal(a.x, 3);
+	assert.equal(a.y, 4);
+});
 
-	test("three numeric arguments", () => {
-		const a = Vec3f(3, 4, 10);
-		assert(a instanceof Vector3f);
-		assert.equal(a.x, 3);
-		assert.equal(a.y, 4);
-		assert.equal(a.z, 10);
-	});
+test("Vec3f", () => {
+	const a = Vec3f(3.1, 4.2, 10.3);
+	assert(a instanceof Vector3f);
+	assert.equal(a.x, 3.1);
+	assert.equal(a.y, 4.2);
+	assert.equal(a.z, 10.3);
+});
+
+test("Vec3i", () => {
+	const a = Vec3i(3, 4, 10);
+	assert(a instanceof Vector3i);
+	assert.equal(a.x, 3);
+	assert.equal(a.y, 4);
+	assert.equal(a.z, 10);
 });

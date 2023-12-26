@@ -20,7 +20,7 @@ export class UDPTestMessage extends Message {
 }
 
 export class UDPTestService extends Service {
-    public static calledWith = {testString: "", testNumber: 0, testNumbers: new Array<number>};
+	public static calledWith = {testString: "", testNumber: 0, testNumbers: new Array<number>};
 	public testString!: string;
 	public testNumber!: UInt32;
 
@@ -31,9 +31,9 @@ export class UDPTestService extends Service {
 	}
 }
 
+const clientMessages: Buffer[] = [];
 let send: (message: Buffer) => Promise<void>;
 let session: Session;
-let clientMessages: Buffer[] = [];
 let tokenPrefix: Buffer;
 
 let _resolve: () => void;
@@ -68,6 +68,7 @@ before(async () => {
 	UDP.attemptCount = 5;
 	UDP.sessionTimeout = 5000;
 	UDP.receiveMaxBytesPerSecond = 65535;
+	UDP.shouldWaitForNext = 1000;
 	UDP.init();
 	const address = "127.0.0.1";
 	const port = +process.env.UDP_PORT!;
@@ -79,7 +80,7 @@ before(async () => {
 	client.unref();
 	session = await Session.create();
 	tokenPrefix = session.token.subarray(0, UDPSocket["TOKEN_PREFIX_SIZE"]);
-	send = async message => {
+	send = async (message): Promise<void> => {
 		client.send(message, 0, message.length, port, address);
 		await UDP.waitForMessage();
 	};
@@ -103,20 +104,20 @@ test("establish session", async () => {
 	assert.deepEqual(clientMessages, []);
 
 	const messageWithWrongToken = Buffer.concat([
-		Buffer.from([0]), session.token.subarray(0, Session.TOKEN_SIZE - 1),
+		Buffer.from([0]), session.token.subarray(0, Session["TOKEN_SIZE"] - 1),
 	]);
 	UDP.logger.setLevel(LogLevel.Warn);
 	await sendAndWaitForAnswer(messageWithWrongToken);
 	UDP.logger.setLevel(LogLevel.Debug);
 	assert(!session.isConnected());
-	assert.deepEqual(clientMessages[0], Buffer.from([0, 0])); // error
+	assert.deepEqual(clientMessages[0], Buffer.from([0, 0])); // Error
 
 	const message = Buffer.concat([
 		Buffer.from([0]), session.token,
 	]);
 	await sendAndWaitForAnswer(message);
 	assert(session.isConnected());
-	assert.deepEqual(clientMessages[1], Buffer.from([0])); // acknowledgement
+	assert.deepEqual(clientMessages[1], Buffer.from([0])); // Acknowledgement
 });
 
 test("simple message to client", async () => {
@@ -126,7 +127,7 @@ test("simple message to client", async () => {
 	assert.deepEqual(clientMessages[0], Buffer.concat([
 		Buffer.from([1, 0]), Protobuf.encode(message)
 	]));
-	await send(Buffer.concat([Buffer.from([1, 0]), tokenPrefix])); // acknowledgement
+	await send(Buffer.concat([Buffer.from([1, 0]), tokenPrefix])); // Acknowledgement
 });
 
 test("simple message to server", async () => {
@@ -139,7 +140,7 @@ test("simple message to server", async () => {
 	await sendAndWaitForAnswer(buffer);
 	assert.equal(UDPTestService.calledWith.testString, testString);
 	assert.equal(UDPTestService.calledWith.testNumber, testNumber);
-	assert.deepEqual(clientMessages[0], Buffer.from([1])); // acknowledgement
+	assert.deepEqual(clientMessages[0], Buffer.from([1])); // Acknowledgement
 });
 
 test("big message to client", async () => {
@@ -160,7 +161,7 @@ test("big message to client", async () => {
 		Buffer.concat([Buffer.from([4, 3]), buffer.subarray(indexes[2])])
 	]);
 	for (let i = 0; i < indexes.length; i++) {
-		await send(Buffer.concat([Buffer.from([2 + i, 0]), tokenPrefix])); // acknowledgement
+		await send(Buffer.concat([Buffer.from([2 + i, 0]), tokenPrefix])); // Acknowledgement
 	}
 });
 
@@ -188,7 +189,7 @@ test("big message to server", async () => {
 	assert.equal(UDPTestService.calledWith.testNumber, testNumber);
 	assert.deepEqual(clientMessages, [
 		Buffer.from([3]), Buffer.from([2]), Buffer.from([4])
-	]); // acknowledgements
+	]); // Acknowledgements
 });
 
 test("resending message to client", async () => {
@@ -200,12 +201,12 @@ test("resending message to client", async () => {
 	session.send(message);
 	await waitForAnswer();
 	assert.deepEqual(clientMessages, [buffer]);
-	// no acknowledgement
+	// No acknowledgement
 
 	mock.timers.tick(50);
 	await waitForAnswer();
 	assert.deepEqual(clientMessages, [buffer, buffer]);
-	await send(Buffer.concat([Buffer.from([5, 0]), tokenPrefix])); // acknowledgement
+	await send(Buffer.concat([Buffer.from([5, 0]), tokenPrefix])); // Acknowledgement
 	mock.timers.tick(2000);
 });
 
@@ -223,7 +224,7 @@ test("very big message to client", async () => {
 	assert.deepEqual(clientMessages[clientMessages.length - 1].subarray(0, 2), Buffer.from([5, packetCount]));
 
 	for (let i = 1; i <= packetCount; i++) {
-		await send(Buffer.concat([Buffer.from([i, 0]), tokenPrefix])); // acknowledgement
+		await send(Buffer.concat([Buffer.from([i, 0]), tokenPrefix])); // Acknowledgement
 	}
 });
 
@@ -239,14 +240,14 @@ test("session reconnection", async () => {
 	await sendAndWaitForAnswer(Buffer.concat([Buffer.from([6, 0]), tokenPrefix, buffer]));
 	UDP.logger.setLevel(LogLevel.Debug);
 	assert(!session.isConnected());
-	assert.deepEqual(clientMessages[0], Buffer.from([0, 0])); // error
+	assert.deepEqual(clientMessages[0], Buffer.from([0, 0])); // Error
 
 	await sendAndWaitForAnswer(Buffer.concat([Buffer.from([0]), session.token]));
-	assert.deepEqual(clientMessages[1], Buffer.from([0])); // acknowledgement
+	assert.deepEqual(clientMessages[1], Buffer.from([0])); // Acknowledgement
 	assert(session.isConnected());
 
 	await sendAndWaitForAnswer(Buffer.concat([Buffer.from([1, 0]), tokenPrefix, buffer]));
-	assert.deepEqual(clientMessages[2], Buffer.from([1])); // acknowledgement
+	assert.deepEqual(clientMessages[2], Buffer.from([1])); // Acknowledgement
 });
 
 test("correct order", async () => {
@@ -266,7 +267,7 @@ test("correct order", async () => {
 		await sendAndWaitForAnswer(buffers1[index]);
 	}
 	assert.deepEqual(UDPTestService.calledWith.testNumbers, numbers.map((_number, i) => numbers[order[i]]));
-	assert.deepEqual(clientMessages, order.map(index => Buffer.from([2 + index]))); // acknowledgement
+	assert.deepEqual(clientMessages, order.map(index => Buffer.from([2 + index]))); // Acknowledgement
 
 	UDPTestService.options.correctOrder = true;
 	UDPTestService.calledWith.testNumbers.length = 0;
@@ -275,6 +276,6 @@ test("correct order", async () => {
 		await sendAndWaitForAnswer(buffers2[index]);
 	}
 	assert.deepEqual(UDPTestService.calledWith.testNumbers, numbers);
-	assert.deepEqual(clientMessages, order.map(index => Buffer.from([7 + index]))); // acknowledgement
+	assert.deepEqual(clientMessages, order.map(index => Buffer.from([7 + index]))); // Acknowledgement
 	UDPTestService.options.correctOrder = false;
 });

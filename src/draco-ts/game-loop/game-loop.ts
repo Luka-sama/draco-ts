@@ -69,12 +69,7 @@ export default class GameLoop {
 			}
 
 			const promises: Promise<void>[] = [];
-			taskSet.forEach(task => {
-				const promise = task._step();
-				if (promise) {
-					promises.push(promise);
-				}
-			});
+			taskSet.forEach(task => promises.push(task._step()));
 			await Promise.allSettled(promises);
 		}
 	}

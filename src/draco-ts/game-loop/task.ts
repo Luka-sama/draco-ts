@@ -98,7 +98,7 @@ export default class Task {
 	 * Executes a task during a loop iteration
 	 * @internal
 	 */
-	public _step(): void | Promise<void> {
+	public async _step(): Promise<void> {
 		const now = Date.now();
 		const delta = now - this.lastExecution;
 		if (delta < this.frequency) {
@@ -108,15 +108,16 @@ export default class Task {
 		this.lastExecution = Infinity; // Task locking, prevents the simultaneous execution of two identical tasks
 		GameLoop.logger.debug(`${this.name} starts executing.`);
 		try {
-			const result = this.run(delta, this.data);
-			if (result) {
-				return result.catch(GameLoop.logger.error).finally(() => this.onEnd(now));
-			} else {
-				this.onEnd(now);
-			}
+			await this.run(delta, this.data);
 		} catch (e) {
 			GameLoop.logger.error(e);
-			this.onEnd(now);
+		} finally {
+			this.lastExecution = now;
+			this.remainingExecutions--;
+			if (this.remainingExecutions < 1) {
+				this.stop();
+			}
+			GameLoop.logger.debug(`${this.name} ends executing.`);
 		}
 	}
 
@@ -126,15 +127,5 @@ export default class Task {
 	 */
 	protected run(_delta: number, _data: any): void | Promise<void> {
 		GameLoop.logger.warn(`No task implementation for ${this.name} provided.`);
-	}
-
-	/** This method is called after each task execution */
-	private onEnd(now: number): void {
-		this.lastExecution = now;
-		this.remainingExecutions--;
-		if (this.remainingExecutions < 1) {
-			this.stop();
-		}
-		GameLoop.logger.debug(`${this.name} ends executing.`);
 	}
 }
