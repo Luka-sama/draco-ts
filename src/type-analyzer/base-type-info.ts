@@ -1,6 +1,6 @@
 import assert from "assert/strict";
 import {ClassInstancePropertyTypes, Node, SourceFile, SyntaxKind, ts, TypeElementTypes} from "ts-morph";
-import Logger from "../logger.js";
+import Logger from "../core/logger.js";
 import SourceInfo from "./source-info.js";
 import {Kind, PropertyInfo, PropertyType, TSNode} from "./type-analyzer.typings.js";
 

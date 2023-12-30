@@ -1,7 +1,7 @@
 import assert from "assert/strict";
 import path from "path";
 import {fileURLToPath} from "url";
-import {Class} from "../typings.js";
+import {Class} from "../core/typings.js";
 import ClassInfo, {ClassWithInfo} from "./class-info.js";
 import TypeAnalyzer from "./type-analyzer.js";
 

@@ -1,6 +1,6 @@
 import assert from "assert/strict";
 import _ from "lodash";
-import {Float, Int32} from "../typings.js";
+import {Float, Int32} from "../core/typings.js";
 
 /** Abstract basic class that can represent a vector with arbitrary number of components */
 export abstract class Vector {

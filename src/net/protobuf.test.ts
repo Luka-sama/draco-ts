@@ -1,11 +1,11 @@
 import assert from "assert/strict";
 import _ from "lodash";
 import {before, test} from "node:test";
+import {Double, Float, Int32, Int64, PropertiesOf, Typings, UInt32, UInt64} from "../core/typings.js";
 import {Vec2i, Vector2i} from "../math/vector.js";
 import {ClassWithInfo} from "../type-analyzer/class-info.js";
 import ClassLoader from "../type-analyzer/class-loader.js";
 import TypeAnalyzer from "../type-analyzer/type-analyzer.js";
-import {Double, Float, Int32, Int64, PropertiesOf, Typings, UInt32, UInt64} from "../typings.js";
 import MessageType from "./message-type.js";
 import Message from "./message.js";
 import Protobuf from "./protobuf.js";

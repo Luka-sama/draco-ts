@@ -1,4 +1,4 @@
-import {Constructor, PropertiesOf} from "../typings.js";
+import {Constructor, PropertiesOf} from "../core/typings.js";
 
 /** Base class for messages and services. See {@link Message} and {@link Service} */
 export default abstract class BaseProtoClass {

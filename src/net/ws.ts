@@ -2,7 +2,7 @@ import assert from "assert/strict";
 import {Buffer} from "buffer";
 import "dotenv/config";
 import uWS from "uWebSockets.js";
-import Logger from "../logger.js";
+import Logger from "../core/logger.js";
 import Protobuf from "./protobuf.js";
 import Session from "./session.js";
 

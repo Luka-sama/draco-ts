@@ -1,5 +1,5 @@
 import assert from "assert/strict";
-import {Constructor} from "../typings.js";
+import {Constructor} from "../core/typings.js";
 import GameLoop from "./game-loop.js";
 
 /** A function that can be a task in the game loop */

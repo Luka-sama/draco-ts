@@ -1,5 +1,5 @@
 import assert from "assert/strict";
-import {Constructor, PropertiesOf} from "../typings.js";
+import {Constructor, PropertiesOf} from "../core/typings.js";
 import BaseProtoClass from "./base-proto-class.js";
 import Session from "./session.js";
 

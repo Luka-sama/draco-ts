@@ -1,6 +1,8 @@
+import Logger, {LogLevel} from "./core/logger.js";
+import Tr from "./core/tr.js";
+import {Typings} from "./core/typings.js";
 import GameLoop from "./game-loop/game-loop.js";
 import Task from "./game-loop/task.js";
-import Logger, {LogLevel} from "./logger.js";
 import ProtobufLoader from "./net/protobuf-loader.js";
 import Protobuf from "./net/protobuf.js";
 import Service from "./net/service.js";
@@ -8,10 +10,8 @@ import Session from "./net/session.js";
 import UDP from "./net/udp.js";
 import WS from "./net/ws.js";
 import DB from "./orm/db.js";
-import Tr from "./tr.js";
 import ClassLoader from "./type-analyzer/class-loader.js";
 import TypeAnalyzer from "./type-analyzer/type-analyzer.js";
-import {Typings} from "./typings.js";
 
 /** Framework configuration. It is recommended to leave default settings, unless you know what you are doing. */
 export interface AppConfig {

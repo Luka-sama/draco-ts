@@ -1,5 +1,5 @@
 import MapUtil from "../collection-utils/map-util.js";
-import Logger from "../logger.js";
+import Logger from "../core/logger.js";
 import Task from "./task.js";
 
 /** Game loop class. Manages and executes tasks, see {@link Task} */

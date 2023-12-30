@@ -1,5 +1,5 @@
 import assert from "assert/strict";
-import {Constructor} from "../typings.js";
+import {Constructor} from "../core/typings.js";
 import BaseTypeInfo from "./base-type-info.js";
 import SourceInfo from "./source-info.js";
 import {Kind} from "./type-analyzer.typings.js";

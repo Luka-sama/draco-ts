@@ -1,7 +1,7 @@
+import {Class} from "../core/typings.js";
 import {Vector2f, Vector2i, Vector3f, Vector3i} from "../math/vector.js";
 import {ClassWithInfo} from "../type-analyzer/class-info.js";
 import ClassLoader from "../type-analyzer/class-loader.js";
-import {Class} from "../typings.js";
 import MessageType from "./message-type.js";
 import Message from "./message.js";
 import Service from "./service.js";

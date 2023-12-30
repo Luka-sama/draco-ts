@@ -44,6 +44,6 @@ export default abstract class WeakTask<T extends object> extends Task {
 		}
 	}
 
-	/** Here should be a implementation of the task */
+	/** Here should be an implementation of the task */
 	protected abstract run(delta: number, object: T): void | Promise<void>;
 }

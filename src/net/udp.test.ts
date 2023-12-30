@@ -1,12 +1,12 @@
 import assert from "assert/strict";
 import dgram from "dgram";
 import {after, before, beforeEach, mock, test} from "node:test";
+import {LogLevel} from "../core/logger.js";
+import {Typings, UInt32} from "../core/typings.js";
 import GameLoop from "../game-loop/game-loop.js";
-import {LogLevel} from "../logger.js";
 import {ClassWithInfo} from "../type-analyzer/class-info.js";
 import ClassLoader from "../type-analyzer/class-loader.js";
 import TypeAnalyzer from "../type-analyzer/type-analyzer.js";
-import {Typings, UInt32} from "../typings.js";
 import Message from "./message.js";
 import Protobuf from "./protobuf.js";
 import Service from "./service.js";

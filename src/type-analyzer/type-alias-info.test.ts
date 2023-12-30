@@ -1,7 +1,7 @@
 import assert from "assert/strict";
 import {before, test} from "node:test";
 import path from "path";
-import {Exact} from "../typings.js";
+import {Exact} from "../core/typings.js";
 import TypeAliasInfo from "./type-alias-info.js";
 import TypeAnalyzer from "./type-analyzer.js";
 import {Kind, PropertyType} from "./type-analyzer.typings.js";

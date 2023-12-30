@@ -1,6 +1,6 @@
 import assert from "assert/strict";
 import {ClassDeclaration, SourceFile, SyntaxKind} from "ts-morph";
-import {Class} from "../typings.js";
+import {Class} from "../core/typings.js";
 import BaseTypeInfo from "./base-type-info.js";
 import SourceInfo from "./source-info.js";
 import TypeAnalyzer from "./type-analyzer.js";

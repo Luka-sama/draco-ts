@@ -1,6 +1,6 @@
 import assert from "assert/strict";
 import {AsyncLocalStorage} from "node:async_hooks";
-import Logger from "../logger.js";
+import Logger from "../core/logger.js";
 import BaseProtoClass from "./base-proto-class.js";
 import Session from "./session.js";
 

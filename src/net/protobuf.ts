@@ -1,10 +1,10 @@
 import protobuf from "protobufjs/light.js";
-import Logger from "../logger.js";
+import Logger from "../core/logger.js";
+import {Class, Constructor, PropertiesOf, Typings} from "../core/typings.js";
 import {Vector2f, Vector2i, Vector3f, Vector3i} from "../math/vector.js";
 import ClassInfo, {ClassWithInfo} from "../type-analyzer/class-info.js";
 import TypeAnalyzer from "../type-analyzer/type-analyzer.js";
 import {Kind, PropertyType} from "../type-analyzer/type-analyzer.typings.js";
-import {Class, Constructor, PropertiesOf, Typings} from "../typings.js";
 import BaseProtoClass from "./base-proto-class.js";
 import Message from "./message.js";
 import Service from "./service.js";

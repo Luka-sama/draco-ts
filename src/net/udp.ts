@@ -2,7 +2,7 @@ import assert from "assert/strict";
 import {Buffer} from "buffer";
 import dgram from "dgram";
 import "dotenv/config";
-import Logger from "../logger.js";
+import Logger from "../core/logger.js";
 import UDPSocket from "./udp-socket.js";
 
 /** This class starts UDP server and handles getting/sending data */
