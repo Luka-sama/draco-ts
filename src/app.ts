@@ -9,7 +9,6 @@ import Service from "./net/service.js";
 import Session from "./net/session.js";
 import UDP from "./net/udp.js";
 import WS from "./net/ws.js";
-import DB from "./orm/db.js";
 import ClassLoader from "./type-analyzer/class-loader.js";
 import TypeAnalyzer from "./type-analyzer/type-analyzer.js";
 
@@ -97,7 +96,7 @@ export default class App {
 
 		// Then we can start other modules
 		Tr.init();
-		DB.init();
+		//DB.init();
 		//ORM.enableSync();
 		//Task.create(ORM.flush, {frequency: config.dbFlushFrequency});
 		Session.waitForReconnection = config.waitForReconnection;
@@ -127,7 +126,7 @@ export default class App {
 		UDP.close();
 		WS.close();
 		//ORM.disableSync();
-		await DB.close();
+		//await DB.close();
 		Tr.stop();
 
 		process.off("uncaughtException", App.logger.error);

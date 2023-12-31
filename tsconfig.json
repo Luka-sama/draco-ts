@@ -4,7 +4,7 @@
   "compilerOptions": {
     "rootDir": "src/",
     "outDir": "dist/",
-    "module": "es2020",
+    "module": "nodenext",
     "moduleResolution": "nodenext",
     "declaration": true,
     "sourceMap": true,

@@ -69,6 +69,7 @@ before(async () => {
 	UDP.sessionTimeout = 5000;
 	UDP.receiveMaxBytesPerSecond = 65535;
 	UDP.shouldWaitForNext = 1000;
+	process.env.UDP_PORT = "9002";
 	UDP.init();
 	const address = "127.0.0.1";
 	const port = +process.env.UDP_PORT!;

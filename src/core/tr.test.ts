@@ -46,6 +46,7 @@ msgstr ""
 before(() => {
 	mock.method(fs, "readdirSync").mock.mockImplementation(() => [`en_US.po`]);
 	mock.method(fs, "readFileSync").mock.mockImplementation(() => poContent);
+	process.env.LOCALE_DIR = ".";
 	Tr.init();
 	Tr.setLocale("en_US");
 });
