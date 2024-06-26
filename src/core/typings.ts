@@ -11,6 +11,10 @@ export type UInt32 = number;
 /** An integer between 0 and 18.446.744.073.709.551.615 */
 export type UInt64 = bigint;
 
+/** Any primitive value that can be serialized with JSON */
+export type SerializablePrimitive = boolean | null | number | string;
+/** Any primitive value */
+export type Primitive = SerializablePrimitive | bigint | symbol | undefined;
 /** Any class (not class instance) */
 export type Class = abstract new (...args: any[]) => unknown;
 /** Constructor of class T */

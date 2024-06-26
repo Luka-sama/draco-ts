@@ -166,7 +166,8 @@ export default class Logger {
 
 	/** Logs a message to the console at the given level */
 	private static logToConsole(level: LogLevel, message: string): void {
-		if (level == LogLevel.Debug || level == LogLevel.Info) {
+		if (level == LogLevel.Debug || level == LogLevel.Info || process.env.NODE_ENV == "test") {
+			// In test environment, console.error adds annoying extra line breaks (each line break is printed twice)
 			console.log(message);
 		} else if (level == LogLevel.Warn || level == LogLevel.Error) {
 			console.error(message);

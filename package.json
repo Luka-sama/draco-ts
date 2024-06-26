@@ -21,7 +21,6 @@
     "@types/lodash": "^4.14.202",
     "@types/node": "^20.10.5",
     "@types/node-gettext": "^3.0.6",
-    "@types/pg": "^8.10.9",
     "@typescript-eslint/eslint-plugin": "^6.13.2",
     "@typescript-eslint/parser": "^6.13.2",
     "eslint": "^8.55.0",
@@ -34,7 +33,7 @@
     "dotenv": "^16.3.1",
     "gettext-parser": "^7.0.1",
     "lodash": "^4.17.21",
-    "pg": "^8.11.3",
+    "postgres": "^3.4.4",
     "protobufjs": "~7.2.5",
     "ts-morph": "^21.0.1",
     "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.44.0"

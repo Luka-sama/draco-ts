@@ -1,8 +1,14 @@
 import assert from "assert/strict";
-import {mock, test} from "node:test";
+import {after, mock, test} from "node:test";
 import Logger, {LogLevel} from "./logger.js";
 
+const savedEnv = process.env.NODE_ENV;
+after(() => {
+	process.env.NODE_ENV = savedEnv;
+});
+
 test("log levels", () => {
+	process.env.NODE_ENV = "development";
 	process.env.LOG_DESTINATION = "console";
 	process.env.DEFAULT_LOG_LEVEL = "warn";
 	const consoleLog = mock.method(console, "log");
