@@ -1,5 +1,5 @@
 {
-  "extends": "@tsconfig/node21/tsconfig.json",
+  "extends": "@tsconfig/node22/tsconfig.json",
   
   "compilerOptions": {
     "rootDir": "src/",
@@ -17,8 +17,8 @@
   "typedocOptions": {
     "entryPoints": ["src/"],
     "entryPointStrategy": "expand",
-    "exclude": "src/jest-setup.ts",
     "out": "docs",
+    "plugin": ["typedoc-theme-hierarchy"],
     "sort": "source-order",
     "theme": "hierarchy"
   }

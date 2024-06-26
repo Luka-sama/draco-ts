@@ -6,19 +6,15 @@ Installation
 ------------
 * Install Node.JS 22
 * Install PostgreSQL 16
-* Create database enveltia (encoding UTF8, collation C)
+* Create database `test-draco-ts` (encoding UTF8, collation C) and the corresponding user with the same name
 * Clone the project from GitHub
 * Execute the command `npm ci` to install node modules
 * Build the project with `npx tsc`
 * Create .env-file with the content:
 ```
-NODE_ENV=development
+NODE_ENV=test
 
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=YOUR_PASSWORD_HERE
-DB_DATABASE=enveltia
+DB_URL=postgres://test-draco-ts:YOUR_PASSWORD_HERE@localhost:5432/test-draco-ts
 
 LOCALE=en_US
 LOCALE_DIR=./locales
@@ -33,8 +29,6 @@ LOG_DESTINATION=console
 ```
 You can change the connection data, the logger options (see the logger documentation for details) or the locale.
 
-* Create database schema and seed database with `node dist/seeder`
-
 PhpStorm setup
 ------------
 PhpStorm is recommended to edit the project.
@@ -48,4 +42,3 @@ Useful commands
 * Generate documentation: `npx typedoc`
 * Run tests: `npm t`
 * Check project with ESLint: `npm run eslint`
-* (Re)create database schema and seed database: `node dist/seeder`
