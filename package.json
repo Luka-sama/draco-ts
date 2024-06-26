@@ -37,6 +37,6 @@
     "pg": "^8.11.3",
     "protobufjs": "~7.2.5",
     "ts-morph": "^21.0.1",
-    "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.34.0"
+    "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.44.0"
   }
 }

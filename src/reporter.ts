@@ -17,7 +17,8 @@ export default async function*(source: TestEvent[]): AsyncGenerator<string, void
 	const WARNING_HINT = (
 		"(Use `node --trace-warnings ...` to show where the warning was created)\n"
 	);
-	const dirname = path.dirname(import.meta.url);
+	const dirname = path.dirname(new URL(import.meta.url).pathname)
+		.replace(/^\/([A-Z]:\/)/i, "$1");
 	let isFirstDiagnostic = true;
 
 	let lastFile = "";

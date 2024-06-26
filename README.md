@@ -4,7 +4,7 @@ This is the repository of the game MMO(RPG) framework.
 
 Installation
 ------------
-* Install Node.JS 21
+* Install Node.JS 22
 * Install PostgreSQL 16
 * Create database enveltia (encoding UTF8, collation C)
 * Clone the project from GitHub
