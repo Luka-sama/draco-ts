@@ -30,7 +30,7 @@ export default class DB {
 	private static readonly logger = new Logger(DB);
 	private readonly postgres: Sql<Record<string, PostgresType> extends {
 		bigint: PostgresType<bigint>
-	} ? {} : any>;
+	} ? Record<string, never> : any>;
 
 	/** Connects to the database */
 	public constructor(dbUrl: string) {
@@ -227,7 +227,7 @@ export default class DB {
 	}
 
 	/** Drops the given index using the given options */
-	public async dropIndex(indexName: string, options?: Partial<DropIndexOptions>) {
+	public async dropIndex(indexName: string, options?: Partial<DropIndexOptions>): Promise<void> {
 		const {sql, name} = this;
 		const ifExists = (options?.ifExists ? sql`IF EXISTS ` : sql``);
 		await this.query(sql`DROP INDEX ${ifExists}${name(indexName)}`);

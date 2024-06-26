@@ -13,7 +13,7 @@ import {DBValue} from "./db.typings.js";
  */
 export default class Operator {
 	/** Creates an instance of some operator with one or two operands */
-	constructor(public operator: string, public operand: DBValue, public operand2?: DBValue) {
+	public constructor(public operator: string, public operand: DBValue, public operand2?: DBValue) {
 	}
 }
 
@@ -38,7 +38,7 @@ export function gte(operand: DBValue): Operator {
 }
 
 /** Between `operand1` and `operand2`. See {@link Operator} */
-export function between(operand1: DBValue, operand2: DBValue) {
+export function between(operand1: DBValue, operand2: DBValue): Operator {
 	return new Operator("BETWEEN", operand1, operand2);
 }
 

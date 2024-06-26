@@ -5,7 +5,7 @@ import {FieldType, IndexType} from "./db.typings.js";
 import {and, between, gt, or} from "./operator.js";
 
 let db: DB;
-before(async () => {
+before(() => {
 	assert.equal(process.env.NODE_ENV, "test");
 	assert(process.env.DB_URL);
 	db = new DB(process.env.DB_URL);
