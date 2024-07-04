@@ -1,6 +1,6 @@
 draco-ts
 ============================
-This is the repository of the game MMO(RPG) framework.
+This is the repository for the MMO(RPG) framework. Currently in development.
 
 Installation
 ------------
